@@ -81,8 +81,24 @@ export function resolveDevice(device: InferenceDevice): "webgpu" | "wasm" {
   return device
 }
 
+// FEATURE FLAG (feat/hf-direct-models branch): when true, skips the /models/
+// local path entirely (R2 in prod, public/models/ in dev) so transformers.js
+// fetches straight from the Hugging Face Hub via env.remoteHost. R2 serving
+// code (src/server/serve-models.ts) and the upload/download scripts are
+// untouched — flip this back to false to restore the R2-first behavior.
+//
+// Background: an earlier attempt at this (test/hf-direct-no-r2) found model
+// downloads reliably 404ing on the *.workers.dev preview domain used to test
+// it. Traced to Hugging Face's CDN blocking requests whose Referer is a
+// *.workers.dev domain (confirmed via curl — identical request succeeds with
+// Referer set to a custom domain, Cloudflare Pages, Vercel, or GitHub Pages,
+// and fails only for *.workers.dev). That's a preview-domain-specific block,
+// not a general HF CORS problem — so this is worth re-testing on the real
+// production domain (paralleltexts.app), where it's expected NOT to trigger.
+const USE_HF_DIRECT = true
+
 function configureModelEnv() {
-  env.allowLocalModels = true
+  env.allowLocalModels = !USE_HF_DIRECT
   // Allow remote so models can be fetched from HuggingFace Hub when not cached locally.
   // In production, /models/* is served from R2 first; HF is only hit as a fallback.
   env.allowRemoteModels = true
@@ -150,15 +166,22 @@ export async function downloadModel(
  *
  * Dev:  HEAD fetch against /models/ (served from public/models/ by Vite).
  *       Reflects what is actually on disk — no CacheStorage involved.
+ *       Skipped when USE_HF_DIRECT, since that path is never fetched.
  *
- * Prod: CacheStorage scan only. R2 always returns 200 for any /models/ URL,
- *       so a fetch would never reflect the user's download state. CacheStorage
- *       is populated by downloadModel() and cleared by deleteModelFromCache().
+ * Prod (and dev when USE_HF_DIRECT): CacheStorage scan only. R2 always
+ *       returns 200 for any /models/ URL, so a fetch would never reflect the
+ *       user's download state. CacheStorage is populated by downloadModel()
+ *       and cleared by deleteModelFromCache().
+ *
+ * Cache keys differ by source: the R2/local path caches under
+ * "/models/{modelId}/{filePath}", while a direct HF fetch caches under the
+ * full resolve URL "https://huggingface.co/{modelId}/resolve/main/{filePath}".
+ * Matching on "includes modelId" + "ends with filePath" covers both shapes.
  */
 export async function checkModelCached(modelId: string): Promise<boolean> {
   const filePath = "onnx/model.onnx"
 
-  if (import.meta.env.DEV) {
+  if (import.meta.env.DEV && !USE_HF_DIRECT) {
     try {
       const res = await fetch(`/models/${modelId}/${filePath}`, {
         method: "HEAD",
@@ -175,7 +198,9 @@ export async function checkModelCached(modelId: string): Promise<boolean> {
     for (const name of names) {
       const cache = await caches.open(name)
       const keys = await cache.keys()
-      if (keys.some((r) => r.url.includes(`/${modelId}/${filePath}`))) {
+      if (
+        keys.some((r) => r.url.includes(modelId) && r.url.endsWith(filePath))
+      ) {
         return true
       }
     }
