@@ -1,6 +1,6 @@
 import { AlignBooksForm } from "@/components/align-books-form"
 import { DropZone } from "@/components/drop-zone"
-import { SampleAlignmentBanner } from "@/components/sample-alignment-banner"
+import { SamplesSection } from "@/components/samples-section"
 import { Devices, X } from "@phosphor-icons/react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
@@ -18,7 +18,7 @@ function IntroBanner() {
   if (dismissed) return null
 
   return (
-    <div className="relative flex flex-col gap-4 rounded-lg border bg-card p-5 text-sm sm:flex-row sm:gap-6">
+    <div className="relative flex flex-col gap-4 rounded-lg border bg-card p-5 text-sm">
       <button
         type="button"
         onClick={() => {
@@ -30,29 +30,30 @@ function IntroBanner() {
       >
         <X className="size-3.5" />
       </button>
-      <img
-        src="/samples/tlp-01.png"
-        alt="ParalleTexts side-by-side reading view"
-        className="h-40 w-full rounded bg-muted/30 object-contain sm:h-80 sm:w-auto sm:shrink-0"
-      />
-      <div className="flex flex-1 flex-col justify-between pr-6 sm:my-3">
-        <p className="leading-relaxed text-foreground">
-          <span className="font-medium">ParallelTexts</span> aligns two books in
-          different languages sentence-by-sentence, so you can read them side by
-          side.
-        </p>
-        <div className="space-y-2">
-          <p className="leading-relaxed text-muted-foreground">
-            To begin, upload two files below — a book and its translation.
+      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+        <img
+          src="/samples/tlp-01.png"
+          alt="ParalleTexts side-by-side reading view"
+          className="h-40 w-full rounded bg-muted/30 object-contain sm:h-80 sm:w-auto sm:shrink-0"
+        />
+        <div className="flex flex-1 flex-col justify-between pr-6 sm:my-3">
+          <p className="leading-relaxed text-foreground">
+            Align two books sentence-by-sentence.
           </p>
-          <Link
-            to="/about"
-            className="font-medium text-primary underline-offset-4 hover:underline"
-          >
-            Read more →
-          </Link>
+          <div className="space-y-2">
+            <p className="leading-relaxed text-muted-foreground">
+              To begin, upload two files below — a book and its translation.
+            </p>
+            <Link
+              to="/about"
+              className="font-medium text-primary underline-offset-4 hover:underline"
+            >
+              Read more →
+            </Link>
+          </div>
         </div>
       </div>
+      <SamplesSection />
     </div>
   )
 }
@@ -70,7 +71,7 @@ function App() {
           </span>
         </div>
         <IntroBanner />
-        <SampleAlignmentBanner />
+        {/* <SampleAlignmentBanner /> */}
         <DropZone />
         <AlignBooksForm />
       </div>

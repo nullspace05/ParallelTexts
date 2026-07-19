@@ -104,7 +104,7 @@ export function DropZone() {
   return (
     <div
       {...getRootProps()}
-      className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/30 bg-muted/30 p-8 transition-colors hover:border-muted-foreground/50 hover:bg-muted/50 ${isDragActive ? "border-primary bg-muted" : ""} ${status === "loading" ? "pointer-events-none opacity-70" : ""} `}
+      className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-lg border-1 border-dashed border-muted-foreground/30 bg-muted/30 p-8 transition-colors hover:border-muted-foreground/50 hover:bg-muted/50 ${isDragActive ? "border-primary bg-muted" : ""} ${status === "loading" ? "pointer-events-none opacity-70" : ""} `}
     >
       <input {...getInputProps()} />
       <FileArrowUp className="mb-2 size-10 text-muted-foreground" />
