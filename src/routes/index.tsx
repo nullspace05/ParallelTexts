@@ -36,14 +36,15 @@ function IntroBanner() {
         <img
           src="/samples/tlp-01.png"
           alt="ParallelTexts side-by-side reading view"
-          className="h-44 w-full rounded-lg bg-muted/40 object-contain sm:h-72 sm:w-auto sm:max-w-[55%] sm:shrink-0"
+          className="h-44 w-full rounded-lg object-contain sm:h-72 sm:w-auto sm:max-w-[55%] sm:shrink-0"
         />
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <h1 className="text-xl leading-snug font-medium tracking-tight text-foreground sm:text-2xl">
             Align two books sentence-by-sentence.
           </h1>
           <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
-            To begin, upload two files below — a book and its translation.
+            To begin, upload two files below — a book and its translation, or
+            try one of the examples below.
           </p>
           <Link
             to="/about"

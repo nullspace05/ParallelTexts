@@ -1,6 +1,6 @@
 import { parsePtEpub } from "@/lib/pt-epub"
 import { addAlignment } from "@/store/alignments"
-import { ArrowRight, BookOpen } from "@phosphor-icons/react"
+import { ArrowUpRight, BookOpen, CircleNotch } from "@phosphor-icons/react"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -60,32 +60,51 @@ export function SamplesSection() {
           type="button"
           onClick={openSample}
           disabled={loading}
-          className="group flex min-h-[140px] cursor-pointer flex-col items-start rounded-lg border bg-muted/20 p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-wait disabled:opacity-60"
+          aria-label="View example"
+          className="group cursor-pointer rounded-lg border bg-muted/20 p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-wait disabled:opacity-60"
         >
-          <span className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-            <BookOpen className="size-3" />
-            Example
-          </span>
-          <p className="mt-2.5 text-sm leading-snug font-medium">
-            銀河鉄道の夜
-          </p>
-          <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
-            Night on the Galactic Railroad
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground/70">
-            Japanese ↔ English
-          </p>
-          <span className="mt-auto flex items-center gap-1 pt-3 text-xs font-medium text-primary">
-            {loading ? "Opening…" : "View example"}
-            <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
-          </span>
+          <div className="flex w-full items-start justify-between gap-2">
+            <span className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
+              <BookOpen className="size-3" />
+              Example
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                JP
+              </span>
+              <span className="text-[10px] text-muted-foreground/50">↔</span>
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+                EN
+              </span>
+            </span>
+          </div>
+          <div className="mt-2.5 flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm leading-snug font-medium">銀河鉄道の夜</p>
+              <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+                Night on the Galactic Railroad
+              </p>
+            </div>
+            {loading ? (
+              <CircleNotch
+                className="size-4 shrink-0 animate-spin text-primary"
+                aria-hidden
+              />
+            ) : (
+              <ArrowUpRight
+                weight="bold"
+                className="size-4 shrink-0 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                aria-hidden
+              />
+            )}
+          </div>
         </button>
 
         {["More examples coming soon", "More examples coming soon"].map(
           (label, i) => (
             <div
               key={i}
-              className="flex min-h-[140px] flex-col items-start rounded-lg border border-dashed border-muted-foreground/20 bg-transparent p-4 text-left"
+              className="flex flex-col items-start rounded-lg border border-dashed border-muted-foreground/20 bg-transparent p-4 text-left"
             >
               <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                 Coming soon
