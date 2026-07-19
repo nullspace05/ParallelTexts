@@ -1,12 +1,52 @@
+import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
 import { parsePtEpub } from "@/lib/pt-epub"
+import { cn } from "@/lib/utils"
 import { addAlignment } from "@/store/alignments"
-import { ArrowUpRight, BookOpen, CircleNotch } from "@phosphor-icons/react"
+import { BookOpen, CircleNotch } from "@phosphor-icons/react"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 
 const GALACTIC_RAILROAD_URL =
   "/pd-books/" +
   encodeURIComponent("銀河鉄道の夜-aozora_night-galactic_ja-en_align.epub")
+
+function SampleDot({
+  colorClass,
+  loading,
+}: {
+  colorClass: string
+  loading?: boolean
+}) {
+  if (loading) {
+    return (
+      <CircleNotch
+        className="size-[1em] shrink-0 animate-spin text-primary"
+        aria-hidden
+      />
+    )
+  }
+
+  return (
+    <span
+      className={cn("size-[1em] shrink-0 rounded-full", colorClass)}
+      aria-hidden
+    />
+  )
+}
+
+function LangBadges() {
+  return (
+    <span className="flex items-center gap-1.5">
+      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        JP
+      </span>
+      <span className="text-[10px] text-muted-foreground/50">↔</span>
+      <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
+        EN
+      </span>
+    </span>
+  )
+}
 
 export function SamplesSection() {
   const navigate = useNavigate()
@@ -68,35 +108,21 @@ export function SamplesSection() {
               <BookOpen className="size-3" />
               Example
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                JP
-              </span>
-              <span className="text-[10px] text-muted-foreground/50">↔</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                EN
-              </span>
-            </span>
+            <LangBadges />
           </div>
-          <div className="mt-2.5 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm leading-snug font-medium">銀河鉄道の夜</p>
-              <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
+          <div className="mt-2.5 w-full min-w-0">
+            <p className="truncate text-sm leading-snug font-medium">
+              銀河鉄道の夜
+            </p>
+            <p className="mt-0.5 flex w-full min-w-0 items-center justify-between gap-2 text-sm leading-snug text-muted-foreground">
+              <span className="min-w-0 truncate">
                 Night on the Galactic Railroad
-              </p>
-            </div>
-            {loading ? (
-              <CircleNotch
-                className="size-4 shrink-0 animate-spin text-primary"
-                aria-hidden
+              </span>
+              <SampleDot
+                colorClass={SAMPLE_CARD_DOT_COLORS[0]}
+                loading={loading}
               />
-            ) : (
-              <ArrowUpRight
-                weight="bold"
-                className="size-4 shrink-0 text-primary transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-                aria-hidden
-              />
-            )}
+            </p>
           </div>
         </button>
 
@@ -104,12 +130,15 @@ export function SamplesSection() {
           (label, i) => (
             <div
               key={i}
-              className="flex flex-col items-start rounded-lg border border-dashed border-muted-foreground/20 bg-transparent p-4 text-left"
+              className="rounded-lg border border-dashed border-muted-foreground/20 bg-transparent p-4 text-left"
             >
               <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                 Coming soon
               </span>
-              <p className="mt-2.5 text-sm text-muted-foreground/80">{label}</p>
+              <p className="mt-2.5 flex w-full min-w-0 items-center justify-between gap-2 text-sm leading-snug text-muted-foreground/80">
+                <span className="min-w-0 truncate">{label}</span>
+                <SampleDot colorClass={SAMPLE_CARD_DOT_COLORS[i + 1]} />
+              </p>
             </div>
           )
         )}

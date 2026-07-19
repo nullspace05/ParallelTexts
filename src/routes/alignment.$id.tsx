@@ -4,6 +4,7 @@ import {
   searchAlignmentParagraphs,
   type ParagraphData,
 } from "@/lib/alignment-paragraphs"
+import { EQUIVALENCE_PALETTE } from "@/lib/equivalence-palette"
 import {
   PaginatedReader,
   ReaderSkeleton,
@@ -619,49 +620,6 @@ function AlignmentPage() {
 // of a pair since both spans are keyed off the same global pair number.
 // Unmatched pairs (no counterpart on the other side) never get a color —
 // there's nothing to link them to.
-const EQUIVALENCE_PALETTE = [
-  {
-    base: "bg-pink-100 dark:bg-pink-900/40",
-    hover: "bg-pink-300 dark:bg-pink-700/70",
-  },
-  {
-    base: "bg-blue-100 dark:bg-blue-900/40",
-    hover: "bg-blue-300 dark:bg-blue-700/70",
-  },
-  {
-    base: "bg-orange-100 dark:bg-orange-900/40",
-    hover: "bg-orange-300 dark:bg-orange-700/70",
-  },
-  {
-    base: "bg-violet-100 dark:bg-violet-900/40",
-    hover: "bg-violet-300 dark:bg-violet-700/70",
-  },
-  {
-    base: "bg-amber-100 dark:bg-amber-900/40",
-    hover: "bg-amber-300 dark:bg-amber-700/70",
-  },
-  {
-    base: "bg-indigo-100 dark:bg-indigo-900/40",
-    hover: "bg-indigo-300 dark:bg-indigo-700/70",
-  },
-  {
-    base: "bg-red-100 dark:bg-red-900/40",
-    hover: "bg-red-300 dark:bg-red-700/70",
-  },
-  {
-    base: "bg-purple-100 dark:bg-purple-900/40",
-    hover: "bg-purple-300 dark:bg-purple-700/70",
-  },
-  {
-    base: "bg-rose-100 dark:bg-rose-900/40",
-    hover: "bg-rose-300 dark:bg-rose-700/70",
-  },
-  {
-    base: "bg-fuchsia-100 dark:bg-fuchsia-900/40",
-    hover: "bg-fuchsia-300 dark:bg-fuchsia-700/70",
-  },
-]
-
 function SideBySideSentence({
   text,
   number,
