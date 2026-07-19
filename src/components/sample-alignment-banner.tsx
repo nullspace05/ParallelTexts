@@ -1,24 +1,24 @@
-import { extractEpubMetadata } from "@/lib/epub"
 import { extractAndSplit, type RegexRule } from "@/lib/alignment-pipeline"
-import { addBook } from "@/store/books"
-import { addAlignment } from "@/store/alignments"
-import {
-  checkModelCached,
-  downloadModel,
-  MODEL_REGISTRY,
-  resolveDevice,
-} from "@/utils/model"
+import { extractEpubMetadata } from "@/lib/epub"
 import { getStoredMaxSentences } from "@/lib/user-settings"
-import AlignmentWorker from "@/workers/alignment.worker?worker"
-import type { AlignWorkerOutput } from "@/workers/alignment.worker"
+import { addAlignment } from "@/store/alignments"
+import { addBook } from "@/store/books"
 import type {
   AlignedPair,
   AlignmentMeta,
   AlignmentResult,
 } from "@/types/alignment"
 import type { Book } from "@/types/book"
-import { useNavigate } from "@tanstack/react-router"
+import {
+  checkModelCached,
+  downloadModel,
+  MODEL_REGISTRY,
+  resolveDevice,
+} from "@/utils/model"
+import type { AlignWorkerOutput } from "@/workers/alignment.worker"
+import AlignmentWorker from "@/workers/alignment.worker?worker"
 import { BookOpen, CheckCircle, Warning, X } from "@phosphor-icons/react"
+import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { Button } from "./ui/button"
 
@@ -297,7 +297,7 @@ export function SampleAlignmentBanner() {
   return (
     <>
       {/* Trigger row */}
-      <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/20 px-4 py-3 text-sm">
+      <div className="flex items-center gap-2 rounded-lg border bg-card px-4 py-3 text-sm">
         <BookOpen className="size-4 shrink-0 text-muted-foreground" />
         <span className="flex-1 text-muted-foreground">
           New here?{" "}

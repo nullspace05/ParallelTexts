@@ -70,8 +70,8 @@ function App() {
           </span>
         </div>
         <IntroBanner />
-        <DropZone />
         <SampleAlignmentBanner />
+        <DropZone />
         <AlignBooksForm />
       </div>
     </div>
