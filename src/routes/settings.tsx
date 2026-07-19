@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { useTheme } from "@/components/theme-provider"
 import { db } from "@/lib/db"
 import {
   DEFAULT_FONT_SIZE,
@@ -15,6 +16,7 @@ import {
   setStoredMaxSentences,
   setStoredModelId,
 } from "@/lib/user-settings"
+import type { Theme } from "@/lib/theme"
 import {
   checkModelCached,
   deleteModelFromCache,
@@ -22,6 +24,7 @@ import {
   downloadModel,
   MODEL_REGISTRY,
 } from "@/utils/model"
+import { Desktop, Moon, Sun } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
@@ -37,6 +40,16 @@ interface DownloadState {
   progress: number
   message?: string
 }
+
+const THEME_OPTIONS: {
+  value: Theme
+  label: string
+  icon: React.ElementType
+}[] = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "System", icon: Desktop },
+]
 
 const DEVICE_OPTIONS: {
   value: DevicePreference
@@ -61,6 +74,7 @@ const DEVICE_OPTIONS: {
 ]
 
 function SettingsPage() {
+  const { theme, setTheme } = useTheme()
   const [modelId, setModelId] = useState(() => getStoredModelId())
   const [maxSentences, setMaxSentences] = useState(() =>
     getStoredMaxSentences()
@@ -169,6 +183,35 @@ function SettingsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-10 px-4 py-8">
       <h1 className="text-2xl font-light tracking-tight">Settings</h1>
+
+      {/* ── Appearance ── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Appearance</h2>
+        <p className="text-sm text-muted-foreground">
+          Choose how ParallelTexts looks. "System" matches your OS setting.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {THEME_OPTIONS.map((opt) => {
+            const isSelected = theme === opt.value
+            const Icon = opt.icon
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setTheme(opt.value)}
+                className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors ${
+                  isSelected
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-background hover:bg-muted"
+                }`}
+              >
+                <Icon className="size-4" />
+                {opt.label}
+              </button>
+            )
+          })}
+        </div>
+      </section>
 
       {/* ── Model ── */}
       <section className="space-y-3">

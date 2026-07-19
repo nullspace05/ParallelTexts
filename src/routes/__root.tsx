@@ -1,6 +1,8 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
 import { Header } from "@/components/header"
+import { ThemeProvider } from "@/components/theme-provider"
+import { THEME_INIT_SCRIPT } from "@/lib/theme"
 import { PostHogProvider } from "@posthog/react"
 import appCss from "../styles.css?url"
 
@@ -75,24 +77,29 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       options={options}
     >
       {" "}
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <head>
           <HeadContent />
+          {/* Runs before hydration so the correct theme class is present
+              for first paint — avoids a light/dark flash. */}
+          <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         </head>
         <body>
-          <Header />
-          <main className="flex-1">{children}</main>
-          {/* <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        /> */}
+          <ThemeProvider>
+            <Header />
+            <main className="flex-1">{children}</main>
+            {/* <TanStackDevtools
+            config={{
+              position: "bottom-right",
+            }}
+            plugins={[
+              {
+                name: "Tanstack Router",
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+          /> */}
+          </ThemeProvider>
           <Scripts />
         </body>
       </html>
