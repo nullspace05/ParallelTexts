@@ -50,13 +50,12 @@ function AboutPage() {
             height={56}
             className="size-14 shrink-0 rounded-lg"
           />
-          <h1 className="text-2xl font-light tracking-tight">
-            About ParallelTexts
-          </h1>
+          <h1 className="text-2xl font-bold tracking-tight">ParallelTexts</h1>
         </div>
         <p className="leading-relaxed text-muted-foreground">
-          A free, fully in-browser tool for creating parallel texts from two
-          books in different languages — no accounts, no uploads, no Python.
+          A free and open-source, fully in-browser tool for creating parallel
+          texts from two books in different languages — no accounts, no uploads,
+          no Python.
         </p>
         <img
           src="/samples/aiw-01.png"

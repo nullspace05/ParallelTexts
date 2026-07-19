@@ -9,27 +9,41 @@ export const Route = createFileRoute("/")({ component: App })
 
 const INTRO_KEY = "intro-dismissed"
 
-function IntroBanner() {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window === "undefined") return false
-    return localStorage.getItem(INTRO_KEY) === "1"
-  })
+function AppBrand() {
+  return (
+    <div className="flex items-center gap-2.5">
+      <img
+        src="/favicon-96x96.png"
+        alt=""
+        width={24}
+        height={24}
+        className="size-6 shrink-0 rounded-sm"
+      />
+      <span className="text-base font-semibold tracking-tight text-foreground">
+        ParallelTexts
+      </span>
+    </div>
+  )
+}
 
-  if (dismissed) return null
-
+function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
   return (
     <div className="relative overflow-hidden rounded-xl border bg-card">
       <button
         type="button"
         onClick={() => {
           localStorage.setItem(INTRO_KEY, "1")
-          setDismissed(true)
+          onDismiss()
         }}
         className="absolute top-4 right-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label="Dismiss"
       >
         <X className="size-4" />
       </button>
+
+      <div className="border-b px-6 py-4 pr-12">
+        <AppBrand />
+      </div>
 
       {/* Hero */}
       <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:pr-12">
@@ -64,6 +78,11 @@ function IntroBanner() {
 }
 
 function App() {
+  const [introDismissed, setIntroDismissed] = useState(() => {
+    if (typeof window === "undefined") return false
+    return localStorage.getItem(INTRO_KEY) === "1"
+  })
+
   return (
     <div className="min-h-[calc(100svh-56px)] bg-muted/20 px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-4xl space-y-8">
@@ -76,10 +95,13 @@ function App() {
           </span>
         </div>
 
-        <IntroBanner />
+        {!introDismissed && (
+          <IntroBanner onDismiss={() => setIntroDismissed(true)} />
+        )}
 
         {/* Workflow: upload → align (tighter gap = one unit) */}
         <div className="space-y-3">
+          {introDismissed && <AppBrand />}
           <DropZone />
           <AlignBooksForm />
         </div>
