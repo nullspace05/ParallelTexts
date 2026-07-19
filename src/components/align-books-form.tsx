@@ -383,11 +383,11 @@ export function AlignBooksForm() {
       : null
 
   return (
-    <div className="rounded-lg border bg-card p-6">
-      <div className="mb-5 flex items-center gap-3">
-        <h2 className="text-lg font-semibold">Align books</h2>
+    <div className="rounded-xl border bg-card p-6">
+      <div className="mb-5 flex items-center gap-2.5">
+        <h2 className="text-base font-semibold tracking-tight">Align books</h2>
         <span
-          className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+          className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
             device === "webgpu"
               ? "bg-primary/10 text-primary"
               : "bg-muted text-muted-foreground"

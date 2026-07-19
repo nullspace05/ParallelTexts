@@ -18,50 +18,54 @@ function IntroBanner() {
   if (dismissed) return null
 
   return (
-    <div className="relative flex flex-col gap-4 rounded-lg border bg-card p-5 text-sm">
+    <div className="relative overflow-hidden rounded-xl border bg-card">
       <button
         type="button"
         onClick={() => {
           localStorage.setItem(INTRO_KEY, "1")
           setDismissed(true)
         }}
-        className="absolute top-3 right-3 rounded-full bg-background/80 p-0.5 text-muted-foreground backdrop-blur-sm transition-colors hover:bg-muted hover:text-foreground"
+        className="absolute top-4 right-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label="Dismiss"
       >
-        <X className="size-3.5" />
+        <X className="size-4" />
       </button>
-      <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+
+      {/* Hero */}
+      <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:pr-12">
         <img
           src="/samples/tlp-01.png"
-          alt="ParalleTexts side-by-side reading view"
-          className="h-40 w-full rounded bg-muted/30 object-contain sm:h-80 sm:w-auto sm:shrink-0"
+          alt="ParallelTexts side-by-side reading view"
+          className="h-44 w-full rounded-lg bg-muted/40 object-contain sm:h-72 sm:w-auto sm:max-w-[55%] sm:shrink-0"
         />
-        <div className="flex flex-1 flex-col justify-between pr-6 sm:my-3">
-          <p className="leading-relaxed text-foreground">
+        <div className="flex min-w-0 flex-1 flex-col gap-3">
+          <h1 className="text-xl leading-snug font-medium tracking-tight text-foreground sm:text-2xl">
             Align two books sentence-by-sentence.
+          </h1>
+          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+            To begin, upload two files below — a book and its translation.
           </p>
-          <div className="space-y-2">
-            <p className="leading-relaxed text-muted-foreground">
-              To begin, upload two files below — a book and its translation.
-            </p>
-            <Link
-              to="/about"
-              className="font-medium text-primary underline-offset-4 hover:underline"
-            >
-              Read more →
-            </Link>
-          </div>
+          <Link
+            to="/about"
+            className="w-fit text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Read more →
+          </Link>
         </div>
       </div>
-      <SamplesSection />
+
+      {/* Samples — part of the dismissible intro */}
+      <div className="border-t px-6 pt-5 pb-6">
+        <SamplesSection />
+      </div>
     </div>
   )
 }
 
 function App() {
   return (
-    <div className="min-h-[calc(100svh-56px)] bg-muted/20 p-6">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className="min-h-[calc(100svh-56px)] bg-muted/20 px-4 py-8 sm:px-6">
+      <div className="mx-auto max-w-4xl space-y-8">
         {/* Mobile notice — hidden on sm+ */}
         <div className="flex items-start gap-2 rounded-lg border border-amber-300/50 bg-amber-50/80 px-3 py-2.5 text-xs text-amber-800 md:hidden dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-300">
           <Devices className="mt-0.5 size-4 shrink-0" />
@@ -70,10 +74,14 @@ function App() {
             a full keyboard and more RAM.
           </span>
         </div>
+
         <IntroBanner />
-        {/* <SampleAlignmentBanner /> */}
-        <DropZone />
-        <AlignBooksForm />
+
+        {/* Workflow: upload → align (tighter gap = one unit) */}
+        <div className="space-y-3">
+          <DropZone />
+          <AlignBooksForm />
+        </div>
       </div>
     </div>
   )

@@ -50,28 +50,34 @@ export function SamplesSection() {
   }
 
   return (
-    <div className="space-y-3 pt-4">
-      <h2 className="text-sm font-medium text-muted-foreground">Samples</h2>
+    <div className="space-y-3">
+      <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+        Samples
+      </h2>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <button
           type="button"
           onClick={openSample}
           disabled={loading}
-          className="group flex cursor-pointer flex-col items-start gap-1.5 rounded-lg border bg-card p-4 text-left transition-colors hover:border-primary/50 hover:bg-muted/30 disabled:cursor-wait disabled:opacity-60"
+          className="group flex min-h-[140px] cursor-pointer flex-col items-start rounded-lg border bg-muted/20 p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-wait disabled:opacity-60"
         >
           <span className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
             <BookOpen className="size-3" />
             Example
           </span>
-          <p className="mt-1 font-medium">銀河鉄道の夜</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-2.5 text-sm leading-snug font-medium">
+            銀河鉄道の夜
+          </p>
+          <p className="mt-0.5 text-sm leading-snug text-muted-foreground">
             Night on the Galactic Railroad
           </p>
-          <p className="text-xs text-muted-foreground/70">Japanese ↔ English</p>
-          <span className="mt-2 flex items-center gap-1 text-xs font-medium text-primary">
+          <p className="mt-1 text-xs text-muted-foreground/70">
+            Japanese ↔ English
+          </p>
+          <span className="mt-auto flex items-center gap-1 pt-3 text-xs font-medium text-primary">
             {loading ? "Opening…" : "View example"}
-            <ArrowRight className="size-3" />
+            <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
           </span>
         </button>
 
@@ -79,12 +85,12 @@ export function SamplesSection() {
           (label, i) => (
             <div
               key={i}
-              className="flex flex-col items-start gap-1.5 rounded-lg border border-dashed bg-muted/10 p-4 text-left opacity-60"
+              className="flex min-h-[140px] flex-col items-start rounded-lg border border-dashed border-muted-foreground/20 bg-transparent p-4 text-left"
             >
               <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
                 Coming soon
               </span>
-              <p className="mt-1 font-medium text-muted-foreground">{label}</p>
+              <p className="mt-2.5 text-sm text-muted-foreground/80">{label}</p>
             </div>
           )
         )}
