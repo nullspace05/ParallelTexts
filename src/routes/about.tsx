@@ -49,6 +49,11 @@ function AboutPage() {
           A free, fully in-browser tool for creating parallel texts from two
           books in different languages — no accounts, no uploads, no Python.
         </p>
+        <img
+          src="/samples/aiw-01.png"
+          alt="ParallelTexts side-by-side view of Alice in Wonderland in Japanese and English"
+          className="w-full rounded-lg"
+        />
       </div>
 
       <div className="space-y-8">
