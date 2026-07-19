@@ -1,0 +1,23 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "parallel-texts",
+	"compatibility_date": "2026-06-10",
+	"observability": {
+		"enabled": true,
+	},
+	"main": "src/server.ts",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"r2_buckets": [
+		{
+			"binding": "MODELS",
+			"bucket_name": "parallel-texts-models",
+		},
+		{
+			"bucket_name": "parallel-texts-models",
+			"binding": "parallel_texts_models",
+			"remote": true
+		},
+	],
+}
