@@ -44,11 +44,9 @@ function AboutPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-3">
           <img
-            src="/favicon-96x96.png"
+            src="/favicon.svg"
             alt=""
-            width={56}
-            height={56}
-            className="size-14 shrink-0 rounded-lg"
+            className="size-14 shrink-0 rounded-sm"
           />
           <h1 className="text-2xl font-bold tracking-tight">ParallelTexts</h1>
         </div>
