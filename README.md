@@ -8,7 +8,7 @@
   </a>
 </p>
 
-# ParallelTexts
+# <img src="public/favicon-96x96.png" alt="" width="32" height="32" valign="middle"> ParallelTexts
 
 A free, fully in-browser tool for aligning two books in different languages sentence-by-sentence for creating [Parallel Texts](https://en.wikipedia.org/wiki/Parallel_text).
 

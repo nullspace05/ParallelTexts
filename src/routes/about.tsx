@@ -1,5 +1,4 @@
 import { GITHUB_REPO_URL } from "@/lib/site-links"
-import { createFileRoute, Link } from "@tanstack/react-router"
 import {
   BookOpen,
   Brain,
@@ -8,6 +7,7 @@ import {
   GitMerge,
   Users,
 } from "@phosphor-icons/react"
+import { createFileRoute, Link } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/about")({ component: AboutPage })
 
@@ -42,9 +42,18 @@ function AboutPage() {
     <div className="mx-auto max-w-2xl space-y-10 px-4 py-10">
       {/* Hero */}
       <div className="space-y-3">
-        <h1 className="text-2xl font-light tracking-tight">
-          About ParallelTexts
-        </h1>
+        <div className="flex items-center gap-3">
+          <img
+            src="/favicon-96x96.png"
+            alt=""
+            width={56}
+            height={56}
+            className="size-14 shrink-0 rounded-lg"
+          />
+          <h1 className="text-2xl font-light tracking-tight">
+            About ParallelTexts
+          </h1>
+        </div>
         <p className="leading-relaxed text-muted-foreground">
           A free, fully in-browser tool for creating parallel texts from two
           books in different languages — no accounts, no uploads, no Python.

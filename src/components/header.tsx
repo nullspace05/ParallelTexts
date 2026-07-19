@@ -5,7 +5,6 @@ import {
   Books,
   Gear,
   GithubLogo,
-  House,
   Info,
 } from "@phosphor-icons/react"
 
@@ -19,8 +18,12 @@ export function Header() {
   return (
     <header className="flex items-center justify-between border-b bg-background px-4 py-3 sm:px-8">
       <div className="flex items-center gap-1 sm:gap-2">
-        <Link to="/" className={`${iconLinkClass} mr-1 sm:mr-2`}>
-          <House size={22} />
+        <Link
+          to="/"
+          aria-label="Home"
+          className={`${iconLinkClass} mr-1 sm:mr-2`}
+        >
+          <img src="/favicon.svg" alt="" className="size-[22px] rounded-sm" />
         </Link>
         <Link to="/books" className={navLinkClass}>
           <Books size={18} />
