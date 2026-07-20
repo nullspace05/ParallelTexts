@@ -2,8 +2,14 @@ import type { AlignProgressEvent, RegexRule } from "@/lib/alignment-pipeline"
 import { extractAndSplit } from "@/lib/alignment-pipeline"
 import { db } from "@/lib/db"
 import { extractEpubContent } from "@/lib/epub"
+import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
 import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
+import {
+  getStoredDevice,
+  getStoredMaxSentences,
+  getStoredModelId,
+} from "@/lib/user-settings"
 import { addAlignment } from "@/store/alignments"
 import type {
   AlignedPair,
@@ -12,19 +18,14 @@ import type {
 } from "@/types/alignment"
 import type { Book } from "@/types/book"
 import {
-  getStoredDevice,
-  getStoredMaxSentences,
-  getStoredModelId,
-} from "@/lib/user-settings"
-import {
   checkModelCached,
   detectWebGPU,
   downloadModel,
   MODEL_REGISTRY,
   resolveDevice,
 } from "@/utils/model"
-import { Link, useNavigate } from "@tanstack/react-router"
-import { useLiveQuery } from "dexie-react-hooks"
+import type { AlignWorkerOutput } from "@/workers/alignment.worker"
+import AlignmentWorker from "@/workers/alignment.worker?worker"
 import {
   ArrowsLeftRight,
   CaretDown,
@@ -33,9 +34,10 @@ import {
   Trash,
   Warning,
 } from "@phosphor-icons/react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { useLiveQuery } from "dexie-react-hooks"
 import { useEffect, useRef, useState } from "react"
-import AlignmentWorker from "@/workers/alignment.worker?worker"
-import type { AlignWorkerOutput } from "@/workers/alignment.worker"
+import { SampleDot } from "./samples-section"
 import { Button } from "./ui/button"
 
 const LANGUAGES = [
@@ -385,6 +387,7 @@ export function AlignBooksForm() {
   return (
     <div className="rounded-xl border bg-card p-6">
       <div className="mb-5 flex items-center gap-2.5">
+        <SampleDot colorClass={SAMPLE_CARD_DOT_COLORS[2]} loading={false} />
         <h2 className="text-base font-semibold tracking-tight">Align books</h2>
         <span
           className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${

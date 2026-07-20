@@ -10,7 +10,7 @@ const GALACTIC_RAILROAD_URL =
   "/pd-books/" +
   encodeURIComponent("銀河鉄道の夜-aozora_night-galactic_ja-en_align.epub")
 
-function SampleDot({
+export function SampleDot({
   colorClass,
   loading,
 }: {
