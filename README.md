@@ -1,7 +1,7 @@
 <p align="center">
-  <a href="assets/tlp-01.png">
+  <a href="public/pt-og-image.png">
     <img
-      src="assets/tlp-01.png"
+      src="public/pt-og-image.png"
       alt="ParallelTexts — The Little Prince sample alignment"
       width="900"
     />
