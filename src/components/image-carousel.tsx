@@ -2,6 +2,26 @@ import type { SampleImage } from "@/lib/sample-images"
 import { CaretLeft, CaretRight, X } from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
 
+function NavButton({
+  direction,
+  onClick,
+}: {
+  direction: "prev" | "next"
+  onClick: () => void
+}) {
+  const Icon = direction === "prev" ? CaretLeft : CaretRight
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={direction === "prev" ? "Previous image" : "Next image"}
+      className="rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+    >
+      <Icon className="size-5" />
+    </button>
+  )
+}
+
 export function ImageCarousel({
   images,
   initialIndex,
@@ -12,6 +32,7 @@ export function ImageCarousel({
   onClose: () => void
 }) {
   const [index, setIndex] = useState(initialIndex)
+  const hasMultiple = images.length > 1
 
   function goPrev() {
     setIndex((i) => (i - 1 + images.length) % images.length)
@@ -42,7 +63,7 @@ export function ImageCarousel({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 p-4"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/90 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -56,35 +77,38 @@ export function ImageCarousel({
         <X className="size-5" />
       </button>
 
-      {images.length > 1 && (
+      {/* Side arrows — desktop only, to avoid overlapping the image on
+          narrow screens */}
+      {hasMultiple && (
         <>
-          <button
-            type="button"
-            onClick={goPrev}
-            aria-label="Previous image"
-            className="absolute top-1/2 left-2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20 sm:left-4"
-          >
-            <CaretLeft className="size-5" />
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            aria-label="Next image"
-            className="absolute top-1/2 right-2 -translate-y-1/2 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20 sm:right-4"
-          >
-            <CaretRight className="size-5" />
-          </button>
+          <div className="absolute top-1/2 left-4 hidden -translate-y-1/2 sm:block">
+            <NavButton direction="prev" onClick={goPrev} />
+          </div>
+          <div className="absolute top-1/2 right-4 hidden -translate-y-1/2 sm:block">
+            <NavButton direction="next" onClick={goNext} />
+          </div>
         </>
       )}
 
       <img
         src={current.src}
         alt={current.alt}
-        className="max-h-[80vh] max-w-[92vw] rounded-lg object-contain shadow-2xl sm:max-w-[85vw]"
+        className="max-h-[70vh] max-w-[92vw] rounded-lg object-contain shadow-2xl sm:max-h-[80vh] sm:max-w-[85vw]"
       />
 
-      {images.length > 1 && (
-        <p className="mt-4 text-sm text-white/70 tabular-nums">
+      {/* Prev / counter / next — mobile only, stacked below the image */}
+      {hasMultiple && (
+        <div className="flex items-center gap-6 sm:hidden">
+          <NavButton direction="prev" onClick={goPrev} />
+          <p className="text-sm text-white/70 tabular-nums">
+            {index + 1} / {images.length}
+          </p>
+          <NavButton direction="next" onClick={goNext} />
+        </div>
+      )}
+
+      {hasMultiple && (
+        <p className="hidden text-sm text-white/70 tabular-nums sm:block">
           {index + 1} / {images.length}
         </p>
       )}
