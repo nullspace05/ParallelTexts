@@ -147,6 +147,8 @@ ttu-ttu/ebook-reader) are listed in
 
 ## Acknowledgements
 
+**ParallelTexts would not exist without [Transformers.js](https://github.com/huggingface/transformers.js).** The whole alignment pipeline — multilingual sentence embeddings, ONNX inference, running entirely in the browser with no backend — is built on `@huggingface/transformers`. 
+
 Parts of the paginated book reader and reading-progress system are adapted from
 [ttu-ttu/ebook-reader](https://github.com/ttu-ttu/ebook-reader) (BSD-3-Clause),
 including:
