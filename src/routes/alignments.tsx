@@ -1,4 +1,7 @@
 import { AlignBooksForm } from "@/components/align-books-form"
+import { SampleDot } from "@/components/samples-section"
+import { Button } from "@/components/ui/button"
+import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
 import { parseTsv } from "@/lib/import-tsv"
 import { parsePtEpub } from "@/lib/pt-epub"
 import {
@@ -12,8 +15,6 @@ import type {
   AlignmentRecord,
 } from "@/types/alignment"
 import { MODEL_REGISTRY } from "@/utils/model"
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useLiveQuery } from "dexie-react-hooks"
 import {
   ArrowsLeftRight,
   CheckCircle,
@@ -24,8 +25,9 @@ import {
   WarningCircle,
   X,
 } from "@phosphor-icons/react"
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
+import { useLiveQuery } from "dexie-react-hooks"
 import { useCallback, useRef, useState } from "react"
-import { Button } from "@/components/ui/button"
 
 const LANGUAGES = [
   { code: "ja", label: "Japanese" },
@@ -64,7 +66,12 @@ function AlignmentsPage() {
       <AlignBooksForm />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-light tracking-tight">Alignment history</h1>
+        <div className="flex items-center gap-2">
+          <SampleDot colorClass={SAMPLE_CARD_DOT_COLORS[1]} loading={false} />
+          <h1 className="text-xl font-light tracking-tight">
+            Alignment history
+          </h1>
+        </div>
         <Button
           variant="outline"
           size="sm"
