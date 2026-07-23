@@ -21,21 +21,16 @@ export function ClickableSampleImage({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group block w-full cursor-zoom-in"
+        className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg"
         aria-label="View more samples"
       >
-        <img
-          src={src}
-          alt={alt}
-          className={cn(
-            "transition-opacity group-hover:opacity-90",
-            imgClassName
-          )}
-        />
+        <img src={src} alt={alt} className={cn(imgClassName)} />
+        <span className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="text-sm font-medium text-white">
+            Click to view more samples →
+          </span>
+        </span>
       </button>
-      <p className="mt-1.5 text-center text-xs text-muted-foreground">
-        Click to view more samples →
-      </p>
 
       {open && (
         <ImageCarousel
