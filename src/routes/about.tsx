@@ -1,3 +1,4 @@
+import { ClickableSampleImage } from "@/components/clickable-sample-image"
 import { GITHUB_REPO_URL } from "@/lib/site-links"
 import {
   BookOpen,
@@ -55,10 +56,10 @@ function AboutPage() {
           texts from two books in different languages — no accounts, no uploads,
           no Python.
         </p>
-        <img
+        <ClickableSampleImage
           src="/samples/aiw-01.png"
           alt="ParallelTexts side-by-side view of Alice in Wonderland in Japanese and English"
-          className="w-full rounded-lg"
+          imgClassName="w-full rounded-lg"
         />
       </div>
 

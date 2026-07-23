@@ -1,4 +1,5 @@
 import { AlignBooksForm } from "@/components/align-books-form"
+import { ClickableSampleImage } from "@/components/clickable-sample-image"
 import { DropZone } from "@/components/drop-zone"
 import { SamplesSection } from "@/components/samples-section"
 import { Devices, X } from "@phosphor-icons/react"
@@ -47,10 +48,11 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
 
       {/* Hero */}
       <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:pr-12">
-        <img
+        <ClickableSampleImage
           src="/samples/tlp-01.png"
-          alt="ParallelTexts side-by-side reading view"
-          className="h-44 w-full rounded-lg object-contain sm:h-72 sm:w-auto sm:max-w-[55%] sm:shrink-0"
+          alt="ParallelTexts side-by-side view of The Little Prince in Japanese and English"
+          className="w-full sm:max-w-[55%] sm:shrink-0"
+          imgClassName="h-44 w-full rounded-lg object-contain sm:h-72 sm:w-auto"
         />
         <div className="flex min-w-0 flex-1 flex-col gap-3">
           <h1 className="text-xl leading-snug font-medium tracking-tight text-foreground sm:text-2xl">
