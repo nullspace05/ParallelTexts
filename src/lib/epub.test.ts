@@ -126,4 +126,50 @@ describe("extractEpubContent", () => {
     const paragraphs = await extractEpubContent(blob)
     expect(paragraphs).toHaveLength(0)
   })
+
+  it("collapses hard-wrapped line breaks inside a <p> into a space instead of gluing words together", async () => {
+    const blob = await buildTestEpub([
+      "<p>Alice was just beginning to think to herself, “Now, what am I to\ndo with this\ncreature when I get it home?” when it grunted\nagain, so violently, that she\nlooked down into its face in some alarm.</p>",
+    ])
+    const paragraphs = await extractEpubContent(blob)
+
+    expect(paragraphs).toHaveLength(1)
+    expect(paragraphs[0].text).toContain("she looked down")
+    expect(paragraphs[0].text).toContain("what am I to do with this")
+    expect(paragraphs[0].text).not.toContain("shelooked")
+    expect(paragraphs[0].text).not.toContain("  ")
+  })
+
+  it("collapses a line break split across inline tags (e.g. <i>no</i>\\nmistake)", async () => {
+    const blob = await buildTestEpub([
+      "<p>This time there could be <i>no</i>\nmistake about it.</p>",
+    ])
+    const paragraphs = await extractEpubContent(blob)
+
+    expect(paragraphs[0].text).toContain("no mistake about it")
+    expect(paragraphs[0].text).not.toContain("nomistake")
+  })
+
+  it("collapses hard-wrapped line breaks in <br/>-delimited (Aozora-style) content", async () => {
+    const blob = await buildTestEpub([
+      "<div>Alice was just beginning to think to herself that she\nlooked down into its face.<br/>So she set the little creature down.</div>",
+    ])
+    const paragraphs = await extractEpubContent(blob)
+
+    expect(paragraphs).toHaveLength(2)
+    expect(paragraphs[0].text).toContain("she looked down")
+    expect(paragraphs[0].text).not.toContain("shelooked")
+    expect(paragraphs[1].text).toBe("So she set the little creature down.")
+  })
+
+  it("does not insert spurious spaces into single-line Japanese text", async () => {
+    const blob = await buildTestEpub([
+      `<p>アリスの頭にはよぎりはじめていたことがあってね、「ところでこの生き物をうちにつれかえって」</p>`,
+    ])
+    const paragraphs = await extractEpubContent(blob)
+
+    expect(paragraphs[0].text).toBe(
+      "アリスの頭にはよぎりはじめていたことがあってね、「ところでこの生き物をうちにつれかえって」"
+    )
+  })
 })

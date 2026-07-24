@@ -187,7 +187,9 @@ export function AlignBooksForm() {
     !!srcBook && !!tgtBook && srcBookId !== tgtBookId && !isAligning
 
   // MiniLM L12 is the fallback auto-download model (smallest, 470 MB)
-  const AUTO_DL_MODEL = MODEL_REGISTRY.find((m) => m.label === "MiniLM L12")!
+  const AUTO_DL_MODEL = MODEL_REGISTRY.find(
+    (m) => m.id === "Xenova/paraphrase-multilingual-MiniLM-L12-v2"
+  )!
 
   function handleCancel() {
     cancelRef.current?.()

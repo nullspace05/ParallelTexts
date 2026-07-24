@@ -152,7 +152,12 @@ async function parseXhtmlBlocks(
   doc.querySelectorAll("rt").forEach((el) => el.remove())
 
   function norm(el: Element): string {
-    return (el.textContent ?? "").replace(/\n/g, "").trim()
+    // Source XHTML is often hard-wrapped for readability (e.g. "she\nlooked").
+    // A line break is just formatting, not a word boundary, but simply
+    // dropping it (as opposed to collapsing it to a space) glues adjacent
+    // words together for space-delimited languages. Mirror how browsers
+    // render HTML text: collapse newlines to a single space.
+    return (el.textContent ?? "").replace(/[ \t]*[\n\r]+[ \t]*/g, " ").trim()
   }
 
   async function toBlock(
@@ -229,7 +234,7 @@ async function parseXhtmlBlocks(
 
     async function walk(node: Node): Promise<void> {
       if (node.nodeType === Node.TEXT_NODE) {
-        current += (node.textContent ?? "").replace(/\n/g, "")
+        current += (node.textContent ?? "").replace(/[ \t]*[\n\r]+[ \t]*/g, " ")
       } else if (node.nodeName.toLowerCase() === "br") {
         flush()
       } else if (node.nodeType === Node.ELEMENT_NODE) {

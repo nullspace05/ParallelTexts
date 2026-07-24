@@ -26,7 +26,14 @@ export async function extractTxtContent(
   const paragraphs: SourceParagraph[] = []
   let idx = 0
   for (const raw of rawParas) {
-    const cleaned = raw.replace(/\r/g, "").trim()
+    // Plain-text sources (e.g. Project Gutenberg) are often hard-wrapped at a
+    // fixed column with single line breaks mid-paragraph. Those are just
+    // formatting, not word boundaries, so collapse them to a space rather
+    // than leaving a literal newline glued between words.
+    const cleaned = raw
+      .replace(/\r/g, "")
+      .replace(/[ \t]*\n+[ \t]*/g, " ")
+      .trim()
     if (!cleaned) continue
     paragraphs.push({ para_idx: idx++, text: cleaned, images: [] })
   }
