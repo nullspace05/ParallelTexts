@@ -33,3 +33,6 @@ __pycache__/
 
 # sample files
 books/
+
+# raw demos
+main-demo.mov
