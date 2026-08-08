@@ -89,7 +89,7 @@ Upload a light novel (or any book) plus a video or frame dump from its adaptatio
 
 Feel free to hmu if you find this interesting.
 
-ETA: ~2-6 months.
+ETA: ~2-6 months
 
 <p align="center">
   <a href="assets/hp-01.jpeg">
