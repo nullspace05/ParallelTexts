@@ -14,19 +14,9 @@ A free, fully in-browser tool for aligning two books in different languages sent
 
 Upload a book and its translation (EPUB, PDF, or TXT), run the alignment pipeline entirely in your browser, then read the result as a paginated parallel ebook or export it as a TSV.
 
-<p align="center">
-  <video
-    src="assets/demos/main-demo.mp4"
-    width="800"
-    autoplay
-    loop
-    muted
-    playsinline
-    controls
-  >
-    <a href="assets/demos/main-demo.mp4">Watch demo</a>
-  </video>
-</p>
+
+https://github.com/user-attachments/assets/509bbaae-f0c8-4331-a66d-3ad291ecbe73
+
 
 <table>
   <tr>
