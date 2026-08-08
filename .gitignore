@@ -1,0 +1,35 @@
+node_modules
+.DS_Store
+dist
+dist-ssr
+*.local
+.env*
+.tanstack
+.wrangler
+.output
+.vinxi
+__unconfig*
+todos.json
+
+# typescript
+*.tsbuildinfo
+
+.dev.vars*
+!.dev.vars.example
+!.env.example
+
+# Sample books for local dev (served from R2 in production)
+public/models/sample_books/
+
+books/
+__pycache__/
+
+# personal stuff
+.docs/feature_plans/
+.docs/todos.md
+.docs/upload-models-to-r2.md
+.cursor/skills/
+.claude/skills/
+
+# sample files
+books/

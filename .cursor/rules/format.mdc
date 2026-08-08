@@ -1,0 +1,5 @@
+---
+alwaysApply: true
+---
+
+After every edit session, run prettier formatting (pnpm format)
