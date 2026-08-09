@@ -55,6 +55,40 @@ https://github.com/user-attachments/assets/509bbaae-f0c8-4331-a66d-3ad291ecbe73
   </tr>
 </table>
 
+## Quick start
+
+<!-- TODO: paste GitHub-hosted upload → align demo video here -->
+
+<table>
+  <tr>
+    <td align="center"><strong>Popover</strong></td>
+    <td align="center"><strong>Side by side</strong></td>
+  </tr>
+  <tr>
+    <td>
+      <a href="public/samples/01-popover-mode.png"
+        ><img
+          src="public/samples/01-popover-mode.png"
+          alt="Popover view — tap a sentence to see its translation"
+          width="400"
+      /></a>
+    </td>
+    <td>
+      <a href="public/samples/02-s-by-s-mode.png"
+        ><img
+          src="public/samples/02-s-by-s-mode.png"
+          alt="Side-by-side view — aligned sentences in parallel columns"
+          width="400"
+      /></a>
+    </td>
+  </tr>
+</table>
+
+1. **Upload** two books (source + translation) on the homepage, or try a built-in sample.
+2. **Align** — pick languages, click Align books; the model downloads once and runs in your browser.
+3. **Read** — popover view (tap a sentence for its translation) or side-by-side view (parallel columns).
+4. **Export** — download as TSV or EPUB from the alignment details drawer.
+
 ---
 
 ## Why the hell did I make this?
