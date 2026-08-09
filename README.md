@@ -15,8 +15,11 @@ A free, fully in-browser tool for aligning two books in different languages sent
 Upload a book and its translation (EPUB, PDF, or TXT), run the alignment pipeline entirely in your browser, then read the result as a paginated parallel ebook or export it as a TSV.
 
 
+## Main Demo
+
 https://github.com/user-attachments/assets/509bbaae-f0c8-4331-a66d-3ad291ecbe73
 
+## Samples
 
 <table>
   <tr>
@@ -55,10 +58,19 @@ https://github.com/user-attachments/assets/509bbaae-f0c8-4331-a66d-3ad291ecbe73
   </tr>
 </table>
 
-## Quick start
+## Overview
+
+### Upload and Align your own books
 
 https://github.com/user-attachments/assets/393dd54d-823c-4799-82e8-10ad22c46afe
 
+1. **Upload** two books (source + translation) on the homepage, or try a built-in sample.
+2. **Align** — pick languages, click Align books; the model downloads once and runs in your browser.
+3. **Read** — popover view (tap a sentence for its translation) or side-by-side view (parallel columns).
+4. **Export** — download as TSV or EPUB from the alignment details drawer.
+
+
+### Reading modes
 
 <table>
   <tr>
@@ -84,11 +96,6 @@ https://github.com/user-attachments/assets/393dd54d-823c-4799-82e8-10ad22c46afe
     </td>
   </tr>
 </table>
-
-1. **Upload** two books (source + translation) on the homepage, or try a built-in sample.
-2. **Align** — pick languages, click Align books; the model downloads once and runs in your browser.
-3. **Read** — popover view (tap a sentence for its translation) or side-by-side view (parallel columns).
-4. **Export** — download as TSV or EPUB from the alignment details drawer.
 
 ---
 
