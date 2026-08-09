@@ -57,7 +57,8 @@ https://github.com/user-attachments/assets/509bbaae-f0c8-4331-a66d-3ad291ecbe73
 
 ## Quick start
 
-<!-- TODO: paste GitHub-hosted upload → align demo video here -->
+https://github.com/user-attachments/assets/393dd54d-823c-4799-82e8-10ad22c46afe
+
 
 <table>
   <tr>
