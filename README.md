@@ -14,7 +14,6 @@ A free, fully in-browser tool for aligning two books in different languages sent
 
 Upload a book and its translation (EPUB, PDF, or TXT), run the alignment pipeline entirely in your browser, then read the result as a paginated parallel ebook or export it as a TSV.
 
-
 ## Main Demo
 
 https://github.com/user-attachments/assets/509bbaae-f0c8-4331-a66d-3ad291ecbe73
@@ -69,7 +68,6 @@ https://github.com/user-attachments/assets/393dd54d-823c-4799-82e8-10ad22c46afe
 3. **Read** — popover view (tap a sentence for its translation) or side-by-side view (parallel columns).
 4. **Export** — download as TSV or EPUB from the alignment details drawer.
 
-
 ### Reading modes
 
 <table>
@@ -101,7 +99,7 @@ https://github.com/user-attachments/assets/393dd54d-823c-4799-82e8-10ad22c46afe
 
 ## Why the hell did I make this?
 
-> "This is completely useless, why not just read a book as is with a popup dictionary and be done with it?"  
+> "This is completely useless, why not just read a book as is with a popup dictionary and be done with it?"
 
 Yeah, normally I would agree, but I've recently had the misfortune of having a large portion of my time being forcefully spend on unimportant things like not immersing. I've simply decided that immersion, even if not "pure" immersion, is better than no immersion at all.
 
@@ -110,7 +108,7 @@ That being said, even if you find this useless, you might be interested in my [u
 ## Features
 
 - **Three input formats** — EPUB, PDF, and plain TXT.
-- **Aligns sentences in 50+ languages** 
+- **Aligns sentences in 50+ languages**
 - **Fully in-browser ML** — The model runs in the browser, so no need for a backend. The tradeoff is that you have to download a model.
 - **Two reading modes** — popover view (tap a sentence to see its translation) and side-by-side view.
 - **TSV export and import** — one sentence pair per row; gap rows preserved; any 2- or 3-column TSV works on import.
@@ -121,9 +119,7 @@ That being said, even if you find this useless, you might be interested in my [u
 
 - **Beginner learning with real content** — align a book you're studying with a translation you already understand, then read sentence by sentence instead of grinding through a textbook
 - **Reading above your level** — keep the original text in front of you while dipping into the translation only when you need it
-- **Reading way way way above your level** — you've done one month of immersion and you're ready for [雪国](https://ja.wikipedia.org/wiki/%E9%9B%AA%E5%9B%BD_(%E5%B0%8F%E8%AA%AC)). sure bro.
-
-
+- **Reading way way way above your level** — you've done one month of immersion and you're ready for [雪国](<https://ja.wikipedia.org/wiki/%E9%9B%AA%E5%9B%BD_(%E5%B0%8F%E8%AA%AC)>). sure bro.
 
 ---
 
@@ -131,7 +127,7 @@ That being said, even if you find this useless, you might be interested in my [u
 
 Similar to this — but instead of aligning two texts, it aligns sentences in a book with **image frames from an adaptation** (anime, movie, drama, etc.).
 
-Upload a light novel (or any book) plus a video or frame dump from its adaptation, and read with the corresponding scene right next to each sentence. Think *Monogatari* stills beside the original LN narration, or *Classroom of the Elite* images next to the LN text.
+Upload a light novel (or any book) plus a video or frame dump from its adaptation, and read with the corresponding scene right next to each sentence. Think _Monogatari_ stills beside the original LN narration, or _Classroom of the Elite_ images next to the LN text.
 
 Feel free to hmu if you find this interesting.
 
@@ -178,6 +174,11 @@ ETA: ~2-6 months.
 
 ---
 
+## Known Limitations
+
+- **Private / incognito windows** — embedding models (up to ~1.2 GB) are cached via the browser's Cache Storage API so they don't need to be re-downloaded every session. Private/incognito windows back that storage with an ephemeral, memory-limited partition instead of disk (by design, so nothing survives after the window closes), and writing a file that large to it can silently fail. When that happens the model has to be re-downloaded on every alignment instead of being reused, and in the worst case the failed cache write can cause the alignment itself to fail. Use a normal window for a reliable experience.
+
+---
 
 ## License
 
@@ -193,7 +194,7 @@ ttu-ttu/ebook-reader) are listed in
 
 ## Acknowledgements
 
-**ParallelTexts would not exist without [Transformers.js](https://github.com/huggingface/transformers.js).** The whole alignment pipeline — multilingual sentence embeddings, ONNX inference, running entirely in the browser with no backend — is built on `@huggingface/transformers`. 
+**ParallelTexts would not exist without [Transformers.js](https://github.com/huggingface/transformers.js).** The whole alignment pipeline — multilingual sentence embeddings, ONNX inference, running entirely in the browser with no backend — is built on `@huggingface/transformers`.
 
 Parts of the paginated book reader and reading-progress system are adapted from
 [ttu-ttu/ebook-reader](https://github.com/ttu-ttu/ebook-reader) (BSD-3-Clause),

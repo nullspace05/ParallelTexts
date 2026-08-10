@@ -247,6 +247,10 @@ function SettingsPage() {
           Select the model used when aligning books. Download it to avoid
           fetching from the network during alignment.
         </p>
+        <p className="text-xs text-muted-foreground">
+          Heads up: alignment can fail or hang in private/incognito windows —
+          use a normal window for best results.
+        </p>
         <div className="space-y-2">
           {MODEL_REGISTRY.map((m) => {
             const dl: DownloadState = downloads[m.id] ?? {

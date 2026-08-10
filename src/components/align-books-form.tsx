@@ -398,7 +398,7 @@ export function AlignBooksForm() {
 
   return (
     <div className="rounded-xl border bg-card p-6">
-      <div className="mb-5 flex items-center gap-2.5">
+      <div className="mb-2 flex items-center gap-2.5">
         <SampleDot colorClass={SAMPLE_CARD_DOT_COLORS[2]} loading={false} />
         <h2 className="text-base font-semibold tracking-tight">Align books</h2>
         <span
@@ -411,6 +411,10 @@ export function AlignBooksForm() {
           {device === "webgpu" ? "GPU" : "WASM"}
         </span>
       </div>
+      <p className="mb-5 text-xs text-muted-foreground">
+        Heads up: alignment can fail or hang in private/incognito windows — use
+        a normal window for best results.
+      </p>
 
       {/* ── Book + language selectors ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr]">
