@@ -75,7 +75,7 @@ const DEVICE_OPTIONS: {
 
 function SettingsPage() {
   const { theme, setTheme } = useTheme()
-  const [modelId, setModelId] = useState(() => getStoredModelId())
+  const [modelId, setModelId] = useState("")
   const [maxSentences, setMaxSentences] = useState(() =>
     getStoredMaxSentences()
   )
@@ -112,6 +112,16 @@ function SettingsPage() {
         }
         return next
       })
+
+      // Default selection must be a downloaded model — never a
+      // non-cached one, and none at all when nothing is cached yet.
+      const cached = results.filter((r) => r.cached).map((r) => r.modelId)
+      if (cached.length > 0) {
+        const stored = getStoredModelId()
+        const resolved = cached.includes(stored) ? stored : cached[0]
+        setModelId(resolved)
+        setStoredModelId(resolved)
+      }
     })()
   }, [])
 
@@ -159,6 +169,12 @@ function SettingsPage() {
         ...prev,
         [id]: { status: "done", file: "", progress: 100 },
       }))
+      // If nothing was selected as the active default yet (e.g. this is
+      // the first model ever downloaded), make this one the default.
+      if (!modelId) {
+        setModelId(id)
+        setStoredModelId(id)
+      }
     } catch (err) {
       setDownloads((prev) => ({
         ...prev,
@@ -178,6 +194,17 @@ function SettingsPage() {
       ...prev,
       [id]: { status: "idle", file: "", progress: 0 },
     }))
+
+    // If the deleted model was the active default, fall back to another
+    // cached model, or to no default at all if none remain.
+    if (modelId === id) {
+      const fallback = MODEL_REGISTRY.find(
+        (m) => m.id !== id && downloads[m.id]?.status === "done"
+      )
+      const nextModelId = fallback?.id ?? ""
+      setModelId(nextModelId)
+      setStoredModelId(nextModelId)
+    }
   }
 
   return (
@@ -222,12 +249,13 @@ function SettingsPage() {
         </p>
         <div className="space-y-2">
           {MODEL_REGISTRY.map((m) => {
-            const isActive = modelId === m.id
             const dl: DownloadState = downloads[m.id] ?? {
               status: "idle",
               file: "",
               progress: 0,
             }
+            const isCached = dl.status === "done"
+            const isActive = modelId === m.id && isCached
 
             return (
               <div
@@ -238,11 +266,12 @@ function SettingsPage() {
                     : "border-border bg-background"
                 }`}
               >
-                {/* Model header — click to select as active model */}
+                {/* Model header — click to select as active model (only once downloaded) */}
                 <button
                   type="button"
-                  onClick={() => handleModelPick(m.id)}
-                  className="w-full text-left"
+                  onClick={() => isCached && handleModelPick(m.id)}
+                  disabled={!isCached}
+                  className={`w-full text-left ${!isCached ? "cursor-default" : ""}`}
                 >
                   <span className="flex items-center gap-1.5">
                     <span

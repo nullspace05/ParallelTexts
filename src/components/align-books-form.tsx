@@ -113,7 +113,7 @@ export function AlignBooksForm() {
   const [tgtBookId, setTgtBookId] = useState("")
   const [srcLang, setSrcLang] = useState("ja")
   const [tgtLang, setTgtLang] = useState("en")
-  const [modelId, setModelId] = useState(() => getStoredModelId())
+  const [modelId, setModelId] = useState("")
   const [maxSentences, setMaxSentences] = useState(() =>
     getStoredMaxSentences()
   )
@@ -145,7 +145,14 @@ export function AlignBooksForm() {
         cached: await checkModelCached(m.id),
       }))
     ).then((results) => {
-      setCachedIds(new Set(results.filter((r) => r.cached).map((r) => r.id)))
+      const cached = results.filter((r) => r.cached).map((r) => r.id)
+      setCachedIds(new Set(cached))
+      // Default selection must be a downloaded model — never a
+      // non-cached one, and none at all when nothing is cached yet.
+      if (cached.length > 0) {
+        const stored = getStoredModelId()
+        setModelId(cached.includes(stored) ? stored : cached[0])
+      }
     })
   }, [])
 
@@ -212,8 +219,11 @@ export function AlignBooksForm() {
       workerCancel?.()
     }
 
-    // Auto-download MiniLM L12 when no model is cached yet
-    let effectiveModelId = modelId
+    // Auto-download MiniLM L12 when no model is cached yet. Fall back to any
+    // cached model if `modelId` hasn't resolved yet (defensive — shouldn't
+    // happen since it's set alongside cachedIds).
+    let effectiveModelId =
+      modelId && cachedIds.has(modelId) ? modelId : [...cachedIds][0]
     if (!anyModelCached) {
       setAutoDownloading(true)
       setAutoDownloadPct(0)
@@ -345,7 +355,7 @@ export function AlignBooksForm() {
       }
 
       const meta: AlignmentMeta = {
-        modelId,
+        modelId: effectiveModelId,
         device,
         dtype: "fp32",
         durationMs: Date.now() - alignStart,
@@ -472,12 +482,12 @@ export function AlignBooksForm() {
                     <button
                       key={m.id}
                       type="button"
-                      onClick={() => setModelId(m.id)}
+                      onClick={() => isCached && setModelId(m.id)}
                       disabled={isDownloading}
                       className={`flex-1 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
-                        isActive
+                        isActive && isCached
                           ? "border-primary bg-primary/10 font-medium text-primary"
-                          : "border-border bg-background hover:bg-muted"
+                          : `border-border bg-background ${isCached ? "hover:bg-muted" : ""}`
                       } ${isDownloading ? "pointer-events-none" : ""}`}
                     >
                       <span className="flex items-center gap-1.5">
