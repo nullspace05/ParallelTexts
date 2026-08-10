@@ -1,5 +1,4 @@
 import { AlignBooksForm } from "@/components/align-books-form"
-import { ClickableSampleImage } from "@/components/clickable-sample-image"
 import { DropZone } from "@/components/drop-zone"
 import { SamplesSection } from "@/components/samples-section"
 import { Devices, X } from "@phosphor-icons/react"
@@ -47,18 +46,23 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
       </div>
 
       {/* Hero */}
-      <div className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:gap-8 sm:pr-12">
-        <ClickableSampleImage
-          src="/samples/tlp-01.png"
-          alt="ParallelTexts side-by-side view of The Little Prince in Japanese and English"
-          className="w-full sm:max-w-[55%] sm:shrink-0"
-          imgClassName="h-44 w-full rounded-lg object-contain sm:h-72 sm:w-auto"
-        />
-        <div className="flex min-w-0 flex-1 flex-col gap-3">
+      <div className="flex flex-col gap-6 p-6 sm:pr-12">
+        <div className="w-full overflow-hidden rounded-lg">
+          <div className="aspect-video w-full">
+            <iframe
+              src="https://www.youtube.com/embed/6cR_r8cOaN8"
+              title="ParallelTexts demo"
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          </div>
+        </div>
+        <div className="flex min-w-0 flex-col gap-3">
           <h1 className="text-xl leading-snug font-medium tracking-tight text-foreground sm:text-2xl">
             Align two books sentence-by-sentence.
           </h1>
-          <p className="max-w-sm text-sm leading-relaxed text-muted-foreground">
+          <p className="text-sm leading-relaxed text-muted-foreground sm:pr-12">
             To begin, upload two files below — a book and its translation, or
             try one of the examples below.
           </p>
