@@ -149,9 +149,9 @@ function AboutPage() {
         <Section icon={Download} title="The model download">
           <p>
             The AI model (~500 MB–1.1 GB depending on which you choose) is
-            downloaded once from our servers and then cached permanently in your
-            browser. Subsequent alignments reuse the cached version — no
-            re-download needed.
+            downloaded once from the Hugging Face model hub and then cached
+            permanently in your browser. Subsequent alignments reuse the cached
+            version — no re-download needed.
           </p>
           <p>
             Alignment is compute-intensive. A dedicated GPU is highly
