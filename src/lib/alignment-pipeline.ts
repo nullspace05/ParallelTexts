@@ -2,6 +2,7 @@ import { extractEpubContent } from "@/lib/epub"
 import { extractPdfContent } from "@/lib/pdf"
 import { extractTxtContent } from "@/lib/txt"
 import { getSentenceTexts, splitIntoSentences } from "@/lib/sentence-splitter"
+import { DEFAULT_GAP_PENALTY } from "@/lib/user-settings"
 import type {
   AlignedPair,
   AlignmentResult,
@@ -268,7 +269,7 @@ export async function alignBooks(
     tgtLang,
     modelId = DEFAULT_MODEL_ID,
     device = "auto",
-    gapPenalty = 0.0,
+    gapPenalty = DEFAULT_GAP_PENALTY,
     onProgress,
   } = params
 

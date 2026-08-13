@@ -3,16 +3,21 @@ import { useTheme } from "@/components/theme-provider"
 import { db } from "@/lib/db"
 import {
   DEFAULT_FONT_SIZE,
+  DEFAULT_GAP_PENALTY,
   DEFAULT_MAX_SENTENCES,
   FONT_SIZE_MAX,
   FONT_SIZE_MIN,
+  GAP_PENALTY_MAX,
+  GAP_PENALTY_MIN,
   type DevicePreference,
   getStoredDevice,
   getStoredFontSize,
+  getStoredGapPenalty,
   getStoredMaxSentences,
   getStoredModelId,
   setStoredDevice,
   setStoredFontSize,
+  setStoredGapPenalty,
   setStoredMaxSentences,
   setStoredModelId,
 } from "@/lib/user-settings"
@@ -79,6 +84,7 @@ function SettingsPage() {
   const [maxSentences, setMaxSentences] = useState(() =>
     getStoredMaxSentences()
   )
+  const [gapPenalty, setGapPenalty] = useState(() => getStoredGapPenalty())
   const [fontSize, setFontSize] = useState(() => getStoredFontSize())
   const [confirmClear, setConfirmClear] = useState(false)
   const [cleared, setCleared] = useState(false)
@@ -138,6 +144,11 @@ function SettingsPage() {
   function handleMaxSentencesChange(n: number) {
     setMaxSentences(n)
     setStoredMaxSentences(n)
+  }
+
+  function handleGapPenaltyChange(n: number) {
+    setGapPenalty(n)
+    setStoredGapPenalty(n)
   }
 
   async function handleClearAll() {
@@ -439,6 +450,40 @@ function SettingsPage() {
           />
           <span className="text-sm text-muted-foreground">
             sentences (default: {DEFAULT_MAX_SENTENCES.toLocaleString()})
+          </span>
+        </div>
+      </section>
+
+      {/* ── Gap penalty ── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Gap penalty</h2>
+        <p className="text-sm text-muted-foreground">
+          How confident a match must be to beat leaving both sentences
+          unaligned. Higher values reject more weak matches — useful when front
+          matter, credits, or other boilerplate with no real counterpart ends up
+          glued to unrelated real sentences. Lower values allow more (sometimes
+          weaker but correct) matches through.
+        </p>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={GAP_PENALTY_MIN}
+            max={GAP_PENALTY_MAX}
+            step={0.05}
+            value={gapPenalty}
+            onChange={(e) => {
+              const n = Number(e.target.value)
+              if (
+                Number.isFinite(n) &&
+                n >= GAP_PENALTY_MIN &&
+                n <= GAP_PENALTY_MAX
+              )
+                handleGapPenaltyChange(n)
+            }}
+            className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
+          />
+          <span className="text-sm text-muted-foreground">
+            (default: {DEFAULT_GAP_PENALTY})
           </span>
         </div>
       </section>

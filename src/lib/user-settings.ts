@@ -5,11 +5,27 @@ export type DevicePreference = "auto" | "webgpu" | "wasm"
 const KEY_MODEL_ID = "pt:modelId"
 const KEY_MAX_SENTENCES = "pt:maxSentences"
 const KEY_FONT_SIZE = "pt:fontSize"
+const KEY_GAP_PENALTY = "pt:gapPenalty"
 
 export const DEFAULT_MAX_SENTENCES = 10_000
 export const DEFAULT_FONT_SIZE = 18
 export const FONT_SIZE_MIN = 12
 export const FONT_SIZE_MAX = 32
+
+/**
+ * A diagonal match only wins over leaving both sentences unaligned when its
+ * similarity exceeds 2 × gapPenalty (one 1:1 move vs. two independent gap
+ * moves covering the same two sentences). At 0, front-matter/boilerplate
+ * lines with no real counterpart (TOC headings, illustration credits, etc.)
+ * still carry a nonzero baseline cosine similarity against unrelated real
+ * sentences, so they "steal" a match instead of correctly becoming a gap.
+ * 0.3 requires >0.6 similarity to win, comfortably below genuine-match
+ * confidence (~0.7-0.999 in practice) and above the observed junk range
+ * (~0.1-0.5).
+ */
+export const DEFAULT_GAP_PENALTY = 0.3
+export const GAP_PENALTY_MIN = 0
+export const GAP_PENALTY_MAX = 1
 
 function safeGet(key: string): string | null {
   try {
@@ -41,6 +57,18 @@ export function getStoredMaxSentences(): number {
 
 export function setStoredMaxSentences(n: number): void {
   safeSet(KEY_MAX_SENTENCES, String(n))
+}
+
+export function getStoredGapPenalty(): number {
+  const v = safeGet(KEY_GAP_PENALTY)
+  const n = v ? Number(v) : NaN
+  return Number.isFinite(n) && n >= GAP_PENALTY_MIN && n <= GAP_PENALTY_MAX
+    ? n
+    : DEFAULT_GAP_PENALTY
+}
+
+export function setStoredGapPenalty(n: number): void {
+  safeSet(KEY_GAP_PENALTY, String(n))
 }
 
 export function getStoredFontSize(): number {

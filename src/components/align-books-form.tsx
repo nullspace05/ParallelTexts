@@ -6,7 +6,11 @@ import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
 import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
 import {
+  DEFAULT_GAP_PENALTY,
+  GAP_PENALTY_MAX,
+  GAP_PENALTY_MIN,
   getStoredDevice,
+  getStoredGapPenalty,
   getStoredMaxSentences,
   getStoredModelId,
 } from "@/lib/user-settings"
@@ -117,6 +121,7 @@ export function AlignBooksForm() {
   const [maxSentences, setMaxSentences] = useState(() =>
     getStoredMaxSentences()
   )
+  const [gapPenalty, setGapPenalty] = useState(() => getStoredGapPenalty())
   const [device, setDevice] = useState<"webgpu" | "wasm">("wasm")
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [regexRules, setRegexRules] = useState<RegexRule[]>([])
@@ -325,7 +330,7 @@ export function AlignBooksForm() {
             srcRecords,
             tgtRecords,
             modelId: effectiveModelId,
-            gapPenalty: 0,
+            gapPenalty,
             device,
           },
         })
@@ -574,6 +579,30 @@ export function AlignBooksForm() {
                 onChange={(e) => setMaxSentences(Number(e.target.value))}
                 className="w-24 rounded-md border bg-background px-2 py-1 text-sm"
               />
+            </div>
+
+            {/* Gap penalty */}
+            <div className="flex items-center gap-3">
+              <label
+                htmlFor="gap-penalty"
+                className="text-sm text-muted-foreground"
+              >
+                Gap penalty
+              </label>
+              <input
+                id="gap-penalty"
+                type="number"
+                min={GAP_PENALTY_MIN}
+                max={GAP_PENALTY_MAX}
+                step={0.05}
+                value={gapPenalty}
+                onChange={(e) => setGapPenalty(Number(e.target.value))}
+                className="w-24 rounded-md border bg-background px-2 py-1 text-sm"
+              />
+              <span className="text-xs text-muted-foreground">
+                higher = fewer low-confidence matches (default:{" "}
+                {DEFAULT_GAP_PENALTY})
+              </span>
             </div>
 
             {/* Regex preprocessing */}
