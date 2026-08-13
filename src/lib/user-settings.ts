@@ -7,7 +7,7 @@ const KEY_MAX_SENTENCES = "pt:maxSentences"
 const KEY_FONT_SIZE = "pt:fontSize"
 const KEY_GAP_PENALTY = "pt:gapPenalty"
 
-export const DEFAULT_MAX_SENTENCES = 10_000
+export const DEFAULT_MAX_SENTENCES = 20_000
 export const DEFAULT_FONT_SIZE = 18
 export const FONT_SIZE_MIN = 12
 export const FONT_SIZE_MAX = 32
@@ -15,15 +15,15 @@ export const FONT_SIZE_MAX = 32
 /**
  * A diagonal match only wins over leaving both sentences unaligned when its
  * similarity exceeds 2 × gapPenalty (one 1:1 move vs. two independent gap
- * moves covering the same two sentences). At 0, front-matter/boilerplate
- * lines with no real counterpart (TOC headings, illustration credits, etc.)
- * still carry a nonzero baseline cosine similarity against unrelated real
- * sentences, so they "steal" a match instead of correctly becoming a gap.
- * 0.3 requires >0.6 similarity to win, comfortably below genuine-match
- * confidence (~0.7-0.999 in practice) and above the observed junk range
- * (~0.1-0.5).
+ * moves covering the same two sentences). Defaults to 0 (a gap is free) —
+ * raising it was tried as a fix for front-matter/boilerplate lines with no
+ * real counterpart "stealing" a match via a spuriously positive similarity,
+ * but embedding-model confidence correlates with sentence *length* as much
+ * as correctness, so raising this broadly also rejects short-but-correct
+ * matches. Kept as a user-adjustable option; see the pending plan in
+ * .docs/feature_plans for a more targeted fix.
  */
-export const DEFAULT_GAP_PENALTY = 0.3
+export const DEFAULT_GAP_PENALTY = 0
 export const GAP_PENALTY_MIN = 0
 export const GAP_PENALTY_MAX = 1
 
