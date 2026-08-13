@@ -8,11 +8,8 @@ import type {
   AlignmentResult,
   SourceParagraph,
 } from "@/types/alignment"
-import {
-  DEFAULT_MODEL_ID,
-  type InferenceDevice,
-  loadExtractor,
-} from "@/utils/model"
+import { loadExtractor } from "@/utils/model"
+import { DEFAULT_MODEL_ID, type InferenceDevice } from "@/utils/model-registry"
 import { bandedNWAlign } from "./banded-nw"
 import type { SentenceRecord } from "./sentence-splitter"
 

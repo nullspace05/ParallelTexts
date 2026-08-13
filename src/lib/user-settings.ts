@@ -1,4 +1,4 @@
-import { DEFAULT_MODEL_ID } from "@/utils/model"
+import { DEFAULT_MODEL_ID } from "@/utils/model-registry"
 
 export type DevicePreference = "auto" | "webgpu" | "wasm"
 

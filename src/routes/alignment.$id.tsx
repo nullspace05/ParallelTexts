@@ -48,7 +48,7 @@ import type {
   AlignmentMeta,
   AlignmentRecord,
 } from "@/types/alignment"
-import { MODEL_REGISTRY } from "@/utils/model"
+import { MODEL_REGISTRY } from "@/utils/model-registry"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import {

@@ -14,7 +14,7 @@ import type {
   AlignmentMeta,
   AlignmentRecord,
 } from "@/types/alignment"
-import { MODEL_REGISTRY } from "@/utils/model"
+import { MODEL_REGISTRY } from "@/utils/model-registry"
 import {
   ArrowsLeftRight,
   CheckCircle,

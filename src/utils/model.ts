@@ -5,81 +5,35 @@ import {
   type ProgressCallback,
 } from "@huggingface/transformers"
 
-export interface ModelSpec {
-  id: string
-  label: string
-  description: string
-  /** Maximum token sequence length the model supports. */
-  maxSeqLen: number
-  /** Download size in MB (fp32). */
-  sizeMb: number
-  recommended?: boolean
-}
+import {
+  DEFAULT_MODEL_ID,
+  type InferenceDevice,
+  resolveDevice,
+} from "@/utils/model-registry"
 
-export const MODEL_REGISTRY: ModelSpec[] = [
-  {
-    id: "Xenova/paraphrase-multilingual-mpnet-base-v2",
-    label: "Paraphrase Multilingual mpnet base v2",
-    description:
-      "50+ languages, stronger than MiniLM. Good speed/quality balance.",
-    maxSeqLen: 128,
-    sizeMb: 1110,
-    recommended: true,
-  },
-  {
-    id: "Xenova/paraphrase-multilingual-MiniLM-L12-v2",
-    label: "Paraphrase Multilingual MiniLM L12",
-    description: "50+ languages, smallest model. Fastest inference.",
-    maxSeqLen: 128,
-    sizeMb: 470,
-  },
-  {
-    id: "Xenova/distiluse-base-multilingual-cased-v2",
-    label: "DistilUSE base multilingual v2",
-    description: "50+ languages. Fast and well-rounded general-purpose model.",
-    maxSeqLen: 128,
-    sizeMb: 539,
-  },
-  {
-    id: "onnx-community/embeddinggemma-300m-ONNX",
-    label: "EmbeddingGemma 300M",
-    description:
-      "100+ languages, 2048-token context, MRL 768-dim. Decoder-only.",
-    maxSeqLen: 2048,
-    sizeMb: 1230,
-  },
-]
-
-/** Default model used when none is specified. */
-export const DEFAULT_MODEL_ID = MODEL_REGISTRY[0].id
-
-// Keep for backwards compatibility with existing callers.
-export const MODEL_ID = DEFAULT_MODEL_ID
-
-/** Inference device. "auto" selects WebGPU when available, falls back to WASM. */
-export type InferenceDevice = "webgpu" | "wasm" | "auto"
+// Model metadata (MODEL_REGISTRY, DEFAULT_MODEL_ID, ModelSpec), device
+// detection (detectWebGPU, resolveDevice), and the InferenceDevice type all
+// moved to model-registry.ts, which has no @huggingface/transformers import.
+// Re-exported here so existing call sites that only need the actual ML
+// functions below don't need two import lines — but anything that ONLY
+// needs the registry/device utilities should import model-registry.ts
+// directly, not this file, so bundlers don't pull the ML runtime in for
+// pages that never run inference (this is exactly the bug that motivated
+// the split — user-settings.ts, alignment.$id.tsx, and alignments.tsx only
+// ever needed DEFAULT_MODEL_ID / MODEL_REGISTRY, a plain label lookup, but
+// importing it from this file pulled in the full transformers.js bundle).
+export {
+  DEFAULT_MODEL_ID,
+  detectWebGPU,
+  type InferenceDevice,
+  MODEL_ID,
+  MODEL_REGISTRY,
+  type ModelSpec,
+  resolveDevice,
+} from "@/utils/model-registry"
 
 // true in both the main thread and Web Workers; false only in Node
 const isBrowser = typeof process === "undefined" || !process.versions?.node
-
-/**
- * Returns true when WebGPU is available in the current browsing context.
- * Workers cannot access navigator.gpu, so this always returns false there —
- * device detection must happen on the main thread and be passed to the worker.
- */
-export function detectWebGPU(): boolean {
-  try {
-    return typeof navigator !== "undefined" && "gpu" in navigator
-  } catch {
-    return false
-  }
-}
-
-/** Resolve "auto" to the concrete device string for the pipeline call. */
-export function resolveDevice(device: InferenceDevice): "webgpu" | "wasm" {
-  if (device === "auto") return detectWebGPU() ? "webgpu" : "wasm"
-  return device
-}
 
 // Embedding models are always fetched directly from the Hugging Face Hub —
 // no local/R2-backed model path. (R2 is still used elsewhere, for serving

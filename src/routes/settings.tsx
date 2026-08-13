@@ -25,10 +25,9 @@ import type { Theme } from "@/lib/theme"
 import {
   checkModelCached,
   deleteModelFromCache,
-  detectWebGPU,
   downloadModel,
-  MODEL_REGISTRY,
 } from "@/utils/model"
+import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
 import { Desktop, Moon, Sun } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"

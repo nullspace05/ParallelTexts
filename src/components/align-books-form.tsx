@@ -21,13 +21,12 @@ import type {
   AlignmentResult,
 } from "@/types/alignment"
 import type { Book } from "@/types/book"
+import { checkModelCached, downloadModel } from "@/utils/model"
 import {
-  checkModelCached,
   detectWebGPU,
-  downloadModel,
   MODEL_REGISTRY,
   resolveDevice,
-} from "@/utils/model"
+} from "@/utils/model-registry"
 import type { AlignWorkerOutput } from "@/workers/alignment.worker"
 import AlignmentWorker from "@/workers/alignment.worker?worker"
 import {
