@@ -17,12 +17,48 @@ export interface AlignmentSearchResult {
   snippet: string
 }
 
+/**
+ * A 0:1 pair (target-only content, no source sentence) has no src_para_idx
+ * of its own. Rather than dumping every one of these onto paragraph 0
+ * (which used to bury real content — a translator's inserted line, a split
+ * sentence — under whatever paragraph happens to be first in the book), it
+ * needs to attach to a real neighboring paragraph. Which neighbor is
+ * "correct" isn't simply "whichever came before it": tgt_para_idx records
+ * which *target*-language paragraph the orphan's sentence actually came
+ * from, and on a real book, a clear majority of orphans share their
+ * tgt_para_idx with the *next* real pair, not the previous one — the
+ * translator split one target paragraph across two sentences, and the
+ * source-less one happens to come first. So: scan forward past any other
+ * orphans to the next real pair; if it's from the same target paragraph,
+ * attach there. Otherwise fall back to the nearest preceding paragraph
+ * (also the fallback for a leading orphan with nothing before it, or a
+ * trailing one with nothing after it). Pairs arrive in strict reading order
+ * (bandedNWAlign consumes src/tgt monotonically). A 1:0 pair always has a
+ * real src_para_idx already, so it's unaffected by any of this.
+ */
 export function groupPairsByParagraph(
   pairs: AlignedPair[]
 ): Map<number, AlignedPair[]> {
   const map = new Map<number, AlignedPair[]>()
-  for (const pair of pairs) {
-    const idx = pair.src_para_idx ?? 0
+  let lastSrcParaIdx = 0
+  for (let i = 0; i < pairs.length; i++) {
+    const pair = pairs[i]
+    let idx: number
+    if (pair.src_para_idx !== null) {
+      idx = pair.src_para_idx
+      lastSrcParaIdx = idx
+    } else {
+      idx = lastSrcParaIdx
+      if (pair.tgt_para_idx !== null) {
+        for (let j = i + 1; j < pairs.length; j++) {
+          const next = pairs[j]
+          if (next.src_para_idx !== null) {
+            if (next.tgt_para_idx === pair.tgt_para_idx) idx = next.src_para_idx
+            break
+          }
+        }
+      }
+    }
     if (!map.has(idx)) map.set(idx, [])
     map.get(idx)!.push(pair)
   }
@@ -39,11 +75,12 @@ export function buildParagraphText(pairs: AlignedPair[]): string {
 
 /**
  * Builds the display paragraph list shared by every alignment reading view
- * (popover and side-by-side). Paragraphs and pagination are always driven by
- * the source text — a 0:1 pair (target-only content with no source sentence)
- * has no home paragraph and is not shown, matching the popover reader's
- * long-standing behavior. Keeping both views on this same paragraph list is
- * what lets them share one PaginatedReader and one reading-progress cursor.
+ * (popover and side-by-side). Paragraphs and pagination are driven by the
+ * source text — a 0:1 pair (target-only content with no source sentence) has
+ * no source paragraph of its own, so it's grouped into the nearest preceding
+ * one (see groupPairsByParagraph) and rendered there alongside the aligned
+ * pairs. Keeping both views on this same paragraph list is what lets them
+ * share one PaginatedReader and one reading-progress cursor.
  */
 export function buildAlignmentParagraphs(
   result: AlignmentResult,
@@ -128,7 +165,7 @@ export function buildAlignmentParagraphs(
 
       return {
         text: spPairs.length > 0 ? buildParagraphText(spPairs) : sp.text,
-        pairs: spPairs.filter((p) => p.src_text.trim()),
+        pairs: spPairs.filter((p) => p.src_text.trim() || p.tgt_text.trim()),
         images,
       }
     })
@@ -158,7 +195,7 @@ export function buildAlignmentParagraphs(
       else images = [...srcImgs, ...tgtImgs]
       return {
         text: buildParagraphText(ps),
-        pairs: ps.filter((p) => p.src_text.trim()),
+        pairs: ps.filter((p) => p.src_text.trim() || p.tgt_text.trim()),
         images,
       }
     })

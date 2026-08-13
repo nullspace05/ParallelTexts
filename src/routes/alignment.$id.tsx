@@ -631,6 +631,8 @@ function SideBySideSentence({
   onHoverStart,
   onHoverEnd,
   isLast,
+  ownLine,
+  flagUnmatched,
 }: {
   text: string
   number: number
@@ -642,19 +644,31 @@ function SideBySideSentence({
   onHoverStart: () => void
   onHoverEnd: () => void
   isLast: boolean
+  // Both only ever set for a 0:1 pair (target text with no source sentence)
+  // — never for 1:0, which keeps its original inline "—" styling.
+  // ownLine: only true for the empty (source) side — its "—" gets its own
+  // line instead of gluing onto the tail of the previous sentence's line.
+  // flagUnmatched: true on *both* sides — a dotted underline flags the
+  // source-side "—" (on its own line) and the target-side text (which
+  // stays inline so it doesn't disrupt the paragraph's normal wrapping).
+  ownLine: boolean
+  flagUnmatched: boolean
 }) {
   const hasText = text.trim().length > 0
   const colorable = showEquivalence && hasMatch
   const palette = EQUIVALENCE_PALETTE[colorIdx % EQUIVALENCE_PALETTE.length]
   return (
     <span>
+      {ownLine && <br />}
       <span
         onMouseEnter={colorable ? onHoverStart : undefined}
         onMouseLeave={colorable ? onHoverEnd : undefined}
         className={
           colorable
             ? `rounded-sm px-0.5 transition-colors ${isHovered ? palette.hover : palette.base}`
-            : ""
+            : flagUnmatched
+              ? "border-b-2 border-dotted border-red-500"
+              : ""
         }
       >
         {showLineNumbers && (
@@ -664,7 +678,7 @@ function SideBySideSentence({
         )}
         {hasText ? text : <span className="text-muted-foreground/40">—</span>}
       </span>
-      {isLast ? "" : " "}
+      {ownLine ? isLast ? "" : <br /> : isLast ? "" : " "}
     </span>
   )
 }
@@ -685,6 +699,14 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   // Local to this paragraph — a pair's source/target spans always live in the
   // same paragraph block, so hover state never needs to reach further than this.
   const [hoveredPairIdx, setHoveredPairIdx] = useState<number | null>(null)
+
+  // A 0:1 pair (target text, no source sentence) gets special treatment —
+  // the empty source side breaks onto its own line, the target side keeps
+  // flowing inline but gets flagged. 1:0 pairs (source text, no target) are
+  // untouched, same inline "—" as before.
+  const isZeroOnePair = para.pairs.map(
+    (pair) => !pair.src_text.trim() && !!pair.tgt_text.trim()
+  )
 
   return (
     <div
@@ -721,6 +743,8 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 onHoverStart={() => setHoveredPairIdx(pairIdx)}
                 onHoverEnd={() => setHoveredPairIdx(null)}
                 isLast={pairIdx === para.pairs.length - 1}
+                ownLine={isZeroOnePair[pairIdx]}
+                flagUnmatched={isZeroOnePair[pairIdx]}
               />
             ))}
           </p>
@@ -738,6 +762,8 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 onHoverStart={() => setHoveredPairIdx(pairIdx)}
                 onHoverEnd={() => setHoveredPairIdx(null)}
                 isLast={pairIdx === para.pairs.length - 1}
+                ownLine={false}
+                flagUnmatched={isZeroOnePair[pairIdx]}
               />
             ))}
           </p>

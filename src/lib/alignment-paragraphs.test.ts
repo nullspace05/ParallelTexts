@@ -38,10 +38,70 @@ describe("groupPairsByParagraph", () => {
     expect(grouped.get(1)?.map((p) => p.src_text)).toEqual(["b"])
   })
 
-  it("defaults null src_para_idx to paragraph 0", () => {
+  it("defaults a leading null src_para_idx to paragraph 0 (nothing precedes it)", () => {
     const pairs = [pair({ src_para_idx: null, src_text: "a" })]
     const grouped = groupPairsByParagraph(pairs)
     expect(grouped.get(0)?.map((p) => p.src_text)).toEqual(["a"])
+  })
+
+  it("attaches a null src_para_idx to the nearest preceding real paragraph when there's no better signal", () => {
+    const pairs = [
+      pair({ src_para_idx: 1, src_text: "a" }),
+      pair({ src_para_idx: null, src_text: "orphan", tgt_text: "target only" }),
+      pair({ src_para_idx: 2, src_text: "b" }),
+    ]
+    const grouped = groupPairsByParagraph(pairs)
+    expect(grouped.get(1)?.map((p) => p.src_text)).toEqual(["a", "orphan"])
+    expect(grouped.get(2)?.map((p) => p.src_text)).toEqual(["b"])
+  })
+
+  it("attaches to the FOLLOWING paragraph when the orphan shares its tgt_para_idx with what comes next", () => {
+    // Real example: a translator split one target paragraph across two
+    // sentences. "In middle school?" has no source counterpart, but it and
+    // "Wait, Hanekawa..." both came from the same target paragraph (97) —
+    // the preceding pair is from a different one (96) — so the orphan
+    // belongs with what follows, not what came before.
+    const pairs = [
+      pair({ src_para_idx: 115, tgt_para_idx: 96, src_text: "a" }),
+      pair({
+        src_para_idx: null,
+        tgt_para_idx: 97,
+        src_text: "",
+        tgt_text: "In middle school?",
+      }),
+      pair({ src_para_idx: 116, tgt_para_idx: 97, src_text: "b" }),
+    ]
+    const grouped = groupPairsByParagraph(pairs)
+    expect(grouped.get(115)?.map((p) => p.src_text)).toEqual(["a"])
+    expect(grouped.get(116)?.map((p) => p.tgt_text)).toEqual([
+      "In middle school?",
+      "",
+    ])
+  })
+
+  it("skips past other orphans to find the next real pair's tgt_para_idx", () => {
+    const pairs = [
+      pair({ src_para_idx: 1, tgt_para_idx: 10, src_text: "a" }),
+      pair({
+        src_para_idx: null,
+        tgt_para_idx: 11,
+        src_text: "",
+        tgt_text: "orphan 1",
+      }),
+      pair({
+        src_para_idx: null,
+        tgt_para_idx: 11,
+        src_text: "",
+        tgt_text: "orphan 2",
+      }),
+      pair({ src_para_idx: 2, tgt_para_idx: 11, src_text: "b", tgt_text: "b" }),
+    ]
+    const grouped = groupPairsByParagraph(pairs)
+    expect(grouped.get(2)?.map((p) => p.tgt_text)).toEqual([
+      "orphan 1",
+      "orphan 2",
+      "b",
+    ])
   })
 })
 
@@ -185,7 +245,7 @@ describe("buildAlignmentParagraphs", () => {
     expect(paragraphs.map((p) => p.text)).toEqual(["First.", "Second."])
   })
 
-  it("excludes 0:1 gap pairs (empty src_text) from the displayed paragraph", () => {
+  it("retains 0:1 gap pairs (target-only, no source) in the displayed paragraph", () => {
     const result = makeResult({
       source_paragraphs: [{ para_idx: 0, text: "Has source.", images: [] }],
       pairs: [
@@ -196,7 +256,7 @@ describe("buildAlignmentParagraphs", () => {
           tgt_text: "Has target.",
         }),
         pair({
-          src_para_idx: 0,
+          src_para_idx: null,
           src_text: "",
           tgt_text: "Target-only orphan.",
           alignment_type: "0:1",
@@ -204,8 +264,14 @@ describe("buildAlignmentParagraphs", () => {
       ],
     })
     const paragraphs = buildAlignmentParagraphs(result, "none")
-    expect(paragraphs[0].pairs).toHaveLength(1)
-    expect(paragraphs[0].pairs[0].src_text).toBe("Has source.")
+    expect(paragraphs[0].pairs).toHaveLength(2)
+    expect(paragraphs[0].pairs.map((p) => p.tgt_text)).toEqual([
+      "Has target.",
+      "Target-only orphan.",
+    ])
+    // The 0:1 pair contributes no source text — buildParagraphText (and
+    // thus paragraph.text, which drives pagination) stays source-only.
+    expect(paragraphs[0].text).toBe("Has source.")
   })
 })
 
