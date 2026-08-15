@@ -13,11 +13,13 @@ import {
   getStoredDevice,
   getStoredFontSize,
   getStoredGapPenalty,
+  getStoredIntroDismissed,
   getStoredMaxSentences,
   getStoredModelId,
   setStoredDevice,
   setStoredFontSize,
   setStoredGapPenalty,
+  setStoredIntroDismissed,
   setStoredMaxSentences,
   setStoredModelId,
 } from "@/lib/user-settings"
@@ -77,6 +79,37 @@ const DEVICE_OPTIONS: {
   },
 ]
 
+function ToggleSwitch({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean
+  onChange: () => void
+  label: string
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <button
+        type="button"
+        onClick={onChange}
+        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none ${
+          checked ? "bg-primary" : "bg-muted-foreground/30"
+        }`}
+        role="switch"
+        aria-checked={checked}
+      >
+        <span
+          className={`pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
+            checked ? "translate-x-4" : "translate-x-0"
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
 function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const [modelId, setModelId] = useState("")
@@ -91,9 +124,11 @@ function SettingsPage() {
     getStoredDevice()
   )
   const [webgpuAvailable, setWebgpuAvailable] = useState(false)
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true)
 
   useEffect(() => {
     setWebgpuAvailable(detectWebGPU())
+    setShowWelcomeBanner(!getStoredIntroDismissed())
   }, [])
 
   // Download state keyed by modelId.
@@ -148,6 +183,14 @@ function SettingsPage() {
   function handleGapPenaltyChange(n: number) {
     setGapPenalty(n)
     setStoredGapPenalty(n)
+  }
+
+  function handleWelcomeBannerToggle() {
+    setShowWelcomeBanner((v) => {
+      const next = !v
+      setStoredIntroDismissed(!next)
+      return next
+    })
   }
 
   async function handleClearAll() {
@@ -523,6 +566,20 @@ function SettingsPage() {
           <p className="mb-[0.50em]">Ancient temples in Kyoto.</p>
           <p>京都の古い寺院た。</p>
         </div>
+      </section>
+
+      {/* ── Homepage welcome banner ── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Homepage welcome banner</h2>
+        <p className="text-sm text-muted-foreground">
+          The intro video and description shown at the top of the homepage.
+          Dismissing it there (via the × button) turns this off too.
+        </p>
+        <ToggleSwitch
+          checked={showWelcomeBanner}
+          onChange={handleWelcomeBannerToggle}
+          label="Show welcome banner"
+        />
       </section>
 
       {/* ── Data ── */}

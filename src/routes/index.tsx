@@ -1,13 +1,15 @@
 import { AlignBooksForm } from "@/components/align-books-form"
 import { DropZone } from "@/components/drop-zone"
 import { SamplesSection } from "@/components/samples-section"
+import {
+  getStoredIntroDismissed,
+  setStoredIntroDismissed,
+} from "@/lib/user-settings"
 import { Devices, X } from "@phosphor-icons/react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 
 export const Route = createFileRoute("/")({ component: App })
-
-const INTRO_KEY = "intro-dismissed"
 
 function AppBrand() {
   return (
@@ -32,7 +34,7 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
       <button
         type="button"
         onClick={() => {
-          localStorage.setItem(INTRO_KEY, "1")
+          setStoredIntroDismissed(true)
           onDismiss()
         }}
         className="absolute top-4 right-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
@@ -86,7 +88,7 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
 function App() {
   const [introDismissed, setIntroDismissed] = useState(() => {
     if (typeof window === "undefined") return false
-    return localStorage.getItem(INTRO_KEY) === "1"
+    return getStoredIntroDismissed()
   })
 
   return (

@@ -128,3 +128,13 @@ export function getStoredShowEquivalence(): boolean {
 export function setStoredShowEquivalence(enabled: boolean): void {
   safeSet(KEY_SHOW_EQUIVALENCE, enabled ? "1" : "0")
 }
+
+const KEY_INTRO_DISMISSED = "intro-dismissed"
+
+export function getStoredIntroDismissed(): boolean {
+  return safeGet(KEY_INTRO_DISMISSED) === "1"
+}
+
+export function setStoredIntroDismissed(dismissed: boolean): void {
+  safeSet(KEY_INTRO_DISMISSED, dismissed ? "1" : "0")
+}
