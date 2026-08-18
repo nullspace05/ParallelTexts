@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Product Requirements
 
-Full requirements, target users, and feature specs: [`.docs/PRD.md`](.docs/PRD.md)
+Full requirements, target users, and feature specs: [`.docs/PRD.md`](.docs/PRD.md).
 
 ## Project Goal
 
