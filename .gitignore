@@ -30,6 +30,7 @@ __pycache__/
 .docs/upload-models-to-r2.md
 .cursor/skills/
 .claude/skills/
+.agents/skills/
 
 # sample files
 books/

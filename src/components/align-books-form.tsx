@@ -1,3 +1,7 @@
+import {
+  computeAlignmentStats,
+  mergeExcludedIntoPairs,
+} from "@/lib/alignment-exclusions"
 import type { AlignProgressEvent, RegexRule } from "@/lib/alignment-pipeline"
 import { extractAndSplit } from "@/lib/alignment-pipeline"
 import { db } from "@/lib/db"
@@ -268,6 +272,8 @@ export function AlignBooksForm() {
       const {
         srcRecords,
         tgtRecords,
+        srcExcludedRecords,
+        tgtExcludedRecords,
         srcParas,
         tgtParas,
         srcTruncated,
@@ -276,9 +282,11 @@ export function AlignBooksForm() {
         srcBlob: srcBook.fileBlob,
         srcType: srcBook.type,
         srcLang,
+        srcBookId: srcBook.id,
         tgtBlob: tgtBook.fileBlob,
         tgtType: tgtBook.type,
         tgtLang,
+        tgtBookId: tgtBook.id,
         maxSentences,
         preprocessRules: validRules,
         onProgress: (e) => setProgress(e),
@@ -295,65 +303,66 @@ export function AlignBooksForm() {
 
       if (isCancelled) return
 
-      const pairs = await new Promise<AlignedPair[]>((resolve, reject) => {
-        const worker = new AlignmentWorker()
+      const alignedPairs = await new Promise<AlignedPair[]>(
+        (resolve, reject) => {
+          const worker = new AlignmentWorker()
 
-        workerCancel = () => {
-          worker.terminate()
-          reject(new DOMException("Alignment cancelled.", "AbortError"))
-        }
-
-        worker.onmessage = (e: MessageEvent<AlignWorkerOutput>) => {
-          if (e.data.type === "progress") setProgress(e.data.event)
-          if (e.data.type === "done") {
+          workerCancel = () => {
             worker.terminate()
-            resolve(e.data.pairs)
+            reject(new DOMException("Alignment cancelled.", "AbortError"))
           }
-          if (e.data.type === "error") {
+
+          worker.onmessage = (e: MessageEvent<AlignWorkerOutput>) => {
+            if (e.data.type === "progress") setProgress(e.data.event)
+            if (e.data.type === "done") {
+              worker.terminate()
+              resolve(e.data.pairs)
+            }
+            if (e.data.type === "error") {
+              worker.terminate()
+              reject(new Error(e.data.message))
+            }
+          }
+
+          worker.onerror = (e) => {
             worker.terminate()
-            reject(new Error(e.data.message))
+            reject(new Error(e.message ?? "Worker error"))
           }
+
+          console.log(
+            `[PT] align: dispatching | model=${effectiveModelId} | device=${device} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
+          )
+          worker.postMessage({
+            type: "align",
+            params: {
+              srcRecords,
+              tgtRecords,
+              modelId: effectiveModelId,
+              gapPenalty,
+              device,
+            },
+          })
         }
+      )
+      const pairs = mergeExcludedIntoPairs(
+        alignedPairs,
+        srcExcludedRecords,
+        tgtExcludedRecords
+      )
 
-        worker.onerror = (e) => {
-          worker.terminate()
-          reject(new Error(e.message ?? "Worker error"))
-        }
-
-        console.log(
-          `[PT] align: dispatching | model=${effectiveModelId} | device=${device} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
-        )
-        worker.postMessage({
-          type: "align",
-          params: {
-            srcRecords,
-            tgtRecords,
-            modelId: effectiveModelId,
-            gapPenalty,
-            device,
-          },
-        })
-      })
-
-      const aligned_count = pairs.filter(
-        (p) => p.alignment_type === "1:1"
-      ).length
-      const src_gap_count = pairs.filter(
-        (p) => p.alignment_type === "1:0"
-      ).length
-      const tgt_gap_count = pairs.filter(
-        (p) => p.alignment_type === "0:1"
-      ).length
+      const { aligned_count, src_gap_count, tgt_gap_count, excluded_count } =
+        computeAlignmentStats(pairs)
 
       const result: AlignmentResult = {
         pairs,
         src_lang: srcLang,
         tgt_lang: tgtLang,
-        total_src_sentences: srcRecords.length,
-        total_tgt_sentences: tgtRecords.length,
+        total_src_sentences: srcRecords.length + srcExcludedRecords.length,
+        total_tgt_sentences: tgtRecords.length + tgtExcludedRecords.length,
         aligned_count,
         src_gap_count,
         tgt_gap_count,
+        excluded_count,
         source_paragraphs: srcParas,
         target_paragraphs: tgtParas,
       }

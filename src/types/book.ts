@@ -14,3 +14,14 @@ export interface Book {
 export function bookToFile(book: Book): File {
   return new File([book.fileBlob], book.fileName, { type: book.fileBlob.type })
 }
+
+/**
+ * Stored in IndexedDB, one row per book. Paragraph indices refer to the
+ * `para_idx` produced by `normalizeParagraphs` — the same normalization used
+ * both by the book reader (where the user selects paragraphs) and the
+ * alignment pipeline (where the exclusions are applied).
+ */
+export interface ParagraphExclusion {
+  bookId: string
+  excludedParaIdxs: number[]
+}

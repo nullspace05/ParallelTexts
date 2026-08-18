@@ -196,6 +196,7 @@ function SettingsPage() {
   async function handleClearAll() {
     await db.books.clear()
     await db.alignments.clear()
+    await db.paragraphExclusions.clear()
     setConfirmClear(false)
     setCleared(true)
   }

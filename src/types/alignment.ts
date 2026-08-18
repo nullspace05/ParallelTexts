@@ -31,6 +31,12 @@ export interface AlignedPair {
   confidence: number | null
   src_images: Array<ImageAsset> | null
   tgt_images: Array<ImageAsset> | null
+  /** True when this src sentence was excluded from alignment on the book
+   * page — distinguishes a user-chosen skip from a genuine untranslated
+   * gap. Absent on pairs produced before this field existed. */
+  src_excluded?: boolean
+  /** Same as `src_excluded`, for the target side. */
+  tgt_excluded?: boolean
 }
 
 export interface AlignmentResult {
@@ -40,8 +46,14 @@ export interface AlignmentResult {
   total_src_sentences: number
   total_tgt_sentences: number
   aligned_count: number
+  /** Gaps the aligner produced on its own — excludes user-chosen exclusions. */
   src_gap_count: number
+  /** Gaps the aligner produced on its own — excludes user-chosen exclusions. */
   tgt_gap_count: number
+  /** Pairs present only because the user excluded that content on the book
+   * page (src_excluded/tgt_excluded). Absent on records predating the
+   * exclusion feature, in which case there are none. */
+  excluded_count?: number
   source_paragraphs?: Array<SourceParagraph>
   target_paragraphs?: Array<SourceParagraph>
 }

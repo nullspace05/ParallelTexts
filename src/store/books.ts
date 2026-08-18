@@ -1,4 +1,5 @@
 import { db } from "@/lib/db"
+import { removeExclusions } from "@/store/exclusions"
 import type { Book } from "@/types/book"
 
 export async function addBook(book: Book): Promise<void> {
@@ -7,6 +8,7 @@ export async function addBook(book: Book): Promise<void> {
 
 export async function removeBook(id: string): Promise<void> {
   await db.books.delete(id)
+  await removeExclusions(id)
 }
 
 export async function getBook(id: string): Promise<Book | undefined> {

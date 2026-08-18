@@ -1,6 +1,7 @@
 import { AlignBooksForm } from "@/components/align-books-form"
 import { SampleDot } from "@/components/samples-section"
 import { Button } from "@/components/ui/button"
+import { computeAlignmentStats } from "@/lib/alignment-exclusions"
 import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
 import { parseTsv } from "@/lib/import-tsv"
 import { parsePtEpub } from "@/lib/pt-epub"
@@ -113,9 +114,13 @@ function AlignmentCard({ record }: { record: AlignmentRecord }) {
   })
 
   const { result } = record
+  // Same rationale as the alignment detail page: excluded pairs are
+  // user-chosen skips, not alignment failures, so they're kept out of the
+  // match-rate denominator.
+  const realPairCount = result.pairs.length - (result.excluded_count ?? 0)
   const matchPct =
-    result.pairs.length > 0
-      ? Math.round((result.aligned_count / result.pairs.length) * 100)
+    realPairCount > 0
+      ? Math.round((result.aligned_count / realPairCount) * 100)
       : 0
 
   async function handleDelete() {
@@ -323,15 +328,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           tgt_images: null,
         }))
 
-        const aligned_count = pairs.filter(
-          (p) => p.alignment_type === "1:1"
-        ).length
-        const src_gap_count = pairs.filter(
-          (p) => p.alignment_type === "1:0"
-        ).length
-        const tgt_gap_count = pairs.filter(
-          (p) => p.alignment_type === "0:1"
-        ).length
+        const { aligned_count, src_gap_count, tgt_gap_count } =
+          computeAlignmentStats(pairs)
 
         const id = await addAlignment(
           "imported",

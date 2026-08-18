@@ -1,8 +1,15 @@
+import {
+  computeAlignmentStats,
+  mergeExcludedIntoPairs,
+  partitionExcludedSentences,
+} from "@/lib/alignment-exclusions"
 import { extractEpubContent } from "@/lib/epub"
+import { normalizeParagraphs } from "@/lib/paragraphs"
 import { extractPdfContent } from "@/lib/pdf"
 import { extractTxtContent } from "@/lib/txt"
 import { getSentenceTexts, splitIntoSentences } from "@/lib/sentence-splitter"
 import { DEFAULT_GAP_PENALTY } from "@/lib/user-settings"
+import { getExclusions } from "@/store/exclusions"
 import type {
   AlignedPair,
   AlignmentResult,
@@ -22,9 +29,13 @@ export interface AlignParams {
   srcBlob: Blob
   srcType: "epub" | "pdf" | "txt"
   srcLang: string
+  /** Book id used to look up paragraph exclusions; alignment-only callers may omit it. */
+  srcBookId?: string
   tgtBlob: Blob
   tgtType: "epub" | "pdf" | "txt"
   tgtLang: string
+  /** Book id used to look up paragraph exclusions; alignment-only callers may omit it. */
+  tgtBookId?: string
   modelId?: string
   device?: InferenceDevice
   maxSentences?: number
@@ -74,6 +85,11 @@ export interface AlignProgressEvent {
 export interface ExtractAndSplitResult {
   srcRecords: SentenceRecord[]
   tgtRecords: SentenceRecord[]
+  /** Sentences from paragraphs the user excluded on the book page — never
+   * embedded or aligned, but kept around so the caller can splice them back
+   * into the final pairs (see `mergeExcludedIntoPairs`). */
+  srcExcludedRecords: SentenceRecord[]
+  tgtExcludedRecords: SentenceRecord[]
   srcParas: SourceParagraph[]
   tgtParas: SourceParagraph[]
   srcTruncated: boolean
@@ -91,9 +107,11 @@ export async function extractAndSplit(
     srcBlob,
     srcType,
     srcLang,
+    srcBookId,
     tgtBlob,
     tgtType,
     tgtLang,
+    tgtBookId,
     maxSentences = 10_000,
     preprocessRules = [],
     onProgress,
@@ -118,24 +136,55 @@ export async function extractAndSplit(
         ? await extractPdfContent(tgtBlob)
         : await extractTxtContent(tgtBlob)
 
-  const srcParas = applyPreprocessRules(rawSrcParas, preprocessRules)
-  const tgtParas = applyPreprocessRules(rawTgtParas, preprocessRules)
+  // Normalize before anything downstream sees para_idx — this must match the
+  // indexing the book reader used when the user selected exclusions.
+  const srcParas = applyPreprocessRules(
+    normalizeParagraphs(rawSrcParas),
+    preprocessRules
+  )
+  const tgtParas = applyPreprocessRules(
+    normalizeParagraphs(rawTgtParas),
+    preprocessRules
+  )
 
+  // Split without a cap — truncation is applied below, after exclusions are
+  // partitioned out, so an excluded block early in the book can't eat into
+  // the maxSentences budget meant for real, alignable content.
   emit("splitting")
-  const { records: srcRecords, truncated: srcTruncated } = splitIntoSentences(
-    srcParas,
-    srcLang,
+  const [{ records: allSrcRecords }, { records: allTgtRecords }] = [
+    splitIntoSentences(srcParas, srcLang, Infinity),
+    splitIntoSentences(tgtParas, tgtLang, Infinity),
+  ]
+
+  const [srcExcludedParaIdxs, tgtExcludedParaIdxs] = await Promise.all([
+    srcBookId ? getExclusions(srcBookId) : Promise.resolve([]),
+    tgtBookId ? getExclusions(tgtBookId) : Promise.resolve([]),
+  ])
+
+  const {
+    included: srcRecords,
+    excluded: srcExcludedRecords,
+    truncated: srcTruncated,
+  } = partitionExcludedSentences(
+    allSrcRecords,
+    srcExcludedParaIdxs,
     maxSentences
   )
-  const { records: tgtRecords, truncated: tgtTruncated } = splitIntoSentences(
-    tgtParas,
-    tgtLang,
+  const {
+    included: tgtRecords,
+    excluded: tgtExcludedRecords,
+    truncated: tgtTruncated,
+  } = partitionExcludedSentences(
+    allTgtRecords,
+    tgtExcludedParaIdxs,
     maxSentences
   )
 
   return {
     srcRecords,
     tgtRecords,
+    srcExcludedRecords,
+    tgtExcludedRecords,
     srcParas,
     tgtParas,
     srcTruncated,
@@ -270,10 +319,16 @@ export async function alignBooks(
     onProgress,
   } = params
 
-  const { srcRecords, tgtRecords, srcParas, tgtParas } =
-    await extractAndSplit(params)
+  const {
+    srcRecords,
+    tgtRecords,
+    srcExcludedRecords,
+    tgtExcludedRecords,
+    srcParas,
+    tgtParas,
+  } = await extractAndSplit(params)
 
-  const pairs = await runEmbedAndAlign(
+  const alignedPairs = await runEmbedAndAlign(
     srcRecords,
     tgtRecords,
     modelId,
@@ -281,20 +336,25 @@ export async function alignBooks(
     device,
     onProgress
   )
+  const pairs = mergeExcludedIntoPairs(
+    alignedPairs,
+    srcExcludedRecords,
+    tgtExcludedRecords
+  )
 
-  const aligned_count = pairs.filter((p) => p.alignment_type === "1:1").length
-  const src_gap_count = pairs.filter((p) => p.alignment_type === "1:0").length
-  const tgt_gap_count = pairs.filter((p) => p.alignment_type === "0:1").length
+  const { aligned_count, src_gap_count, tgt_gap_count, excluded_count } =
+    computeAlignmentStats(pairs)
 
   return {
     pairs,
     src_lang: srcLang,
     tgt_lang: tgtLang,
-    total_src_sentences: srcRecords.length,
-    total_tgt_sentences: tgtRecords.length,
+    total_src_sentences: srcRecords.length + srcExcludedRecords.length,
+    total_tgt_sentences: tgtRecords.length + tgtExcludedRecords.length,
     aligned_count,
     src_gap_count,
     tgt_gap_count,
+    excluded_count,
     source_paragraphs: srcParas,
     target_paragraphs: tgtParas,
   }

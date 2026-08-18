@@ -221,9 +221,13 @@ function AlignmentPage() {
 
   const displayRecord = swapped ? swapRecord(record) : record
   const { result } = record
+  // Excluded pairs are user-chosen skips, not alignment failures — keep
+  // them out of the match-rate denominator so excluding content doesn't
+  // make the reported quality look worse than it is.
+  const realPairCount = result.pairs.length - (result.excluded_count ?? 0)
   const matchPct =
-    result.pairs.length > 0
-      ? Math.round((result.aligned_count / result.pairs.length) * 100)
+    realPairCount > 0
+      ? Math.round((result.aligned_count / realPairCount) * 100)
       : 0
   const date = new Date(record.createdAt).toLocaleDateString(undefined, {
     year: "numeric",
@@ -343,6 +347,12 @@ function AlignmentPage() {
                   label="Tgt sentences"
                   value={result.total_tgt_sentences.toLocaleString()}
                 />
+                {!!result.excluded_count && (
+                  <Stat
+                    label="Excluded"
+                    value={result.excluded_count.toLocaleString()}
+                  />
+                )}
               </div>
             </div>
 
@@ -633,6 +643,7 @@ function SideBySideSentence({
   isLast,
   ownLine,
   flagUnmatched,
+  excluded,
 }: {
   text: string
   number: number
@@ -653,6 +664,13 @@ function SideBySideSentence({
   // stays inline so it doesn't disrupt the paragraph's normal wrapping).
   ownLine: boolean
   flagUnmatched: boolean
+  // True when this gap exists because the user excluded it on the book
+  // page, not because the aligner failed to find a match. Takes visual
+  // priority over flagUnmatched (an excluded 1:0/0:1 pair is also
+  // "unmatched", but that's not the reason worth surfacing here) and
+  // applies on both sides, including 1:0 pairs which flagUnmatched never
+  // reaches.
+  excluded: boolean
 }) {
   const hasText = text.trim().length > 0
   const colorable = showEquivalence && hasMatch
@@ -663,12 +681,15 @@ function SideBySideSentence({
       <span
         onMouseEnter={colorable ? onHoverStart : undefined}
         onMouseLeave={colorable ? onHoverEnd : undefined}
+        title={excluded ? "Excluded from alignment" : undefined}
         className={
           colorable
             ? `rounded-sm px-0.5 transition-colors ${isHovered ? palette.hover : palette.base}`
-            : flagUnmatched
-              ? "border-b-2 border-dotted border-red-500"
-              : ""
+            : excluded
+              ? "border-b-2 border-dotted border-amber-500 opacity-70"
+              : flagUnmatched
+                ? "border-b-2 border-dotted border-red-500"
+                : ""
         }
       >
         {showLineNumbers && (
@@ -706,6 +727,9 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   // untouched, same inline "—" as before.
   const isZeroOnePair = para.pairs.map(
     (pair) => !pair.src_text.trim() && !!pair.tgt_text.trim()
+  )
+  const isExcludedPair = para.pairs.map(
+    (pair) => !!pair.src_excluded || !!pair.tgt_excluded
   )
 
   return (
@@ -745,6 +769,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 isLast={pairIdx === para.pairs.length - 1}
                 ownLine={isZeroOnePair[pairIdx]}
                 flagUnmatched={isZeroOnePair[pairIdx]}
+                excluded={isExcludedPair[pairIdx]}
               />
             ))}
           </p>
@@ -764,6 +789,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 isLast={pairIdx === para.pairs.length - 1}
                 ownLine={false}
                 flagUnmatched={isZeroOnePair[pairIdx]}
+                excluded={isExcludedPair[pairIdx]}
               />
             ))}
           </p>
@@ -950,6 +976,14 @@ function PairPopoverContent({
       <div className="space-y-2 text-base">
         {prevPair?.tgt_text.trim() && (
           <p className="text-muted-foreground opacity-30">
+            {prevPair.tgt_excluded && (
+              <span
+                className="mr-1 rounded border border-dotted border-amber-500 px-1 text-[0.65em] tracking-wide uppercase not-italic opacity-80"
+                title="Excluded from alignment"
+              >
+                Excluded
+              </span>
+            )}
             <span className="italic">
               {prevExpanded || prevPair.tgt_text.length <= PREV_NEXT_TRUNCATE
                 ? prevPair.tgt_text
@@ -969,6 +1003,14 @@ function PairPopoverContent({
         <p className="font-semibold italic">{pair.tgt_text}</p>
         {nextPair?.tgt_text.trim() && (
           <p className="text-muted-foreground opacity-30">
+            {nextPair.tgt_excluded && (
+              <span
+                className="mr-1 rounded border border-dotted border-amber-500 px-1 text-[0.65em] tracking-wide uppercase not-italic opacity-80"
+                title="Excluded from alignment"
+              >
+                Excluded
+              </span>
+            )}
             <span className="italic">
               {nextExpanded || nextPair.tgt_text.length <= PREV_NEXT_TRUNCATE
                 ? nextPair.tgt_text
@@ -1037,7 +1079,18 @@ const PairSpan = memo(function PairSpan({
   )
 
   if (pair.alignment_type !== "1:1") {
-    return <span>{pair.src_text}</span>
+    return (
+      <span
+        className={
+          pair.src_excluded
+            ? "border-b-2 border-dotted border-amber-500 opacity-70"
+            : undefined
+        }
+        title={pair.src_excluded ? "Excluded from alignment" : undefined}
+      >
+        {pair.src_text}
+      </span>
+    )
   }
 
   return (

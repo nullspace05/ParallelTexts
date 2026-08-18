@@ -1,10 +1,13 @@
 import { extractEpubContent } from "@/lib/epub"
+import { normalizeParagraphs } from "@/lib/paragraphs"
 import { extractPdfContent } from "@/lib/pdf"
 import { getBookProgress, setBookProgress } from "@/lib/reading-progress"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
 import { extractTxtContent } from "@/lib/txt"
+import { cn } from "@/lib/utils"
 import { getStoredFontSize } from "@/lib/user-settings"
 import { getBook } from "@/store/books"
+import { getExclusions, setExclusions } from "@/store/exclusions"
 import type { Book } from "@/types/book"
 import type { ImageAsset, SourceParagraph } from "@/types/alignment"
 import {
@@ -15,7 +18,12 @@ import {
 import { ReaderSearch, type SearchResult } from "@/components/reader-search"
 import { Button } from "@/components/ui/button"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { BookOpen, BookOpenText, CaretLeft } from "@phosphor-icons/react"
+import {
+  BookOpen,
+  BookOpenText,
+  CaretLeft,
+  CheckSquareOffset,
+} from "@phosphor-icons/react"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 export const Route = createFileRoute("/book/$id")({
@@ -39,21 +47,40 @@ export const Route = createFileRoute("/book/$id")({
 const BookParagraphBlock = memo(function BookParagraphBlock({
   para,
   pIdx,
+  selectionMode = false,
+  excluded = false,
+  onToggleExclude,
 }: {
   para: SourceParagraph
   pIdx: number
+  selectionMode?: boolean
+  excluded?: boolean
+  onToggleExclude?: (pIdx: number) => void
 }) {
   return (
     <div
       data-para-idx={pIdx}
-      className="px-12 sm:px-16 lg:px-4"
+      onClick={selectionMode ? () => onToggleExclude?.(pIdx) : undefined}
+      className={cn(
+        "relative px-12 sm:px-16 lg:px-4",
+        selectionMode && "cursor-pointer rounded-md",
+        selectionMode && !excluded && "hover:bg-muted/60",
+        excluded && "opacity-50"
+      )}
       style={{
         breakInside: "avoid",
         marginBottom: "1.5rem",
         maxWidth: "56rem",
         marginInline: "auto",
+        borderLeft: excluded ? "3px solid var(--color-destructive)" : undefined,
+        paddingLeft: excluded ? "0.75rem" : undefined,
       }}
     >
+      {excluded && (
+        <span className="absolute -top-2 right-0 rounded bg-muted px-1.5 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
+          Excluded
+        </span>
+      )}
       {para.images.map((img: ImageAsset) => (
         <img
           key={img.id}
@@ -90,6 +117,61 @@ function BookReader({
   const readerRef = useRef<PaginatedReaderHandle>(null)
   const [paragraphs, setParagraphs] = useState<SourceParagraph[] | null>(null)
   const [extractError, setExtractError] = useState<string | null>(null)
+
+  // ── Exclusion selection mode ─────────────────────────────────────────────
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [excludedParaIdxs, setExcludedParaIdxs] = useState<Set<number>>(
+    () => new Set()
+  )
+  // Guards the persist effect below from firing (and overwriting real data
+  // with an empty set) before the load effect has resolved at least once.
+  const hasLoadedExclusionsRef = useRef(false)
+
+  useEffect(() => {
+    let cancelled = false
+    hasLoadedExclusionsRef.current = false
+    // Reset synchronously so a book switch never briefly shows the previous
+    // book's exclusions on the new book's paragraphs while the real load
+    // (below) is in flight — BookReader isn't remounted on a book.id change,
+    // so without this, stale state would otherwise linger until it resolves.
+    setExcludedParaIdxs(new Set())
+    getExclusions(book.id).then((idxs) => {
+      if (cancelled) return
+      setExcludedParaIdxs(new Set(idxs))
+      hasLoadedExclusionsRef.current = true
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [book.id])
+
+  // Persists excludedParaIdxs whenever it changes, rather than writing to
+  // Dexie inside the setState updater below — an updater must stay pure
+  // (React may invoke it more than once, e.g. under StrictMode), and a
+  // dedicated effect always runs against the latest committed state, so a
+  // burst of rapid clicks still ends up with the correct final set on disk
+  // even though each click's updater only touches React state.
+  useEffect(() => {
+    if (!hasLoadedExclusionsRef.current) return
+    setExclusions(book.id, [...excludedParaIdxs])
+  }, [book.id, excludedParaIdxs])
+
+  function toggleExcludedPara(pIdx: number) {
+    // Ignore toggles that land before the initial load resolves — otherwise
+    // the load's `setExcludedParaIdxs` (a plain, unconditional overwrite)
+    // would silently clobber a click that snuck in first. The check and the
+    // load's `.then()` callback both run on the JS main thread, so there's
+    // no interleaving possible: by the time this runs, hasLoadedExclusionsRef
+    // is either already true (safe to toggle) or the load genuinely hasn't
+    // landed yet (in which case there's nothing yet to safely toggle against).
+    if (!hasLoadedExclusionsRef.current) return
+    setExcludedParaIdxs((prev) => {
+      const next = new Set(prev)
+      if (next.has(pIdx)) next.delete(pIdx)
+      else next.add(pIdx)
+      return next
+    })
+  }
 
   // ── Search state ─────────────────────────────────────────────────────────────
   const [searchOpen, setSearchOpen] = useState(false)
@@ -179,12 +261,7 @@ function BookReader({
               ? await extractPdfContent(book.fileBlob)
               : await extractTxtContent(book.fileBlob)
         if (cancelled) return
-        // Filter empty paragraphs; re-index so data-para-idx is contiguous
-        setParagraphs(
-          raw
-            .filter((p) => p.text.trim() || p.images.length > 0)
-            .map((p, i) => ({ ...p, para_idx: i }))
-        )
+        setParagraphs(normalizeParagraphs(raw))
       } catch (err) {
         if (!cancelled)
           setExtractError(
@@ -217,40 +294,72 @@ function BookReader({
   }
 
   return (
-    <PaginatedReader
-      ref={readerRef}
-      paragraphs={paragraphs}
-      savedCharCount={savedCharCount}
-      fontSize={fontSize}
-      pageNumHidden={pageNumHidden}
-      onTogglePageNum={onTogglePageNum}
-      onSaveProgress={onSaveProgress}
-      emptyMessage="No text found in this book."
-      searchSlot={
-        <ReaderSearch
-          query={searchQuery}
-          onQueryChange={(q) => setSearchQuery(q)}
-          results={searchData.results}
-          hasMore={searchData.hasMore}
-          currentIndex={searchIdx}
-          onSelect={handleSelect}
-          onPrev={handleSearchPrev}
-          onNext={handleSearchNext}
-          isOpen={searchOpen}
-          onOpen={() => setSearchOpen(true)}
-          onClose={handleSearchClose}
-          getPage={(paraIdx) =>
-            readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
-          }
-          onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
-          getTotal={() => readerRef.current?.getTotalPages() ?? 1}
-        />
-      }
-    >
-      {paragraphs.map((para, idx) => (
-        <BookParagraphBlock key={idx} para={para} pIdx={idx} />
-      ))}
-    </PaginatedReader>
+    <>
+      <PaginatedReader
+        ref={readerRef}
+        paragraphs={paragraphs}
+        savedCharCount={savedCharCount}
+        fontSize={fontSize}
+        pageNumHidden={pageNumHidden}
+        onTogglePageNum={onTogglePageNum}
+        onSaveProgress={onSaveProgress}
+        emptyMessage="No text found in this book."
+        searchSlot={
+          <ReaderSearch
+            query={searchQuery}
+            onQueryChange={(q) => setSearchQuery(q)}
+            results={searchData.results}
+            hasMore={searchData.hasMore}
+            currentIndex={searchIdx}
+            onSelect={handleSelect}
+            onPrev={handleSearchPrev}
+            onNext={handleSearchNext}
+            isOpen={searchOpen}
+            onOpen={() => setSearchOpen(true)}
+            onClose={handleSearchClose}
+            getPage={(paraIdx) =>
+              readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
+            }
+            onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
+            getTotal={() => readerRef.current?.getTotalPages() ?? 1}
+          />
+        }
+      >
+        {paragraphs.map((para, idx) => (
+          <BookParagraphBlock
+            key={idx}
+            para={para}
+            pIdx={idx}
+            selectionMode={selectionMode}
+            excluded={excludedParaIdxs.has(idx)}
+            onToggleExclude={toggleExcludedPara}
+          />
+        ))}
+      </PaginatedReader>
+      <button
+        type="button"
+        onClick={() => setSelectionMode((v) => !v)}
+        className={cn(
+          "absolute right-4 bottom-3 z-30 flex size-10 items-center justify-center rounded-full shadow-md ring-1 transition-colors",
+          selectionMode
+            ? "bg-primary text-primary-foreground ring-primary"
+            : "bg-background text-muted-foreground ring-border hover:bg-muted"
+        )}
+        aria-pressed={selectionMode}
+        aria-label={
+          selectionMode
+            ? "Exit paragraph exclusion mode"
+            : "Exclude paragraphs from alignment"
+        }
+        title={
+          selectionMode
+            ? "Done selecting"
+            : "Select paragraphs to exclude from alignment"
+        }
+      >
+        <CheckSquareOffset className="size-5" />
+      </button>
+    </>
   )
 }
 
