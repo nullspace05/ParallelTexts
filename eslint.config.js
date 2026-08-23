@@ -20,6 +20,7 @@ export default [
     ignores: [
       "eslint.config.js",
       ".prettierrc",
+      "books/**",
       ".wrangler/**",
       "worker-configuration.d.ts",
     ],
