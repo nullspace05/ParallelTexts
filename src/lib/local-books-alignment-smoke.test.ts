@@ -1,21 +1,16 @@
 // @vitest-environment node
 //
-// Real-embedding regression test for the gapPenalty fix (see
-// DEFAULT_GAP_PENALTY in user-settings.ts). At gapPenalty=0, a gap is
-// free, so any weakly-positive similarity match "steals" a real sentence
-// instead of correctly falling back to a gap — this is what caused a user
-// report where a book's real first sentence got glued to a 2-character
-// Japanese "目次" (Table of Contents) heading at 0.27 confidence, bumping
-// the whole opening paragraph off by one sentence.
+// Local-only smoke test: run real embeddings + banded NW on the start and
+// end of each ParallelTexts export sitting in the git-ignored books/
+// directory, and assert the alignment isn't completely broken (at least
+// one high-confidence 1:1 match per window).
 //
-// Runs the real embedding model (not synthetic vectors) against the
-// beginning and end of each book already sitting in the git-ignored books/
-// directory — the beginning/end are where front matter, credits, and
-// colophon pages live, i.e. exactly where sentences have no real
-// counterpart on the other side. Uses `@vitest-environment node` (not
-// jsdom) because transformers.js's ONNX runtime chokes on jsdom's
-// cross-realm Float32Array; parsePtEpub doesn't need DOMParser so plain
-// Node is fine here.
+// This is not a quality bar for front matter / TOC / credits. Those
+// unmatched extras are handled by paragraph exclusions, not by raising
+// DEFAULT_GAP_PENALTY (which is 0 by design). Uses
+// `@vitest-environment node` (not jsdom) because transformers.js's ONNX
+// runtime chokes on jsdom's cross-realm Float32Array; we read the
+// manifest via JSZip + ArrayBuffer so DOMParser isn't needed.
 //
 // Skips itself when books/ isn't present, same as
 // local-books-text-coverage.test.ts.
@@ -58,8 +53,8 @@ async function readPtManifestResult(path: string) {
 
 const BOOKS_ROOT = join(__dirname, "../../books")
 const MODEL_ID = "Xenova/paraphrase-multilingual-MiniLM-L12-v2"
-// Enough sentences to comfortably span real front-matter/colophon content
-// plus real narrative, without embedding an entire book on CPU.
+// Enough sentences to sample real narrative without embedding an entire
+// book on CPU.
 const WINDOW = 100
 
 function findAlignEpubs(dir: string): string[] {
@@ -75,32 +70,14 @@ function findAlignEpubs(dir: string): string[] {
 
 const epubPaths = findAlignEpubs(BOOKS_ROOT)
 
-/**
- * A 1:1 match where one side is a short fragment (likely a heading, credit
- * line, or other boilerplate) matched against a much longer, unrelated
- * side, at low confidence, is the signature of a junk line stealing a real
- * sentence instead of being left as a gap.
- */
-function isJunkSteal(p: {
-  alignment_type: string
-  confidence: number | null
-  src_text: string
-  tgt_text: string
-}): boolean {
-  if (p.alignment_type !== "1:1" || p.confidence === null) return false
-  const shorter = Math.min(p.src_text.length, p.tgt_text.length)
-  const longer = Math.max(p.src_text.length, p.tgt_text.length)
-  return p.confidence < 0.5 && shorter < 15 && longer > 40
-}
-
 describe.skipIf(epubPaths.length === 0)(
-  "gapPenalty fix: junk/front-matter lines don't steal real sentences",
+  "local sample books: alignment smoke test with real embeddings",
   () => {
     for (const path of epubPaths) {
       const label = path.split("/").pop()!
 
       it(
-        `${label}: beginning and end of the book align decently with real embeddings`,
+        `${label}: beginning and end of the book produce at least one high-confidence match`,
         async () => {
           const result = await readPtManifestResult(path)
           // Not every EPUB under books/ is a ParallelTexts export.
@@ -158,33 +135,13 @@ describe.skipIf(epubPaths.length === 0)(
               0.15
             )
 
-            const steals = pairs.filter(isJunkSteal)
-            if (steals.length > 0) {
-              console.log(
-                `[${label}/${where}] junk-steal violations:`,
-                JSON.stringify(
-                  steals.map((p) => ({
-                    conf: p.confidence,
-                    src: p.src_text.slice(0, 40),
-                    tgt: p.tgt_text.slice(0, 60),
-                  })),
-                  null,
-                  2
-                )
-              )
-            }
-            expect(
-              steals,
-              `${label}/${where}: short fragment glued to unrelated long sentence at low confidence`
-            ).toEqual([])
-
             // Loose sanity floor, not a quality bar: a handful of windows
             // (e.g. Alice ja-en's ending, where the English side is Project
             // Gutenberg's legal boilerplate and the Japanese side is an
             // unrelated Aozora Bunko CC-license notice) legitimately have
             // almost nothing in common between the two languages, so no
             // fixed "should mostly match" ratio holds across every window.
-            // This only guards against the fix collapsing to all-gaps.
+            // This only guards against alignment collapsing to all-gaps.
             const highConfMatches = pairs.filter(
               (p) => p.alignment_type === "1:1" && (p.confidence ?? 0) > 0.6
             ).length

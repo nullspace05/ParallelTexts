@@ -15,13 +15,13 @@ export const FONT_SIZE_MAX = 32
 /**
  * A diagonal match only wins over leaving both sentences unaligned when its
  * similarity exceeds 2 × gapPenalty (one 1:1 move vs. two independent gap
- * moves covering the same two sentences). Defaults to 0 (a gap is free) —
- * raising it was tried as a fix for front-matter/boilerplate lines with no
- * real counterpart "stealing" a match via a spuriously positive similarity,
- * but embedding-model confidence correlates with sentence *length* as much
- * as correctness, so raising this broadly also rejects short-but-correct
- * matches. Kept as a user-adjustable option; see the pending plan in
- * .docs/feature_plans for a more targeted fix.
+ * moves covering the same two sentences). Defaults to 0 (a gap is free).
+ * Raising it was tried as a fix for front-matter/boilerplate lines with no
+ * real counterpart "stealing" a match, but embedding-model confidence
+ * correlates with sentence length as much as correctness, so it also
+ * rejects short-but-correct matches. Unmatched extras (TOC, あとがき,
+ * translator notes) are handled by paragraph exclusions instead. Kept as a
+ * user-adjustable option.
  */
 export const DEFAULT_GAP_PENALTY = 0
 export const GAP_PENALTY_MIN = 0
