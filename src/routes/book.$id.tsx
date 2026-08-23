@@ -1,15 +1,3 @@
-import { extractEpubContent } from "@/lib/epub"
-import { normalizeParagraphs } from "@/lib/paragraphs"
-import { extractPdfContent } from "@/lib/pdf"
-import { getBookProgress, setBookProgress } from "@/lib/reading-progress"
-import { splitIntoSentences } from "@/lib/sentence-splitter"
-import { extractTxtContent } from "@/lib/txt"
-import { cn } from "@/lib/utils"
-import { getStoredFontSize } from "@/lib/user-settings"
-import { getBook } from "@/store/books"
-import { getExclusions, setExclusions } from "@/store/exclusions"
-import type { Book } from "@/types/book"
-import type { ImageAsset, SourceParagraph } from "@/types/alignment"
 import {
   PaginatedReader,
   ReaderSkeleton,
@@ -17,13 +5,25 @@ import {
 } from "@/components/paginated-reader"
 import { ReaderSearch, type SearchResult } from "@/components/reader-search"
 import { Button } from "@/components/ui/button"
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { extractEpubContent } from "@/lib/epub"
+import { normalizeParagraphs } from "@/lib/paragraphs"
+import { extractPdfContent } from "@/lib/pdf"
+import { getBookProgress, setBookProgress } from "@/lib/reading-progress"
+import { splitIntoSentences } from "@/lib/sentence-splitter"
+import { extractTxtContent } from "@/lib/txt"
+import { getStoredFontSize } from "@/lib/user-settings"
+import { cn } from "@/lib/utils"
+import { getBook } from "@/store/books"
+import { getExclusions, setExclusions } from "@/store/exclusions"
+import type { ImageAsset, SourceParagraph } from "@/types/alignment"
+import type { Book } from "@/types/book"
 import {
   BookOpen,
   BookOpenText,
   CaretLeft,
   CheckSquareOffset,
 } from "@phosphor-icons/react"
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 export const Route = createFileRoute("/book/$id")({
@@ -526,10 +526,10 @@ function BookDetailPage() {
           <img
             src={book.coverDataUrl}
             alt={book.title}
-            className="h-56 w-full flex-shrink-0 rounded-lg border object-contain sm:h-48 sm:w-auto sm:object-cover"
+            className="h-56 w-full shrink-0 rounded-lg border object-contain sm:h-48 sm:w-auto sm:object-cover"
           />
         ) : (
-          <div className="flex h-48 w-full flex-shrink-0 items-center justify-center rounded-lg border bg-muted sm:w-32">
+          <div className="flex h-48 w-full shrink-0 items-center justify-center rounded-lg border bg-muted sm:w-32">
             <BookOpen className="size-10 text-muted-foreground/40" />
           </div>
         )}
