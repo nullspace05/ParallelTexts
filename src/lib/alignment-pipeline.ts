@@ -1,13 +1,14 @@
 import {
   computeAlignmentStats,
+  degenerateGapPairs,
   mergeExcludedIntoPairs,
   partitionExcludedSentences,
 } from "@/lib/alignment-exclusions"
 import { extractEpubContent } from "@/lib/epub"
 import { normalizeParagraphs } from "@/lib/paragraphs"
 import { extractPdfContent } from "@/lib/pdf"
-import { extractTxtContent } from "@/lib/txt"
 import { getSentenceTexts, splitIntoSentences } from "@/lib/sentence-splitter"
+import { extractTxtContent } from "@/lib/txt"
 import { DEFAULT_GAP_PENALTY } from "@/lib/user-settings"
 import { getExclusions } from "@/store/exclusions"
 import type {
@@ -265,6 +266,14 @@ export async function runEmbedAndAlign(
 ): Promise<AlignedPair[]> {
   const emit = (phase: AlignPhase, current?: number, total?: number) =>
     onProgress?.({ phase, current, total })
+
+  // Exclusions can leave one side with no alignable text. There is no ML work
+  // to do in that case: every surviving sentence is an ordinary, unflagged gap.
+  // NOTE: very rare edge case
+  if (srcRecords.length === 0 || tgtRecords.length === 0) {
+    console.log("degenerateGapPairs detected, returning degenerate gap pairs")
+    return degenerateGapPairs(srcRecords, tgtRecords)
+  }
 
   const srcTexts = getSentenceTexts(srcRecords)
   const tgtTexts = getSentenceTexts(tgtRecords)

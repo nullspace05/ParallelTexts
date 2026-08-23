@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  degenerateGapPairs,
   mergeExcludedIntoPairs,
   partitionExcludedSentences,
 } from "./alignment-exclusions"
@@ -120,6 +121,58 @@ describe("partitionExcludedSentences", () => {
     const records = [rec(0, 0), rec(1, 1)]
     const { truncated } = partitionExcludedSentences(records, [], 10)
     expect(truncated).toBe(false)
+  })
+})
+
+describe("degenerateGapPairs", () => {
+  it("turns surviving source sentences into ordinary 1:0 gaps", () => {
+    const pairs = degenerateGapPairs(
+      [rec(0, 0, 0, "source one"), rec(1, 0, 1, "source two")],
+      []
+    )
+
+    expect(pairs).toMatchObject([
+      {
+        src_text: "source one",
+        tgt_text: "",
+        src_global_idx: 0,
+        tgt_global_idx: null,
+        alignment_type: "1:0",
+        confidence: null,
+      },
+      {
+        src_text: "source two",
+        tgt_text: "",
+        src_global_idx: 1,
+        tgt_global_idx: null,
+        alignment_type: "1:0",
+        confidence: null,
+      },
+    ])
+    expect(
+      pairs.every((pair) => !pair.src_excluded && !pair.tgt_excluded)
+    ).toBe(true)
+  })
+
+  it("turns surviving target sentences into ordinary 0:1 gaps", () => {
+    const pairs = degenerateGapPairs([], [rec(4, 2, 0, "target")])
+
+    expect(pairs).toMatchObject([
+      {
+        src_text: "",
+        tgt_text: "target",
+        src_global_idx: null,
+        tgt_global_idx: 4,
+        alignment_type: "0:1",
+        confidence: null,
+      },
+    ])
+    expect(pairs[0].src_excluded).toBeUndefined()
+    expect(pairs[0].tgt_excluded).toBeUndefined()
+  })
+
+  it("returns no pairs when both sides are empty", () => {
+    expect(degenerateGapPairs([], [])).toEqual([])
   })
 })
 

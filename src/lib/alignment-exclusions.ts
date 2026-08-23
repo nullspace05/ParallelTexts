@@ -42,9 +42,10 @@ export function partitionExcludedSentences(
   return { included, excluded, truncated: false }
 }
 
-function excludedRecordToPair(
+function recordToGapPair(
   record: SentenceRecord,
-  side: "src" | "tgt"
+  side: "src" | "tgt",
+  excluded = false
 ): AlignedPair {
   if (side === "src") {
     return {
@@ -60,7 +61,7 @@ function excludedRecordToPair(
       confidence: null,
       src_images: [],
       tgt_images: null,
-      src_excluded: true,
+      ...(excluded ? { src_excluded: true } : {}),
     }
   }
   return {
@@ -76,8 +77,22 @@ function excludedRecordToPair(
     confidence: null,
     src_images: null,
     tgt_images: [],
-    tgt_excluded: true,
+    ...(excluded ? { tgt_excluded: true } : {}),
   }
+}
+
+/**
+ * Produces ordinary alignment gaps when only one side contains sentences.
+ * These are not user exclusions, so they deliberately carry no exclusion flag.
+ */
+export function degenerateGapPairs(
+  srcRecords: SentenceRecord[],
+  tgtRecords: SentenceRecord[]
+): AlignedPair[] {
+  return [
+    ...srcRecords.map((record) => recordToGapPair(record, "src")),
+    ...tgtRecords.map((record) => recordToGapPair(record, "tgt")),
+  ]
 }
 
 /**
@@ -108,13 +123,13 @@ export function mergeExcludedIntoPairs(
 
   function flushSrc(limit: number) {
     while (si < srcExcluded.length && srcExcluded[si].global_idx < limit) {
-      result.push(excludedRecordToPair(srcExcluded[si], "src"))
+      result.push(recordToGapPair(srcExcluded[si], "src", true))
       si++
     }
   }
   function flushTgt(limit: number) {
     while (ti < tgtExcluded.length && tgtExcluded[ti].global_idx < limit) {
-      result.push(excludedRecordToPair(tgtExcluded[ti], "tgt"))
+      result.push(recordToGapPair(tgtExcluded[ti], "tgt", true))
       ti++
     }
   }
