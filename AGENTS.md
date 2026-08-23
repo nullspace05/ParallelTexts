@@ -30,6 +30,23 @@ pnpm typecheck    # tsc --noEmit
 
 Run a single test file: `pnpm vitest run src/path/to/file.test.ts`
 
+## Before every edit/session
+
+**Always read `.docs/PRD.md`** before:
+- Starting any new task or feature
+- Making architectural decisions
+- Answering questions about project scope or requirements
+
+The PRD contains the "what" and "why" of this project. Keep it in mind as the primary source of truth for project direction.
+
+## After every edit/session
+
+- Run `pnpm lint` to lint the code.
+- Run `pnpm format` to format the code.
+- After implementing a feature, give me a full git command (git command itself + header + body), something i can easily copy paste, part of the commit message should be the reason for the change/feature/fix/etc
+
+
+
 ## Architecture
 
 ### Stack
