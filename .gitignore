@@ -28,7 +28,7 @@ __pycache__/
 .docs/feature_plans/
 .docs/todos.md
 .docs/upload-models-to-r2.md
-.agents/skills/
+.agents/skills/iterative-implementation-plan/
 
 # sample files
 books/
