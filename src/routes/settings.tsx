@@ -13,12 +13,14 @@ import {
   getStoredDevice,
   getStoredFontSize,
   getStoredGapPenalty,
+  getStoredIncognitoNoticeDismissed,
   getStoredIntroDismissed,
   getStoredMaxSentences,
   getStoredModelId,
   setStoredDevice,
   setStoredFontSize,
   setStoredGapPenalty,
+  setStoredIncognitoNoticeDismissed,
   setStoredIntroDismissed,
   setStoredMaxSentences,
   setStoredModelId,
@@ -125,10 +127,12 @@ function SettingsPage() {
   )
   const [webgpuAvailable, setWebgpuAvailable] = useState(false)
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(true)
+  const [showIncognitoNotice, setShowIncognitoNotice] = useState(true)
 
   useEffect(() => {
     setWebgpuAvailable(detectWebGPU())
     setShowWelcomeBanner(!getStoredIntroDismissed())
+    setShowIncognitoNotice(!getStoredIncognitoNoticeDismissed())
   }, [])
 
   // Download state keyed by modelId.
@@ -189,6 +193,14 @@ function SettingsPage() {
     setShowWelcomeBanner((v) => {
       const next = !v
       setStoredIntroDismissed(!next)
+      return next
+    })
+  }
+
+  function handleIncognitoNoticeToggle() {
+    setShowIncognitoNotice((v) => {
+      const next = !v
+      setStoredIncognitoNoticeDismissed(!next)
       return next
     })
   }
@@ -300,10 +312,6 @@ function SettingsPage() {
         <p className="text-sm text-muted-foreground">
           Select the model used when aligning books. Download it to avoid
           fetching from the network during alignment.
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Heads up: alignment can fail or hang in private/incognito windows —
-          use a normal window for best results.
         </p>
         <div className="space-y-2">
           {MODEL_REGISTRY.map((m) => {
@@ -580,6 +588,21 @@ function SettingsPage() {
           checked={showWelcomeBanner}
           onChange={handleWelcomeBannerToggle}
           label="Show welcome banner"
+        />
+      </section>
+
+      {/* ── Incognito notice ── */}
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">Incognito notice</h2>
+        <p className="text-sm text-muted-foreground">
+          A reminder on the homepage that alignment may not work in
+          private/incognito windows. Dismissing it there (via the × button)
+          turns this off too.
+        </p>
+        <ToggleSwitch
+          checked={showIncognitoNotice}
+          onChange={handleIncognitoNoticeToggle}
+          label="Show incognito notice"
         />
       </section>
 
