@@ -138,3 +138,13 @@ export function getStoredIntroDismissed(): boolean {
 export function setStoredIntroDismissed(dismissed: boolean): void {
   safeSet(KEY_INTRO_DISMISSED, dismissed ? "1" : "0")
 }
+
+const KEY_INCOGNITO_NOTICE_DISMISSED = "incognito-notice-dismissed"
+
+export function getStoredIncognitoNoticeDismissed(): boolean {
+  return safeGet(KEY_INCOGNITO_NOTICE_DISMISSED) === "1"
+}
+
+export function setStoredIncognitoNoticeDismissed(dismissed: boolean): void {
+  safeSet(KEY_INCOGNITO_NOTICE_DISMISSED, dismissed ? "1" : "0")
+}

@@ -1,5 +1,6 @@
 import { AlignBooksForm } from "@/components/align-books-form"
 import { DropZone } from "@/components/drop-zone"
+import { IncognitoNotice } from "@/components/incognito-notice"
 import { SamplesSection } from "@/components/samples-section"
 import {
   getStoredIntroDismissed,
@@ -106,6 +107,8 @@ function App() {
         {!introDismissed && (
           <IntroBanner onDismiss={() => setIntroDismissed(true)} />
         )}
+
+        <IncognitoNotice />
 
         {/* Workflow: upload → align (tighter gap = one unit) */}
         <div className="space-y-3">
