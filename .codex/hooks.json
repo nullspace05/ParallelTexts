@@ -1,0 +1,18 @@
+{
+  "description": "Format the codebase after Codex edits files.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm format",
+            "timeout": 60,
+            "statusMessage": "Formatting code"
+          }
+        ]
+      }
+    ]
+  }
+}

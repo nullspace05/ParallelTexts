@@ -24,7 +24,7 @@ pnpm preview      # Build + serve via Wrangler (mirrors production)
 pnpm deploy       # Build + deploy to Cloudflare Workers
 pnpm test         # Vitest
 pnpm lint         # ESLint (TanStack config) — ALWAYS run after every edit session; fix all errors before continuing
-pnpm format       # Prettier (writes) — ALWAYS run after every edit session
+pnpm format       # Prettier (writes)
 pnpm typecheck    # tsc --noEmit
 ```
 
@@ -42,7 +42,6 @@ The PRD contains the "what" and "why" of this project. Keep it in mind as the pr
 ## After every edit/session
 
 - Run `pnpm lint` to lint the code.
-- Run `pnpm format` to format the code.
 - After implementing a feature, give me a full git command (git command itself + header + body), something i can easily copy paste, part of the commit message should be the reason for the change/feature/fix/etc (make the commit message multiline if necessary)
 
 
