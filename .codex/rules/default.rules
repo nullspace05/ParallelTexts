@@ -1,0 +1,411 @@
+# https://learn.chatgpt.com/docs/agent-configuration/rules
+#
+# Prefix rules overlay sandbox/approval. Unmatched commands still go through
+# the default approval policy — they are not blocked.
+#
+# Matching is argv-prefix exact. Most-restrictive decision wins when more
+# than one rule matches (forbidden > prompt > allow). A broader `prompt`
+# or `forbidden` therefore kills a more-specific `allow` for the same prefix.
+# Do NOT add catch-alls like pattern=["git"] or pattern=["pnpm"] as prompt.
+#
+# This policy assumes:
+#   - pnpm is the ONLY package manager
+#   - npm/npx/yarn/bun/bunx are NEVER allowed
+#   - arbitrary remote package execution is forbidden
+#   - Git inspection is free
+#   - Git mutation generally requires approval
+#   - destructive filesystem / history-rewriting actions are forbidden
+#
+# Flags that appear after extra tokens cannot be matched (e.g.
+# `git push origin main --force` is NOT caught by `git push --force`).
+
+
+# ============================================================
+# PACKAGE MANAGERS — FORBIDDEN ALTERNATIVES
+# ============================================================
+
+prefix_rule(
+    pattern = ["npm"],
+    decision = "forbidden",
+    justification = "Use pnpm instead of npm.",
+    match = ["npm install", "npm --version"],
+    not_match = ["pnpm install"],
+)
+
+prefix_rule(
+    pattern = ["npx"],
+    decision = "forbidden",
+    justification = "Use a package.json script or `pnpm exec`, not npx.",
+    match = ["npx prettier --write ."],
+    not_match = ["pnpm exec prettier --write ."],
+)
+
+prefix_rule(
+    pattern = ["yarn"],
+    decision = "forbidden",
+    justification = "Use pnpm instead of yarn.",
+    match = ["yarn add lodash"],
+    not_match = ["pnpm add lodash"],
+)
+
+prefix_rule(
+    pattern = ["bun"],
+    decision = "forbidden",
+    justification = "Use pnpm instead of bun.",
+    match = ["bun install"],
+    not_match = ["bunx prettier"],
+)
+
+prefix_rule(
+    pattern = ["bunx"],
+    decision = "forbidden",
+    justification = "Use a package.json script or `pnpm exec`, not bunx.",
+    match = ["bunx prettier --write ."],
+    not_match = ["bun install"],
+)
+
+
+# ============================================================
+# PNPM — SAFE / READ-ONLY
+# ============================================================
+
+prefix_rule(
+    pattern = ["pnpm", ["list", "ls", "why", "outdated", "check"]],
+    decision = "allow",
+    justification = "Read-only pnpm / prettier --check.",
+    match = ["pnpm list", "pnpm ls", "pnpm why dexie", "pnpm check"],
+    not_match = ["pnpm install", "pnpm add lodash"],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "run", "check"],
+    decision = "allow",
+    justification = "prettier --check via the package.json script.",
+    match = ["pnpm run check"],
+    not_match = ["pnpm run format"],
+)
+
+# Validation / local build. `format` writes files on purpose (AGENTS.md).
+prefix_rule(
+    pattern = ["pnpm", ["test", "lint", "typecheck", "format", "build"]],
+    decision = "allow",
+    justification = "Project test, lint, typecheck, format, and build scripts.",
+    match = ["pnpm test", "pnpm lint", "pnpm typecheck", "pnpm format", "pnpm build"],
+    not_match = ["pnpm deploy", "pnpm dev"],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "run", ["test", "lint", "typecheck", "format", "build"]],
+    decision = "allow",
+    justification = "Same scripts via `pnpm run`.",
+    match = ["pnpm run test", "pnpm run lint", "pnpm run build"],
+    not_match = ["pnpm run deploy", "pnpm run dev"],
+)
+
+
+# ============================================================
+# PNPM — DEPENDENCY MUTATION
+# ============================================================
+
+prefix_rule(
+    pattern = ["pnpm", ["install", "i", "add", "remove", "rm", "update", "up"]],
+    decision = "prompt",
+    justification = "Dependency changes need approval.",
+    match = ["pnpm install", "pnpm i", "pnpm add lodash", "pnpm remove lodash"],
+    not_match = ["pnpm test", "pnpm list"],
+)
+
+
+# ============================================================
+# PNPM — REMOTE / ARBITRARY PACKAGE EXECUTION
+# ============================================================
+
+prefix_rule(
+    pattern = ["pnpm", "dlx"],
+    decision = "forbidden",
+    justification = "Do not execute remote packages. Add a devDependency and use a script.",
+    match = ["pnpm dlx prettier --write ."],
+    not_match = ["pnpm exec prettier --write ."],
+)
+
+prefix_rule(
+    pattern = ["pnpx"],
+    decision = "forbidden",
+    justification = "Do not execute remote packages. Use a package.json script instead.",
+    match = ["pnpx prettier --write ."],
+    not_match = ["pnpm exec prettier --write ."],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "create"],
+    decision = "forbidden",
+    justification = "Do not scaffold from remote templates via pnpm create.",
+    match = ["pnpm create vite"],
+    not_match = ["pnpm add vite"],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "exec"],
+    decision = "prompt",
+    justification = "Arbitrary local binaries still need approval.",
+    match = ["pnpm exec prettier --write ."],
+    not_match = ["pnpm dlx prettier --write ."],
+)
+
+
+# ============================================================
+# PNPM — GLOBAL OPERATIONS
+# (forbidden wins over the broader `pnpm add` / `pnpm remove` prompt)
+# ============================================================
+
+prefix_rule(
+    pattern = ["pnpm", "add", ["--global", "-g"]],
+    decision = "forbidden",
+    justification = "Do not install packages globally. Add them to this repo instead.",
+    match = ["pnpm add --global typescript", "pnpm add -g typescript"],
+    not_match = ["pnpm add typescript"],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "remove", ["--global", "-g"]],
+    decision = "forbidden",
+    justification = "Do not remove global packages from this agent.",
+    match = ["pnpm remove --global typescript", "pnpm remove -g typescript"],
+    not_match = ["pnpm remove typescript"],
+)
+
+
+# ============================================================
+# PNPM / WRANGLER — DEPLOY AND LONG-RUNNING
+# ============================================================
+
+prefix_rule(
+    pattern = ["pnpm", ["deploy", "preview", "dev", "upload-models"]],
+    decision = "prompt",
+    justification = "Deploy, preview, dev server, and R2 uploads need approval.",
+    match = ["pnpm deploy", "pnpm preview", "pnpm dev", "pnpm upload-models"],
+    not_match = ["pnpm build", "pnpm test"],
+)
+
+prefix_rule(
+    pattern = ["pnpm", "run", ["deploy", "preview", "dev", "upload-models"]],
+    decision = "prompt",
+    justification = "Same scripts via `pnpm run`.",
+    match = ["pnpm run deploy", "pnpm run preview"],
+    not_match = ["pnpm run build"],
+)
+
+prefix_rule(
+    pattern = ["wrangler", "deploy"],
+    decision = "prompt",
+    justification = "Production Cloudflare deploys need approval.",
+    match = ["wrangler deploy"],
+    not_match = ["wrangler types", "wrangler dev"],
+)
+
+
+# ============================================================
+# GIT — READ-ONLY INSPECTION
+# ============================================================
+
+prefix_rule(
+    pattern = ["git", ["status", "diff", "log", "show", "blame", "rev-parse", "describe", "ls-files", "reflog"]],
+    decision = "allow",
+    justification = "Read-only git inspection.",
+    match = [
+        "git status",
+        "git diff",
+        "git log -1",
+        "git show HEAD",
+        "git blame src/lib/epub.ts",
+        "git rev-parse HEAD",
+        "git ls-files",
+        "git reflog",
+    ],
+    not_match = ["git add .", "git commit", "git push"],
+)
+
+# Specific read-only forms only. Do not prompt all of `git branch` / `git tag`
+# / `git remote` — that would override these allows.
+prefix_rule(
+    pattern = ["git", "branch", ["--show-current", "--list", "-l", "-a", "-v", "-vv"]],
+    decision = "allow",
+    justification = "Read-only branch listing.",
+    match = ["git branch --show-current", "git branch --list", "git branch -vv"],
+    not_match = ["git branch", "git branch -D leftover"],
+)
+
+prefix_rule(
+    pattern = ["git", "tag", ["--list", "-l"]],
+    decision = "allow",
+    justification = "Read-only tag listing.",
+    match = ["git tag --list", "git tag -l"],
+    not_match = ["git tag v1.0.0"],
+)
+
+prefix_rule(
+    pattern = ["git", "remote", "-v"],
+    decision = "allow",
+    justification = "Read-only remote listing.",
+    match = ["git remote -v"],
+    not_match = ["git remote add origin https://example.com"],
+)
+
+
+# ============================================================
+# GIT — STAGING / RESTORE / COMMITS
+# ============================================================
+
+prefix_rule(
+    pattern = ["git", "add"],
+    decision = "prompt",
+    justification = "Staging needs approval.",
+    match = ["git add .", "git add -A"],
+    not_match = ["git status"],
+)
+
+# Covers both `--staged` and worktree discards (`git restore .`).
+prefix_rule(
+    pattern = ["git", "restore"],
+    decision = "prompt",
+    justification = "Restore can discard uncommitted work.",
+    match = ["git restore --staged .", "git restore ."],
+    not_match = ["git checkout -- ."],
+)
+
+prefix_rule(
+    pattern = ["git", "commit"],
+    decision = "prompt",
+    justification = "Commits need approval.",
+    match = ["git commit -m msg", "git commit --amend"],
+    not_match = ["git add ."],
+)
+
+
+# ============================================================
+# GIT — BRANCH / SWITCH
+# ============================================================
+
+prefix_rule(
+    pattern = ["git", "switch"],
+    decision = "prompt",
+    justification = "Branch switching needs approval.",
+    match = ["git switch main", "git switch -c feature"],
+    not_match = ["git checkout main"],
+)
+
+prefix_rule(
+    pattern = ["git", "checkout"],
+    decision = "prompt",
+    justification = "Checkout can switch branches or discard files.",
+    match = ["git checkout main", "git checkout -- src/lib/epub.ts"],
+    not_match = ["git switch main"],
+)
+
+prefix_rule(
+    pattern = ["git", "branch", ["-d", "--delete", "-m", "--move"]],
+    decision = "prompt",
+    justification = "Non-force branch delete/rename needs approval.",
+    match = ["git branch -d leftover", "git branch --delete leftover", "git branch -m new-name"],
+    not_match = ["git branch -D leftover", "git branch --show-current"],
+)
+
+prefix_rule(
+    pattern = ["git", "branch", "-D"],
+    decision = "forbidden",
+    justification = "Force-deleting branches is blocked. Use `git branch -d` after approval.",
+    match = ["git branch -D leftover"],
+    not_match = ["git branch -d leftover"],
+)
+
+prefix_rule(
+    pattern = ["git", "branch", "--delete", "--force"],
+    decision = "forbidden",
+    justification = "Force-deleting branches is blocked. Use `git branch --delete` after approval.",
+    match = ["git branch --delete --force leftover"],
+    not_match = ["git branch --delete leftover"],
+)
+
+
+# ============================================================
+# GIT — NETWORK / HISTORY
+# ============================================================
+
+prefix_rule(
+    pattern = ["git", ["fetch", "pull", "push", "rebase", "merge", "cherry-pick"]],
+    decision = "prompt",
+    justification = "Network and history-rewriting git commands need approval.",
+    match = ["git fetch", "git pull", "git push origin main", "git rebase main"],
+    not_match = ["git status", "git log"],
+)
+
+
+# ============================================================
+# DESTRUCTIVE OPERATIONS
+# Prefix-exact: later flags (e.g. `git push origin main --force`) are not caught.
+# The broader prompt above still applies in that case.
+# ============================================================
+
+prefix_rule(
+    pattern = ["git", "push", ["-f", "--force", "--force-with-lease", "--force-if-includes"]],
+    decision = "forbidden",
+    justification = "Force-push is blocked. Use a non-force push, or run it yourself.",
+    match = [
+        "git push --force",
+        "git push -f",
+        "git push --force-with-lease",
+        "git push --force-if-includes",
+    ],
+    not_match = [
+        "git push origin main",
+        "git push origin main --force",
+    ],
+)
+
+prefix_rule(
+    pattern = ["git", "reset"],
+    decision = "prompt",
+    justification = "Reset can discard commits or staged changes.",
+    match = ["git reset", "git reset --soft HEAD~1"],
+    not_match = ["git restore ."],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Hard reset is blocked. Use `git restore` or a mixed reset after approval.",
+    match = ["git reset --hard", "git reset --hard HEAD~1"],
+    not_match = ["git reset --soft HEAD~1", "git reset HEAD --hard"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "prompt",
+    justification = "Clean deletes untracked files.",
+    match = ["git clean -n", "git clean --dry-run"],
+    not_match = ["git status"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean", ["-f", "-fd", "-fdx", "-dffx", "-fx", "--force"]],
+    decision = "forbidden",
+    justification = "Forced git clean is blocked. Preview with `git clean -n` first.",
+    match = ["git clean -f", "git clean -fd", "git clean -fdx", "git clean --force"],
+    not_match = ["git clean -n", "git clean -d -f"],
+)
+
+prefix_rule(
+    pattern = ["rm", ["-rf", "-fr", "-Rf", "-fR", "-r", "-R", "--recursive"]],
+    decision = "forbidden",
+    justification = "Recursive rm is blocked. Delete specific files another way, or do it yourself.",
+    match = ["rm -rf dist", "rm -fr dist", "rm -r dist", "rm --recursive dist"],
+    not_match = ["rm dist/index.js", "rm -f dist/index.js"],
+)
+
+prefix_rule(
+    pattern = ["sudo"],
+    decision = "forbidden",
+    justification = "sudo is blocked. Run the command without elevation, or do it yourself.",
+    match = ["sudo pnpm install", "sudo rm -rf /"],
+    not_match = ["pnpm install"],
+)
