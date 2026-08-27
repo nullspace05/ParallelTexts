@@ -92,6 +92,8 @@ Reuse is the default, not the exception. Before authoring a lesson, read `./asse
 
 A shared stylesheet is the first component every workspace earns: every lesson links it, so the lessons look like one consistent course rather than a pile of one-offs. As the workspace grows, so should the component library.
 
+For codebase lessons, source excerpts use `code-slice.js` (see [CODEBASE-LESSON-FORMAT.md](./CODEBASE-LESSON-FORMAT.md)). Do not invent a one-off highlighter per lesson.
+
 ## The Mission
 
 Every lesson should be tied into the mission - the reason that the user is interested in learning about the topic.

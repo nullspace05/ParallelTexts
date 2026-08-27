@@ -66,8 +66,23 @@ Do this after Goal/Why, usually next to the first trace for that subsection.
 **What to paste**
 
 - The lines that implement *this* subsection's behavior, copied from the file (keep comments that sit on those lines).
-- Surrounding lines when the slice would otherwise be incomplete: the `if` that contains the branch, the loop header, the `return` that uses the result. A reader should be able to find those lines in the file without guessing.
-- Link to the file. Line numbers or a `startLine:endLine:path` citation are enough; do not dump the whole function on every heading.
+- Surrounding lines when the slice would otherwise be incomplete: the `if` that contains the branch, the loop header, the `return` that uses the result. A reader should be able to find those lines in the file without guessing. Highlight the relevant lines. Leave the neighbors visible and unhighlighted.
+- Render source with the shared **code-slice** component (`./assets/code-slice.js`, styles in `lesson.css`). File header, line numbers, light syntax color (JS/TS/Python), green focus rows like a GitHub hunk. Do not dump a plain `<pre>` for source. Input/output traces stay plain `<pre><code>` tables. They are not source.
+
+Markup:
+
+```html
+<pre
+  class="code-slice"
+  data-file="src/lib/example.ts"
+  data-href="../../src/lib/example.ts"
+  data-lang="ts"
+  data-start="10"
+  data-focus="12-14,18"
+><code>...contiguous lines from the file, including neighbors...</code></pre>
+```
+
+`data-start` is the file line of the first line in the block. `data-focus` is those same file line numbers (ranges allowed). `data-lang` is `ts`, `js`, or `py`. Link `code-slice.js` after the lesson body. Do not dump the whole function on every heading.
 
 **What not to paste**
 
@@ -81,7 +96,7 @@ Example shape:
 
 ```
 Goal / Why
-[5–15 lines from the file]
+code-slice (neighbors + green focus on the branch)
 "this branch is the skip case.
  this branch is the keep case."
 Input / Output trace
