@@ -64,11 +64,13 @@ Every lesson, and every subsection inside it, states **Goal** and **Why** before
 
 Put them at the top of the block, visible, not buried in a sidenote.
 
-**Goal.** What the user can do when this bit is done. Observable. "Given a pair list with one 0:1 orphan, say which source paragraph it lands in" is a goal. "Understand grouping" is not.
+**Goal.** What the user can do when this bit is done. Observable. "Given this input, write the output" or "hold this pose for five breaths with the cue you just learned" is a goal. "Understand X" is not.
 
 **Why.** Why we are doing this bit, in terms of the mission. One or two sentences. If you cannot say why this subsection exists, delete the subsection.
 
 Do not skip Why because the mission document exists. The user should not have to leave the lesson to remember why they are here.
+
+When a subsection is about a specific passage in a primary source (a page, a verse, a score, a formula, a procedure), show that passage — plus nearby lines if the excerpt is incomplete on its own — and a short breakdown of how those pieces work. Do not dump the whole source under every heading. Skip the excerpt on Predict / drill blocks that only reuse a rule already shown.
 
 If possible, open the lesson file for the user by running a CLI command.
 
@@ -78,17 +80,9 @@ Each lesson should recommend a primary source for the user to read or watch. Thi
 
 Each lesson should contain a reminder to ask followup questions to the agent. The agent is their teacher, and can assist with anything that's unclear.
 
-## Learning a codebase
+Worked examples first. Abstract walkthroughs are the fallback. The user should see several concrete cases, then get tested on a fresh one they have not just read.
 
-Use this section only when the user is learning a part of **this** repo (a function, file, or module they pointed at, or a mission to change that code). Do not use it for a standalone skill (yoga, a language from scratch, a tool they do not have open).
-
-Codebase lessons are example-heavy. Abstract walkthroughs of control flow are the fallback, not the default. The user should see many input/output traces, then get tested on a fresh one.
-
-Every subsection that teaches a behavior must, if it applies, show the **source slice** that implements that behavior (plus nearby lines if the slice is incomplete on its own) and a short **line breakdown** of those lines. Do not dump the whole function under every heading. Skip the snippet on Predict/Poke blocks that only reuse a rule already shown. Details: [CODEBASE-LESSON-FORMAT.md](./CODEBASE-LESSON-FORMAT.md).
-
-Follow [CODEBASE-LESSON-FORMAT.md](./CODEBASE-LESSON-FORMAT.md).
-
-The rest of this skill still applies: mission, Goal/Why, unslop, ZPD, assets, citations from the actual source and tests.
+**[CODEBASE-LESSON-FORMAT.md](./CODEBASE-LESSON-FORMAT.md) is only for learning a codebase.** Use it when the user is reading or changing code in a repo (a function, file, module, or programming topic that is really "how does this code work"). Do not use it for a standalone subject — physics, math, yoga, a language from scratch, and so on — unless that subject would actually benefit from the same shape (input/output traces, predict, source excerpt). A programming tutorial that is not about a specific codebase may still use it if traces and source slices are the right tool. When in doubt and the topic is not code, skip that file.
 
 ## Assets
 
@@ -126,7 +120,7 @@ Knowledge should first be gathered from trusted resources. Use `RESOURCES.md` to
 
 For acquiring knowledge, difficulty is the enemy. It eats working memory you need for understanding.
 
-For a codebase lesson, "knowledge" is the traces and the rule they imply. Do not open with a paragraph of architecture.
+Prefer concrete examples over an overview. The examples come first. A one-line rule after two or three of them is compression, not the lesson.
 
 ## Skills
 
@@ -141,7 +135,7 @@ Each of these should be based on a **feedback loop**, where the user receives fe
 
 For quizzes, each answer should be exactly the same number of words (and characters, if possible). Don't give the user any clues about the answer through formatting.
 
-For a codebase lesson, the main skill drill is "here is an input, write the output." Multiple-choice about vocabulary is extra, not the core.
+The main skill drill is producing the next step, the output, or the performance — not picking a vocabulary word. Multiple-choice is a warm-up, not a substitute.
 
 ## Acquiring Wisdom
 
@@ -152,8 +146,6 @@ When the user asks a question that appears to require wisdom, your default postu
 A community is a place (online or offline) where the user can test their skills in the real world. This might be a forum, a subreddit, a real-world class (budget permitting) or a local interest group.
 
 You should attempt to find high-reputation communities the user can join. If the user expresses a preference that they don't want to join a community, respect it.
-
-For a codebase lesson, the community analogue is often the repo itself: run the tests, open a real stored alignment, predict, then check. Still offer an external community if the topic is bigger than this file (bitext alignment research, and so on).
 
 ## Reference Documents
 
@@ -171,7 +163,7 @@ Some learning topics lend themselves to reference:
 
 Glossaries, in particular, are an essential reference. Once one is created, it should be adhered to in every lesson.
 
-For a codebase topic, the cheat sheet should keep at least one input/output trace per important branch, not only a bullet list of rules.
+When the topic has cases or branches, keep at least one worked example per important case, not only a bullet list of rules.
 
 ## `NOTES.md`
 
