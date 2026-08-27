@@ -35,6 +35,20 @@ export interface AlignmentSearchResult {
  * trailing one with nothing after it). Pairs arrive in strict reading order
  * (bandedNWAlign consumes src/tgt monotonically). A 1:0 pair always has a
  * real src_para_idx already, so it's unaffected by any of this.
+ * SAMPLE:
+ * Input:
+ * src_para  tgt_para  src_text              tgt_text
+ * 115       96        "Hello."              "こんにちは。"
+ * null      97        ""                    "In middle school?"   ← 0:1 orphan
+ * 116       97        "Wait."               "待て、羽川…"
+ * 116       97        "What?"               "何？"
+ * Output:
+ * 115 → [ { src: "Hello.", tgt: "こんにちは。" } ]
+ * 116 → [
+          { src: "",      tgt: "In middle school?" },  // attached forward (same tgt_para 97)
+          { src: "Wait.", tgt: "待て、羽川…" },
+          { src: "What?", tgt: "何？" },
+        ]
  */
 export function groupPairsByParagraph(
   pairs: AlignedPair[]
