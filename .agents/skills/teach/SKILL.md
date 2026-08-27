@@ -58,6 +58,28 @@ A lesson should be **beautiful**, with clean, readable typography and layout, si
 
 The lesson should be short, and completable very quickly. Learners' working memory is very small, and we need to stay within it. But each lesson should give the user a single tangible win that they can build on. It should be directly tied to the mission, and should be in the user's zone of proximal development.
 
+### Orient the reader before teaching
+
+Open every lesson with a plain-language TL;DR before the first example,
+source passage, demonstration, or detailed explanation. It should prime the
+reader for what follows, not repeat the lesson title.
+
+The TL;DR names the thing's purpose, the real question or problem it answers,
+and the outcome. Explain what would stay confusing, incorrect, or impossible
+without it. If the lesson turns on a relationship or change, show one compact
+concrete example before explaining the details. Keep this opening short enough
+to absorb in one pass. Two to five sentences and one small example are usually
+enough.
+
+Before introducing a major idea, procedure, example, or source passage, give a
+short explanation of why it belongs in the lesson. Name the problem it
+addresses, then describe its role at a high level. Do not make the reader wait
+until the end of a subsection to learn why they are looking at it.
+
+Goal and Why do not replace this orientation. Goal says what the learner will
+be able to do. Why connects the activity to the user's mission. The TL;DR
+explains why this particular idea or activity is necessary right now.
+
 ### Goal and why
 
 Every lesson, and every subsection inside it, states **Goal** and **Why** before the teaching starts. A subsection is a heading block, a stepper step, a quiz, or a simulator. Sublessons are not exempt.

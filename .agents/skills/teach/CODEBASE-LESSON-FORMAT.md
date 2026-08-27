@@ -57,6 +57,12 @@ Multiple-choice is fine as a warm-up if the two answers have the same character 
 
 The lesson still opens with Goal and Why. Each trace block can use a one-line Goal ("see the skip case") and a one-line Why ("a naive always-keep rule gets this wrong"). Do not skip them because the traces feel self-explanatory.
 
+### Start with the code's job
+
+Before the first trace or source excerpt, give a short TL;DR. Say what the code is trying to make possible, what breaks or becomes impossible without it, and what result it produces. When the code maps one kind of value to another, show a tiny mapping with the real-shaped names the reader will see below.
+
+Before each new source excerpt, add a brief explanation of why that block exists. State the failure case or missing behavior first, then the block's high-level job. A Goal describes the learner's task and a Why ties it to the mission. Neither substitutes for telling the reader why the code itself has to be there.
+
 ## Show the source that does that subsection
 
 Every subsection that teaches a behavior must, if it applies, show the **actual primary source** for that behavior, not a paraphrase of it.
