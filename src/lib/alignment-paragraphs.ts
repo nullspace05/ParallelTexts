@@ -55,13 +55,16 @@ export function groupPairsByParagraph(
 ): Map<number, AlignedPair[]> {
   const map = new Map<number, AlignedPair[]>()
   let lastSrcParaIdx = 0
+  // find the paragraph index for each pair
   for (let i = 0; i < pairs.length; i++) {
     const pair = pairs[i]
     let idx: number
+    // if the pair has a source paragraph index, use it
     if (pair.src_para_idx !== null) {
       idx = pair.src_para_idx
       lastSrcParaIdx = idx
     } else {
+      // default to lastSrcParaIdx; if the next real pair shares tgt_para_idx, use that src_para_idx
       idx = lastSrcParaIdx
       if (pair.tgt_para_idx !== null) {
         for (let j = i + 1; j < pairs.length; j++) {
