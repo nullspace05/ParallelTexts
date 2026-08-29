@@ -44,6 +44,7 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useEffect, useRef, useState } from "react"
+import { DevEmbeddingControls } from "./dev-embedding-controls"
 import { SampleDot } from "./samples-section"
 import { Button } from "./ui/button"
 
@@ -692,6 +693,8 @@ export function AlignBooksForm() {
                 alignment.
               </p>
             </div>
+
+            {import.meta.env.DEV && <DevEmbeddingControls />}
           </div>
         )}
       </div>

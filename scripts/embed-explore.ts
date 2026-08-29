@@ -99,6 +99,13 @@ async function main() {
   console.log(
     `dot(should be high) = ${dot(src2.data, tgt3.data, src2.hiddenDim, 0, 0)}`
   )
+
+  console.log("\n ----- other stuff ------")
+  console.log({
+    srcFloats: src.data.length,
+    tgtFloats: tgt.data.length,
+    expectedPerSide: enTexts.length * src.hiddenDim,
+  })
 }
 
 await main()
