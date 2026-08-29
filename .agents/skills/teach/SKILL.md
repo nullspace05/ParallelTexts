@@ -37,6 +37,21 @@ Before the `RESOURCES.md` is well-populated, your focus should be to find high-q
 
 Some topics may require more skills than knowledge. Learning more about theoretical physics might be more knowledge-based. For yoga, more skills-based.
 
+## Order, Structure, Abstraction
+
+When teaching, especially when it comes to more abstract topics and topics where it might no be immediately obvious why we are learning something, start by motivating the existence of said topic/lesson/sublesson etc.
+For example, when it comes to data structures, instead of introducing data structure in pure abstraction without any context, start with WHY we would want to create such abstractions in the first place. For example - a good motivating example would be to start with something that the viewer/learning can easily image/empathize with.
+
+So back to the data structures example, don't start with its pure abstraction, operations and complexity. Why not start with an example where you are a lemonade store owner keeping track of your customers data using cards stored in a box. Then you immediately find out about the disadvantages of an unsorted stack of cards, which naturally leads to sorting, binary search, hash maps, linked lists, etc. etc.
+
+The same reasoning applies for example when it comes to math - don't start with a list of axioms and operations and definitions unless necessary. Rather walk me through how i could have derived it all from scratch - like a journey similar to how the people developing these math would have taken.
+
+In other words start with the high-level overview of a topic, historical background (if relevant) / start with the forest before the trees/leaves.
+Start with more specificity, less generality/abstraction, then progressively move to higher abstractions.
+
+One example of what a good lesson format looks like would be this - https://www.3blue1brown.com/?topic=all (you can also check his youtube transcripts). The general format of khanacademy is also very good.
+
+
 ### Fluency vs Storage Strength
 
 You should be careful to split between two types of learning:
