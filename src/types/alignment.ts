@@ -54,6 +54,9 @@ export interface AlignmentResult {
    * page (src_excluded/tgt_excluded). Absent on records predating the
    * exclusion feature, in which case there are none. */
   excluded_count?: number
+  // why bother with these?
+  // because pairs is a result of the alignment process
+  // the paragraphs themselves however preserve the original display structure of the text - and will be used to display the alignment in the UI
   source_paragraphs?: Array<SourceParagraph>
   target_paragraphs?: Array<SourceParagraph>
 }

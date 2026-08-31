@@ -35,19 +35,36 @@ export interface AlignmentSearchResult {
  * trailing one with nothing after it). Pairs arrive in strict reading order
  * (bandedNWAlign consumes src/tgt monotonically). A 1:0 pair always has a
  * real src_para_idx already, so it's unaffected by any of this.
+ * SAMPLE:
+ * Input:
+ * src_para  tgt_para  src_text              tgt_text
+ * 115       96        "Hello."              "こんにちは。"
+ * null      97        ""                    "In middle school?"   ← 0:1 orphan
+ * 116       97        "Wait."               "待て、羽川…"
+ * 116       97        "What?"               "何？"
+ * Output:
+ * 115 → [ { src: "Hello.", tgt: "こんにちは。" } ]
+ * 116 → [
+          { src: "",      tgt: "In middle school?" },  // attached forward (same tgt_para 97)
+          { src: "Wait.", tgt: "待て、羽川…" },
+          { src: "What?", tgt: "何？" },
+        ]
  */
 export function groupPairsByParagraph(
   pairs: AlignedPair[]
 ): Map<number, AlignedPair[]> {
   const map = new Map<number, AlignedPair[]>()
   let lastSrcParaIdx = 0
+  // find the paragraph index for each pair
   for (let i = 0; i < pairs.length; i++) {
     const pair = pairs[i]
     let idx: number
+    // if the pair has a source paragraph index, use it
     if (pair.src_para_idx !== null) {
       idx = pair.src_para_idx
       lastSrcParaIdx = idx
     } else {
+      // default to lastSrcParaIdx; if the next real pair shares tgt_para_idx, use that src_para_idx
       idx = lastSrcParaIdx
       if (pair.tgt_para_idx !== null) {
         for (let j = i + 1; j < pairs.length; j++) {

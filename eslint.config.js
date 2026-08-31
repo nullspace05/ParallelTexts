@@ -23,6 +23,8 @@ export default [
       "books/**",
       ".wrangler/**",
       "worker-configuration.d.ts",
+      "precomputed_embeddings/**",
+      "teach_scratch/**",
     ],
   },
 ]

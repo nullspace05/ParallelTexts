@@ -34,7 +34,7 @@ export function IncognitoNotice() {
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             Alignments, uploads and downloads can fail or hang on incognito
-            windows. For the best results, switch to a normal browser window.
+            windows. For the best results, use a normal browser window.
           </p>
         </div>
       </div>
