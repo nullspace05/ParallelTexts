@@ -18,6 +18,7 @@ import {
   pageFromCharCount,
 } from "@/lib/reading-progress"
 import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react"
+import type { ReactNode } from "react"
 import {
   forwardRef,
   useEffect,
@@ -27,7 +28,6 @@ import {
   useRef,
   useState,
 } from "react"
-import type { ReactNode } from "react"
 import { Skeleton } from "./ui/skeleton"
 
 // ── Constants (exported so callers can reference them for layout math) ────────
@@ -338,7 +338,6 @@ export const PaginatedReader = forwardRef<
         restoredRef.current = true
         const charCountToRestore = initialSavedCharCount.current
         if (charCountToRestore > 0) {
-          const paraEls = getParaElements(inner)
           const clampedPage = Math.min(
             pageFromCharCount(
               charCountToRestore,
