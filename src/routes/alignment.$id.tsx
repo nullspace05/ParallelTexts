@@ -42,6 +42,10 @@ import {
   setStoredShowEquivalence,
   type ImageMode,
 } from "@/lib/user-settings"
+import {
+  getOperationErrorMessage,
+  trackOperation,
+} from "@/lib/operation-diagnostics"
 import { getAlignment } from "@/store/alignments"
 import type {
   AlignedPair,
@@ -50,7 +54,6 @@ import type {
 } from "@/types/alignment"
 import { MODEL_REGISTRY } from "@/utils/model-registry"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useLiveQuery } from "dexie-react-hooks"
 import {
   ArrowsLeftRight,
   CircleNotch,
@@ -162,7 +165,10 @@ function AlignmentPage() {
   const { id } = Route.useParams()
   const { view, pageNumHidden, charCount, totalChars } = Route.useSearch()
   const navigate = useNavigate({ from: "/alignment/$id" })
-  const record = useLiveQuery(() => getAlignment(id), [id])
+  const [record, setRecord] = useState<AlignmentRecord | null | undefined>(
+    undefined
+  )
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [fontSize] = useState(() => getStoredFontSize())
   const [imageMode, setImageMode] = useState<ImageMode>(() =>
@@ -178,6 +184,28 @@ function AlignmentPage() {
   const [exporting, setExporting] = useState<"tsv" | "epub" | null>(null)
   // Tracks when charCount last changed in this session — used for "last saved" display.
   const [savedAt, setSavedAt] = useState<number | null>(null)
+
+  const loadRecord = useCallback(async () => {
+    setRecord(undefined)
+    setLoadError(null)
+    try {
+      const nextRecord = await trackOperation("alignment_reader_load", {}, () =>
+        getAlignment(id)
+      )
+      setRecord(nextRecord ?? null)
+    } catch (error) {
+      const message = getOperationErrorMessage(
+        error,
+        "Could not load this alignment."
+      )
+      setLoadError(message)
+    }
+  }, [id])
+
+  useEffect(() => {
+    void loadRecord()
+  }, [loadRecord])
+
   useEffect(() => {
     if (charCount > 0) setSavedAt(Date.now())
   }, [charCount])
@@ -198,6 +226,17 @@ function AlignmentPage() {
     })
   }
 
+  if (loadError) {
+    return (
+      <div className="flex min-h-[calc(100svh-56px)] flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="max-w-md text-sm text-destructive">{loadError}</p>
+        <Button variant="outline" onClick={() => void loadRecord()}>
+          Try again
+        </Button>
+      </div>
+    )
+  }
+
   if (record === undefined) {
     return (
       <div
@@ -205,6 +244,9 @@ function AlignmentPage() {
         style={{ height: "calc(100svh - 56px)", padding: 32 }}
       >
         <div className="mx-auto max-w-3xl">
+          <p className="mb-4 text-center text-sm text-muted-foreground">
+            Opening alignment… This can take a while for large books.
+          </p>
           <ReaderSkeleton fontSize={fontSize} />
         </div>
       </div>

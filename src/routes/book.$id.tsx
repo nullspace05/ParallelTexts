@@ -7,6 +7,11 @@ import { ReaderSearch, type SearchResult } from "@/components/reader-search"
 import { Button } from "@/components/ui/button"
 import { extractEpubContent } from "@/lib/epub"
 import { normalizeParagraphs } from "@/lib/paragraphs"
+import {
+  getOperationErrorMessage,
+  trackOperation,
+  withTimeout,
+} from "@/lib/operation-diagnostics"
 import { extractPdfContent } from "@/lib/pdf"
 import { getBookProgress, setBookProgress } from "@/lib/reading-progress"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
@@ -254,19 +259,25 @@ function BookReader({
     let cancelled = false
     async function extract() {
       try {
-        const raw =
+        const raw = await withTimeout(
+          "Opening book",
+          60_000,
           book.type === "epub"
-            ? await extractEpubContent(book.fileBlob)
+            ? extractEpubContent(book.fileBlob)
             : book.type === "pdf"
-              ? await extractPdfContent(book.fileBlob)
-              : await extractTxtContent(book.fileBlob)
+              ? extractPdfContent(book.fileBlob)
+              : extractTxtContent(book.fileBlob)
+        )
         if (cancelled) return
         setParagraphs(normalizeParagraphs(raw))
       } catch (err) {
-        if (!cancelled)
-          setExtractError(
-            err instanceof Error ? err.message : "Failed to extract text."
+        if (!cancelled) {
+          const message = getOperationErrorMessage(
+            err,
+            "Failed to extract text."
           )
+          setExtractError(message)
+        }
       }
     }
     extract()
@@ -410,17 +421,34 @@ function BookDetailPage() {
   const navigate = useNavigate({ from: "/book/$id" })
   const [book, setBook] = useState<Book | null>(null)
   const [notFoundState, setNotFoundState] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
   const [fontSize] = useState(() => getStoredFontSize())
   const { count, loading: countLoading } = useSentenceCount(
     view === "detail" ? book : null
   )
 
   useEffect(() => {
-    getBook(id).then((b) => {
-      if (!b) setNotFoundState(true)
-      else setBook(b)
-    })
-  }, [id])
+    let cancelled = false
+    setBook(null)
+    setNotFoundState(false)
+    setLoadError(null)
+    void trackOperation("book_reader_load", {}, () => getBook(id))
+      .then((nextBook) => {
+        if (cancelled) return
+        if (!nextBook) setNotFoundState(true)
+        else setBook(nextBook)
+      })
+      .catch((error) => {
+        if (cancelled) return
+        const message = getOperationErrorMessage(error, "Could not load book.")
+        setLoadError(message)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, loadAttempt])
 
   function togglePageNum() {
     navigate({ search: (prev) => ({ ...prev, pageNumHidden: !pageNumHidden }) })
@@ -451,10 +479,27 @@ function BookDetailPage() {
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-12 text-center">
+        <p className="text-destructive">{loadError}</p>
+        <Button
+          className="mt-4"
+          variant="outline"
+          onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+        >
+          Try again
+        </Button>
+      </div>
+    )
+  }
+
   if (!book) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-muted-foreground">Loading…</p>
+        <p className="text-muted-foreground">
+          Opening book… This can take a while for large books.
+        </p>
       </div>
     )
   }
