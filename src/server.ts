@@ -1,6 +1,6 @@
 import handler from "@tanstack/react-start/server-entry"
 
-import { serveModelFromR2 } from "./server/serve-models"
+import { serveR2Asset } from "./server/serve-r2-assets"
 
 export default {
   async fetch(
@@ -8,9 +8,9 @@ export default {
     env: Env,
     _ctx: ExecutionContext
   ): Promise<Response> {
-    const modelResponse = await serveModelFromR2(request, env.MODELS)
-    if (modelResponse) {
-      return modelResponse
+    const assetResponse = await serveR2Asset(request, env.ASSETS)
+    if (assetResponse) {
+      return assetResponse
     }
 
     return handler.fetch(request)

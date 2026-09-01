@@ -1,4 +1,4 @@
-const SAMPLE_BOOKS_R2_PREFIX = "/models/sample_books/"
+const SAMPLE_BOOKS_R2_PREFIX = "/assets/sample_books/"
 
 export interface SampleAlignment {
   id: string

@@ -5,8 +5,8 @@
   "license": "GPL-3.0-or-later",
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "vite build && node scripts/strip-models-from-build.mjs",
-    "upload-models": "node scripts/upload-models-to-r2.mjs",
+    "build": "vite build && node scripts/strip-stray-build-assets.mjs",
+    "upload-assets": "node scripts/upload-r2-assets.mjs",
     "preview": "pnpm run build && wrangler dev",
     "test": "vitest run",
     "lint": "eslint",

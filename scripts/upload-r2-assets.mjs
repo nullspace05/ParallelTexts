@@ -1,20 +1,19 @@
 #!/usr/bin/env node
 /**
- * Upload a local public/models/<name> folder to R2 (one object at a time via
- * wrangler). Files >300 MB cannot be uploaded with wrangler put — the script
- * prints the equivalent rclone command for those.
+ * Upload a local public/assets/<folder> directory to R2 (one object at a time
+ * via wrangler). Files >300 MB cannot be uploaded with wrangler put — the
+ * script prints the equivalent rclone command for those.
  *
- * Embedding models are fetched directly from the Hugging Face Hub (see
- * src/utils/model.ts) and are never uploaded here. This script now exists
- * for the sample-book EPUBs served via src/server/serve-models.ts, and any
- * other static assets you want R2-backed instead of bundled with the app.
+ * Used for sample-book EPUBs (see src/server/serve-r2-assets.ts) and any other
+ * static files you want R2-backed instead of bundled with the app. Embedding
+ * models are fetched from the Hugging Face Hub in the browser (src/utils/model.ts).
  *
  * Usage:
- *   pnpm upload-models --model=sample_books
- *   node scripts/upload-models-to-r2.mjs --model=sample_books
- *   node scripts/upload-models-to-r2.mjs --bucket parallel-texts-models --model=sample_books
+ *   pnpm upload-assets --folder=sample_books
+ *   node scripts/upload-r2-assets.mjs --folder=sample_books
+ *   node scripts/upload-r2-assets.mjs --bucket parallel-texts-models --folder=sample_books
  *
- * Omit --model to default to sample_books.
+ * Omit --folder to default to sample_books.
  */
 
 import { execSync } from "node:child_process"
@@ -25,14 +24,14 @@ const bucket =
   process.argv.find((arg) => arg.startsWith("--bucket="))?.split("=")[1] ??
   "parallel-texts-models"
 
-const modelId =
-  process.argv.find((arg) => arg.startsWith("--model="))?.split("=")[1] ??
+const folder =
+  process.argv.find((arg) => arg.startsWith("--folder="))?.split("=")[1] ??
   "sample_books"
 
-const modelRoot = join("public/models", modelId)
+const assetRoot = join("public/assets", folder)
 
-if (!existsSync(modelRoot)) {
-  console.error(`Directory not found: ${modelRoot}`)
+if (!existsSync(assetRoot)) {
+  console.error(`Directory not found: ${assetRoot}`)
   console.error(`Place the files to upload there first.`)
   process.exit(1)
 }
@@ -51,11 +50,11 @@ function walkFiles(dir) {
   return files
 }
 
-const r2Prefix = modelId
-const files = walkFiles(modelRoot)
+const r2Prefix = folder
+const files = walkFiles(assetRoot)
 
 for (const filePath of files) {
-  const relativePath = relative(modelRoot, filePath)
+  const relativePath = relative(assetRoot, filePath)
   const key = `${r2Prefix}/${relativePath}`
   const sizeMb = (statSync(filePath).size / 1024 / 1024).toFixed(1)
 
@@ -78,7 +77,6 @@ for (const filePath of files) {
 
 function contentType(filePath) {
   if (filePath.endsWith(".json")) return "application/json"
-  if (filePath.endsWith(".onnx")) return "application/octet-stream"
   if (filePath.endsWith(".txt")) return "text/plain"
   if (filePath.endsWith(".epub")) return "application/epub+zip"
   return "application/octet-stream"

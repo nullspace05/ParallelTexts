@@ -19,7 +19,7 @@ todos.json
 !.env.example
 
 # Sample books for local dev (served from R2 in production)
-public/models/sample_books/
+public/assets/sample_books/
 
 books/
 __pycache__/
@@ -27,7 +27,7 @@ __pycache__/
 # personal stuff
 .docs/feature_plans/
 .docs/todos.md
-.docs/upload-models-to-r2.md
+.docs/upload-r2-assets.md
 .agents/skills/iterative-implementation-plan/
 
 # sample files

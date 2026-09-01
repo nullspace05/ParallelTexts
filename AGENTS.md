@@ -51,7 +51,7 @@ The PRD contains the "what" and "why" of this project. Keep it in mind as the pr
 ### Stack
 
 - **Framework**: TanStack React Start (SSR) + TanStack Router (file-based routing)
-- **Deployment**: Cloudflare Workers (`src/server.ts` entry) + R2 (`src/server/serve-models.ts`) for serving the sample-book EPUBs
+- **Deployment**: Cloudflare Workers (`src/server.ts` entry) + R2 (`src/server/serve-r2-assets.ts`) for serving the sample-book EPUBs
 - **Styling**: Tailwind CSS v4, shadcn/ui (Base UI + Maia style), Lucide icons
 - **Storage**: Dexie v4 (IndexedDB ORM) — all books and alignments are stored client-side
 - **ML**: Transformers.js 4 — runs ONNX sentence-transformer models in the browser via WASM or WebGPU
@@ -73,7 +73,7 @@ Four models are available (user picks in Settings or in the Align form):
 
 Embedding models are fetched directly from the Hugging Face Hub in the browser (`env.allowLocalModels = false` in `src/utils/model.ts`) — no backend involved. `downloadModel()` pre-warms the browser Cache API; `checkModelCached()` scans CacheStorage for a matching cached response (models are cached under the full HF resolve URL).
 
-R2 is unrelated to embedding models now — it exists solely to serve the sample alignment EPUBs used by the homepage's `SamplesSection`, via the `/models/` Worker proxy (`src/server/serve-models.ts`). Those files are git-ignored (`public/models/sample_books/`) and uploaded to R2 with `pnpm upload-models`; the post-build script `scripts/strip-models-from-build.mjs` also strips any stray local model dumps (e.g. from manual testing) out of the Vite output so they never ship with the app.
+R2 is unrelated to embedding models — it exists solely to serve the sample alignment EPUBs used by the homepage's `SamplesSection`, via the `/assets/` Worker proxy (`src/server/serve-r2-assets.ts`). Those files are git-ignored (`public/assets/sample_books/`) and uploaded to R2 with `pnpm upload-assets`; the post-build script `scripts/strip-stray-build-assets.mjs` also strips any stray local model dumps (e.g. from manual testing) out of the Vite output so they never ship with the app.
 
 ### Data Flow
 

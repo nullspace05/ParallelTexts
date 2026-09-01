@@ -9,10 +9,13 @@ function walk(dir) {
     const fullPath = join(dir, entry)
     if (!statSync(fullPath).isDirectory()) continue
 
-    if (entry === "Xenova" && fullPath.includes(`${join("models", "Xenova")}`)) {
+    if (
+      entry === "Xenova" &&
+      fullPath.includes(`${join("models", "Xenova")}`)
+    ) {
       rmSync(fullPath, { recursive: true, force: true })
       console.log(
-        `Removed ${fullPath} from build output (served from R2 in production)`,
+        `Removed ${fullPath} from build output (stray local model dump from manual testing)`
       )
       continue
     }
@@ -41,7 +44,7 @@ if (existsSync(SERVER_ASSETS)) {
       const fullPath = join(SERVER_ASSETS, entry)
       rmSync(fullPath, { force: true })
       console.log(
-        `Removed ${fullPath} from server bundle (browser-only asset, served as static file)`,
+        `Removed ${fullPath} from server bundle (browser-only asset, served as static file)`
       )
     }
   }

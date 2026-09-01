@@ -1,19 +1,19 @@
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "parallel-texts",
-	"compatibility_date": "2026-06-10",
-	"observability": {
-		"enabled": true,
-	},
-	"main": "src/server.ts",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"r2_buckets": [
-		{
-			"binding": "MODELS",
-			"bucket_name": "parallel-texts-models",
-			"remote": true
-		},
-	],
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "parallel-texts",
+  "compatibility_date": "2026-06-10",
+  "observability": {
+    "enabled": true,
+  },
+  "main": "src/server.ts",
+  "compatibility_flags": ["nodejs_compat"],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      // legacy name retained to avoid having to recreate the bucket
+      // the correct bucket name however should be something like `parallel-texts-books`
+      "bucket_name": "parallel-texts-models",
+      "remote": true,
+    },
+  ],
 }

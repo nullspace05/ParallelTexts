@@ -180,15 +180,15 @@ prefix_rule(
 # ============================================================
 
 prefix_rule(
-    pattern = ["pnpm", ["deploy", "preview", "dev", "upload-models"]],
+    pattern = ["pnpm", ["deploy", "preview", "dev", "upload-assets"]],
     decision = "prompt",
     justification = "Deploy, preview, dev server, and R2 uploads need approval.",
-    match = ["pnpm deploy", "pnpm preview", "pnpm dev", "pnpm upload-models"],
+    match = ["pnpm deploy", "pnpm preview", "pnpm dev", "pnpm upload-assets"],
     not_match = ["pnpm build", "pnpm test"],
 )
 
 prefix_rule(
-    pattern = ["pnpm", "run", ["deploy", "preview", "dev", "upload-models"]],
+    pattern = ["pnpm", "run", ["deploy", "preview", "dev", "upload-assets"]],
     decision = "prompt",
     justification = "Same scripts via `pnpm run`.",
     match = ["pnpm run deploy", "pnpm run preview"],

@@ -1,8 +1,7 @@
-const MODELS_URL_PREFIX = "/models/"
+const R2_ASSETS_URL_PREFIX = "/assets/"
 
 const CONTENT_TYPES: Record<string, string> = {
   ".json": "application/json",
-  ".onnx": "application/octet-stream",
   ".txt": "text/plain",
   ".epub": "application/epub+zip",
 }
@@ -20,12 +19,12 @@ function cacheHeaders(): Headers {
   return headers
 }
 
-export async function serveModelFromR2(
+export async function serveR2Asset(
   request: Request,
   bucket: R2Bucket
 ): Promise<Response | null> {
   const { pathname } = new URL(request.url)
-  if (!pathname.startsWith(MODELS_URL_PREFIX)) {
+  if (!pathname.startsWith(R2_ASSETS_URL_PREFIX)) {
     return null
   }
 
@@ -33,7 +32,7 @@ export async function serveModelFromR2(
     return new Response("Method Not Allowed", { status: 405 })
   }
 
-  const key = decodeURIComponent(pathname.slice(MODELS_URL_PREFIX.length))
+  const key = decodeURIComponent(pathname.slice(R2_ASSETS_URL_PREFIX.length))
   if (!key) {
     return new Response("Not Found", { status: 404 })
   }

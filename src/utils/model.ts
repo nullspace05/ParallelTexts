@@ -37,7 +37,7 @@ const isBrowser = typeof process === "undefined" || !process.versions?.node
 
 // Embedding models are always fetched directly from the Hugging Face Hub —
 // no local/R2-backed model path. (R2 is still used elsewhere, for serving
-// the sample-book EPUBs — see src/server/serve-models.ts — this only
+// the sample-book EPUBs — see src/server/serve-r2-assets.ts — this only
 // concerns transformers.js's own model file resolution.)
 //
 // Confirmed viable on the real production domain (paralleltexts.app) after
