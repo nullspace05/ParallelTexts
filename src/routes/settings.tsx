@@ -1,7 +1,9 @@
-import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { db } from "@/lib/db"
 import { getOperationErrorMessage } from "@/lib/operation-diagnostics"
+import type { Theme } from "@/lib/theme"
 import {
   DEFAULT_FONT_SIZE,
   DEFAULT_GAP_PENALTY,
@@ -10,7 +12,6 @@ import {
   FONT_SIZE_MIN,
   GAP_PENALTY_MAX,
   GAP_PENALTY_MIN,
-  type DevicePreference,
   getStoredDevice,
   getStoredFontSize,
   getStoredGapPenalty,
@@ -25,8 +26,8 @@ import {
   setStoredIntroDismissed,
   setStoredMaxSentences,
   setStoredModelId,
+  type DevicePreference,
 } from "@/lib/user-settings"
-import type { Theme } from "@/lib/theme"
 import {
   checkModelCached,
   deleteModelFromCache,
@@ -489,7 +490,7 @@ function SettingsPage() {
           values use more memory and take longer.
         </p>
         <div className="flex items-center gap-3">
-          <input
+          <Input
             type="number"
             min={10}
             max={20_000}
@@ -518,7 +519,7 @@ function SettingsPage() {
           weaker but correct) matches through.
         </p>
         <div className="flex items-center gap-3">
-          <input
+          <Input
             type="number"
             min={GAP_PENALTY_MIN}
             max={GAP_PENALTY_MAX}
@@ -545,7 +546,7 @@ function SettingsPage() {
       <section className="space-y-4">
         <h2 className="text-base font-medium">Reader font size</h2>
         <div className="flex items-center gap-3">
-          <input
+          <Input
             type="number"
             min={FONT_SIZE_MIN}
             max={FONT_SIZE_MAX}
