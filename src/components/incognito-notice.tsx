@@ -29,12 +29,13 @@ export function IncognitoNotice() {
       <div className="flex items-start gap-3">
         <DetectiveIcon className="mt-0.5 size-5 shrink-0 text-primary" />
         <div className="space-y-1">
-          <h2 className="text-sm font-medium text-foreground">
-            Incognito / private windows may not work
+          <h2 className="text-sm text-foreground">
+            <span className="font-bold">Incognito</span> windows may not work
           </h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Alignments, uploads and downloads can fail or hang on incognito
-            windows. For the best results, use a normal browser window.
+            Alignments, uploads and downloads can fail or hang on{" "}
+            <span className="font-bold">incognito</span> windows. For the best
+            results, use a normal browser window.
           </p>
         </div>
       </div>
