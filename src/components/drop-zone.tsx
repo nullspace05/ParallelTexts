@@ -1,4 +1,8 @@
 import { extractEpubMetadata } from "@/lib/epub"
+import {
+  getOperationErrorMessage,
+  trackOperation,
+} from "@/lib/operation-diagnostics"
 import { extractPdfMetadata } from "@/lib/pdf"
 import { extractTxtMetadata } from "@/lib/txt"
 import { addBook } from "@/store/books"
@@ -6,6 +10,7 @@ import type { Book, BookType } from "@/types/book"
 import { FileArrowUp } from "@phosphor-icons/react"
 import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
+import { toast } from "sonner"
 
 const ACCEPTED_TYPES = {
   "application/epub+zip": [".epub"],
@@ -14,8 +19,7 @@ const ACCEPTED_TYPES = {
 }
 
 export function DropZone() {
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("idle")
-  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [status, setStatus] = useState<"idle" | "loading">("idle")
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState("")
 
@@ -29,10 +33,8 @@ export function DropZone() {
     if (!isEpub && !isPdf && !isTxt) return
 
     setStatus("loading")
-    setErrorMessage(null)
     setProgress(10)
     setProgressLabel("Reading file…")
-
     try {
       let title: string
       let coverDataUrl: string | null
@@ -70,18 +72,17 @@ export function DropZone() {
         fileBlob: file,
       }
 
-      await addBook(book)
+      await trackOperation("book_import", { type }, () => addBook(book))
       setProgress(100)
       setStatus("idle")
       setProgress(0)
       setProgressLabel("")
     } catch (err) {
-      setStatus("error")
+      setStatus("idle")
       setProgress(0)
       setProgressLabel("")
-      setErrorMessage(
-        err instanceof Error ? err.message : "Failed to process file"
-      )
+      const message = getOperationErrorMessage(err, "Failed to process file")
+      toast.error("Could not import book", { description: message })
     }
   }, [])
 
@@ -130,9 +131,6 @@ export function DropZone() {
             />
           </div>
         </div>
-      )}
-      {status === "error" && errorMessage && (
-        <p className="mt-1 text-sm text-destructive">{errorMessage}</p>
       )}
     </div>
   )

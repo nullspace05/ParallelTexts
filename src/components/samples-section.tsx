@@ -1,4 +1,9 @@
 import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
+import {
+  getOperationErrorMessage,
+  trackOperation,
+  withTimeout,
+} from "@/lib/operation-diagnostics"
 import { parsePtEpub } from "@/lib/pt-epub"
 import { SAMPLE_ALIGNMENTS, sampleAlignmentUrl } from "@/lib/sample-books"
 import { cn } from "@/lib/utils"
@@ -6,6 +11,7 @@ import { addAlignment } from "@/store/alignments"
 import { BookOpen, CircleNotch } from "@phosphor-icons/react"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { toast } from "sonner"
 
 export function SampleDot({
   colorClass,
@@ -54,26 +60,41 @@ function LangBadges({
 export function SamplesSection() {
   const navigate = useNavigate()
   const [loadingId, setLoadingId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
 
   async function openSample(sample: (typeof SAMPLE_ALIGNMENTS)[number]) {
     setLoadingId(sample.id)
-    setError(null)
     try {
-      const resp = await fetch(sampleAlignmentUrl(sample.filename))
-      if (!resp.ok) throw new Error("Failed to download the sample file.")
+      const id = await trackOperation(
+        "sample_open",
+        { sampleId: sample.id },
+        async () => {
+          const response = await withTimeout(
+            "Sample book download",
+            60_000,
+            fetch(sampleAlignmentUrl(sample.filename))
+          )
+          if (!response.ok)
+            throw new Error("Failed to download the sample file.")
 
-      const rec = await parsePtEpub(await resp.blob())
-      if (!rec) throw new Error("The sample file could not be read.")
+          const record = await withTimeout(
+            "Sample book processing",
+            60_000,
+            response.blob().then((blob) => parsePtEpub(blob))
+          )
+          if (!record) throw new Error("The sample file could not be read.")
 
-      const id = await addAlignment(
-        rec.sourceBookId,
-        rec.targetBookId,
-        sample.sourceTitle,
-        sample.targetTitle,
-        rec.result,
-        rec.meta,
-        "epub"
+          return trackOperation("sample_alignment_save", {}, () =>
+            addAlignment(
+              record.sourceBookId,
+              record.targetBookId,
+              sample.sourceTitle,
+              sample.targetTitle,
+              record.result,
+              record.meta,
+              "epub"
+            )
+          )
+        }
       )
 
       navigate({
@@ -88,7 +109,8 @@ export function SamplesSection() {
       })
     } catch (err) {
       setLoadingId(null)
-      setError(err instanceof Error ? err.message : "Something went wrong.")
+      const message = getOperationErrorMessage(err, "Something went wrong.")
+      toast.error("Could not open sample book", { description: message })
     }
   }
 
@@ -136,8 +158,6 @@ export function SamplesSection() {
           )
         })}
       </div>
-
-      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }
