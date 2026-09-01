@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { useTheme } from "@/components/theme-provider"
 import { db } from "@/lib/db"
+import { getOperationErrorMessage } from "@/lib/operation-diagnostics"
 import {
   DEFAULT_FONT_SIZE,
   DEFAULT_GAP_PENALTY,
@@ -242,13 +243,14 @@ function SettingsPage() {
         setStoredModelId(id)
       }
     } catch (err) {
+      const message = getOperationErrorMessage(err, "Could not download model.")
       setDownloads((prev) => ({
         ...prev,
         [id]: {
           status: "error",
           file: "",
           progress: 0,
-          message: String(err),
+          message,
         },
       }))
     }

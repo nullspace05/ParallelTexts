@@ -5,10 +5,11 @@ import {
   type ProgressCallback,
 } from "@huggingface/transformers"
 
+import { trackOperation, withTimeout } from "@/lib/operation-diagnostics"
 import {
   DEFAULT_MODEL_ID,
-  type InferenceDevice,
   resolveDevice,
+  type InferenceDevice,
 } from "@/utils/model-registry"
 
 // Model metadata (MODEL_REGISTRY, DEFAULT_MODEL_ID, ModelSpec), device
@@ -25,11 +26,11 @@ import {
 export {
   DEFAULT_MODEL_ID,
   detectWebGPU,
-  type InferenceDevice,
   MODEL_ID,
   MODEL_REGISTRY,
-  type ModelSpec,
   resolveDevice,
+  type InferenceDevice,
+  type ModelSpec,
 } from "@/utils/model-registry"
 
 // true in both the main thread and Web Workers; false only in Node
@@ -101,11 +102,17 @@ export async function downloadModel(
 ): Promise<void> {
   configureModelEnv()
   const resolvedDevice = isBrowser ? resolveDevice(device) : "cpu"
-  await pipeline("feature-extraction", modelId, {
-    device: resolvedDevice,
-    dtype: "fp32",
-    progress_callback,
-  })
+  await trackOperation("model_download", { modelId, resolvedDevice }, () =>
+    withTimeout(
+      "Model download",
+      15 * 60_000,
+      pipeline("feature-extraction", modelId, {
+        device: resolvedDevice,
+        dtype: "fp32",
+        progress_callback,
+      })
+    )
+  )
 }
 
 /**

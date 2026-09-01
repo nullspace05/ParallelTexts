@@ -7,6 +7,7 @@ import { extractAndSplit } from "@/lib/alignment-pipeline"
 import { db } from "@/lib/db"
 import { extractEpubContent } from "@/lib/epub"
 import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
+import { getOperationErrorMessage } from "@/lib/operation-diagnostics"
 import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
 import {
@@ -44,6 +45,7 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 import { DevEmbeddingControls } from "./dev-embedding-controls"
 import { SampleDot } from "./samples-section"
 import { Button } from "./ui/button"
@@ -181,6 +183,12 @@ export function AlignBooksForm() {
       })
       setCachedIds((prev) => new Set([...prev, id]))
       setModelId(id)
+    } catch (downloadError) {
+      const message = getOperationErrorMessage(
+        downloadError,
+        "Could not download the model."
+      )
+      toast.error("Could not download model", { description: message })
     } finally {
       setDlActive(null)
     }
@@ -190,7 +198,6 @@ export function AlignBooksForm() {
   const [autoDownloading, setAutoDownloading] = useState(false)
   const [autoDownloadPct, setAutoDownloadPct] = useState(0)
   const [progress, setProgress] = useState<AlignProgressEvent | null>(null)
-  const [error, setError] = useState<string | null>(null)
   const [truncationWarning, setTruncationWarning] = useState<string | null>(
     null
   )
@@ -214,7 +221,6 @@ export function AlignBooksForm() {
   async function handleAlign() {
     if (!srcBook || !tgtBook) return
     setIsAligning(true)
-    setError(null)
     setProgress(null)
     setTruncationWarning(null)
 
@@ -244,10 +250,12 @@ export function AlignBooksForm() {
         setCachedIds((prev) => new Set([...prev, AUTO_DL_MODEL.id]))
         setModelId(AUTO_DL_MODEL.id)
         effectiveModelId = AUTO_DL_MODEL.id
-      } catch {
-        setError(
+      } catch (downloadError) {
+        const message = getOperationErrorMessage(
+          downloadError,
           "Failed to download model. Check your connection and try again."
         )
+        toast.error("Could not download model", { description: message })
         setIsAligning(false)
         setAutoDownloading(false)
         return
@@ -396,7 +404,8 @@ export function AlignBooksForm() {
       })
     } catch (err) {
       if (!isCancelled) {
-        setError(err instanceof Error ? err.message : "Alignment failed.")
+        const message = getOperationErrorMessage(err, "Alignment failed.")
+        toast.error("Alignment failed", { description: message })
       }
     } finally {
       cancelRef.current = null
@@ -734,9 +743,6 @@ export function AlignBooksForm() {
           {truncationWarning}
         </p>
       )}
-
-      {/* ── Error ── */}
-      {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
 
       {/* ── Align / Cancel buttons ── */}
       <div className="mt-5 space-y-2">
