@@ -10,7 +10,7 @@ const KEY_GAP_PENALTY = "pt:gapPenalty"
 export const DEFAULT_MAX_SENTENCES = 20_000
 export const DEFAULT_FONT_SIZE = 18
 export const FONT_SIZE_MIN = 12
-export const FONT_SIZE_MAX = 32
+export const FONT_SIZE_MAX = 96
 
 /**
  * A diagonal match only wins over leaving both sentences unaligned when its
@@ -35,10 +35,13 @@ function safeGet(key: string): string | null {
   }
 }
 
-function safeSet(key: string, value: string): void {
+function safeSet(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value)
+    return true
   } catch {}
+
+  return false
 }
 
 export function getStoredModelId(): string {
@@ -55,8 +58,8 @@ export function getStoredMaxSentences(): number {
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_MAX_SENTENCES
 }
 
-export function setStoredMaxSentences(n: number): void {
-  safeSet(KEY_MAX_SENTENCES, String(n))
+export function setStoredMaxSentences(n: number): boolean {
+  return safeSet(KEY_MAX_SENTENCES, String(n))
 }
 
 export function getStoredGapPenalty(): number {
@@ -67,8 +70,8 @@ export function getStoredGapPenalty(): number {
     : DEFAULT_GAP_PENALTY
 }
 
-export function setStoredGapPenalty(n: number): void {
-  safeSet(KEY_GAP_PENALTY, String(n))
+export function setStoredGapPenalty(n: number): boolean {
+  return safeSet(KEY_GAP_PENALTY, String(n))
 }
 
 export function getStoredFontSize(): number {
@@ -79,8 +82,8 @@ export function getStoredFontSize(): number {
     : DEFAULT_FONT_SIZE
 }
 
-export function setStoredFontSize(n: number): void {
-  safeSet(KEY_FONT_SIZE, String(n))
+export function setStoredFontSize(n: number): boolean {
+  return safeSet(KEY_FONT_SIZE, String(n))
 }
 
 const KEY_DEVICE = "pt:device"

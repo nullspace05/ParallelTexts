@@ -37,6 +37,7 @@ import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
 import { DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -49,6 +50,20 @@ interface DownloadState {
   file: string
   progress: number
   message?: string
+}
+
+interface NumberSettings {
+  maxSentences: number
+  gapPenalty: number
+  fontSize: number
+}
+
+function isInRange(value: number, min: number, max: number): boolean {
+  return Number.isFinite(value) && value >= min && value <= max
+}
+
+function parseNumber(value: string): number {
+  return value.trim() === "" ? Number.NaN : Number(value)
 }
 
 const THEME_OPTIONS: {
@@ -117,11 +132,17 @@ function ToggleSwitch({
 function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const [modelId, setModelId] = useState("")
-  const [maxSentences, setMaxSentences] = useState(() =>
-    getStoredMaxSentences()
-  )
-  const [gapPenalty, setGapPenalty] = useState(() => getStoredGapPenalty())
-  const [fontSize, setFontSize] = useState(() => getStoredFontSize())
+  const [savedNumberSettings, setSavedNumberSettings] =
+    useState<NumberSettings>(() => ({
+      maxSentences: getStoredMaxSentences(),
+      gapPenalty: getStoredGapPenalty(),
+      fontSize: getStoredFontSize(),
+    }))
+  const [numberDrafts, setNumberDrafts] = useState(() => ({
+    maxSentences: String(savedNumberSettings.maxSentences),
+    gapPenalty: String(savedNumberSettings.gapPenalty),
+    fontSize: String(savedNumberSettings.fontSize),
+  }))
   const [confirmClear, setConfirmClear] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [devicePref, setDevicePref] = useState<DevicePreference>(() =>
@@ -181,14 +202,62 @@ function SettingsPage() {
     setStoredModelId(id)
   }
 
-  function handleMaxSentencesChange(n: number) {
-    setMaxSentences(n)
-    setStoredMaxSentences(n)
+  const numberSettings: NumberSettings = {
+    maxSentences: parseNumber(numberDrafts.maxSentences),
+    gapPenalty: parseNumber(numberDrafts.gapPenalty),
+    fontSize: parseNumber(numberDrafts.fontSize),
   }
 
-  function handleGapPenaltyChange(n: number) {
-    setGapPenalty(n)
-    setStoredGapPenalty(n)
+  const numberSettingsAreValid =
+    Number.isInteger(numberSettings.maxSentences) &&
+    isInRange(numberSettings.maxSentences, 10, 20_000) &&
+    isInRange(numberSettings.gapPenalty, GAP_PENALTY_MIN, GAP_PENALTY_MAX) &&
+    Number.isInteger(numberSettings.fontSize) &&
+    isInRange(numberSettings.fontSize, FONT_SIZE_MIN, FONT_SIZE_MAX)
+
+  const numberSettingsHaveChanges =
+    numberSettings.maxSentences !== savedNumberSettings.maxSentences ||
+    numberSettings.gapPenalty !== savedNumberSettings.gapPenalty ||
+    numberSettings.fontSize !== savedNumberSettings.fontSize
+
+  const previewFontSize = isInRange(
+    numberSettings.fontSize,
+    FONT_SIZE_MIN,
+    FONT_SIZE_MAX
+  )
+    ? numberSettings.fontSize
+    : savedNumberSettings.fontSize
+
+  function handleNumberDraftChange(
+    setting: keyof NumberSettings,
+    value: string
+  ) {
+    setNumberDrafts((drafts) => ({ ...drafts, [setting]: value }))
+  }
+
+  function handleSaveNumberSettings() {
+    if (!numberSettingsAreValid) {
+      toast.error("Could not save number settings", {
+        description: "Enter values within the shown ranges first.",
+      })
+      return
+    }
+
+    const saved = [
+      setStoredMaxSentences(numberSettings.maxSentences),
+      setStoredGapPenalty(numberSettings.gapPenalty),
+      setStoredFontSize(numberSettings.fontSize),
+    ].every(Boolean)
+
+    if (!saved) {
+      toast.error("Could not save number settings", {
+        description: "Your browser could not save all changes.",
+      })
+      return
+    }
+
+    setSavedNumberSettings(numberSettings)
+    toast.message("Number settings saved")
   }
 
   function handleWelcomeBannerToggle() {
@@ -482,101 +551,128 @@ function SettingsPage() {
         )}
       </section>
 
-      {/* ── Max sentences ── */}
-      <section className="space-y-3">
-        <h2 className="text-base font-medium">Max sentences per book</h2>
-        <p className="text-sm text-muted-foreground">
-          Sentences beyond this limit are truncated before alignment. Higher
-          values use more memory and take longer.
-        </p>
-        <div className="flex items-center gap-3">
-          <Input
-            type="number"
-            min={10}
-            max={20_000}
-            step={500}
-            value={maxSentences}
-            onChange={(e) => {
-              const n = Number(e.target.value)
-              if (Number.isFinite(n) && n > 0) handleMaxSentencesChange(n)
-            }}
-            className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
-          />
-          <span className="text-sm text-muted-foreground">
-            sentences (default: {DEFAULT_MAX_SENTENCES.toLocaleString()})
-          </span>
-        </div>
-      </section>
-
-      {/* ── Gap penalty ── */}
-      <section className="space-y-3">
-        <h2 className="text-base font-medium">Gap penalty</h2>
-        <p className="text-sm text-muted-foreground">
-          How confident a match must be to beat leaving both sentences
-          unaligned. Higher values reject more weak matches — useful when front
-          matter, credits, or other boilerplate with no real counterpart ends up
-          glued to unrelated real sentences. Lower values allow more (sometimes
-          weaker but correct) matches through.
-        </p>
-        <div className="flex items-center gap-3">
-          <Input
-            type="number"
-            min={GAP_PENALTY_MIN}
-            max={GAP_PENALTY_MAX}
-            step={0.05}
-            value={gapPenalty}
-            onChange={(e) => {
-              const n = Number(e.target.value)
-              if (
-                Number.isFinite(n) &&
-                n >= GAP_PENALTY_MIN &&
-                n <= GAP_PENALTY_MAX
-              )
-                handleGapPenaltyChange(n)
-            }}
-            className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
-          />
-          <span className="text-sm text-muted-foreground">
-            (default: {DEFAULT_GAP_PENALTY})
-          </span>
-        </div>
-      </section>
-
-      {/* ── Reader font size ── */}
+      {/* ── Numeric settings ── */}
       <section className="space-y-4">
-        <h2 className="text-base font-medium">Reader font size</h2>
-        <div className="flex items-center gap-3">
-          <Input
-            type="number"
-            min={FONT_SIZE_MIN}
-            max={FONT_SIZE_MAX}
-            step={1}
-            value={fontSize}
-            onChange={(e) => {
-              const n = Math.round(Number(e.target.value))
-              if (
-                Number.isInteger(n) &&
-                n >= FONT_SIZE_MIN &&
-                n <= FONT_SIZE_MAX
-              ) {
-                setFontSize(n)
-                setStoredFontSize(n)
-              }
-            }}
-            className="w-20 rounded-md border bg-background px-2 py-1.5 text-sm"
-          />
-          <span className="text-sm text-muted-foreground">
-            px (default: {DEFAULT_FONT_SIZE})
-          </span>
+        <div>
+          <h2 className="text-base font-medium">
+            Alignment and reader settings
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Edit these values, then click Save changes. Other settings save
+            automatically.
+          </p>
         </div>
 
-        {/* Live preview */}
-        <div
-          className="rounded-lg border bg-background p-5"
-          style={{ fontSize, lineHeight: 1.75 }}
-        >
-          <p className="mb-[0.50em]">Ancient temples in Kyoto.</p>
-          <p>京都の古い寺院た。</p>
+        <div className="space-y-10 rounded-lg border bg-background p-5">
+          <section className="space-y-3">
+            <h3 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+              Alignment
+            </h3>
+            <h4 className="text-base font-medium">Max sentences per book</h4>
+            <p className="text-sm text-muted-foreground">
+              Sentences beyond this limit are truncated before alignment. Higher
+              values use more memory and take longer.
+            </p>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={10}
+                max={20_000}
+                step={500}
+                inputMode="numeric"
+                aria-label="Max sentences per book"
+                value={numberDrafts.maxSentences}
+                onChange={(e) =>
+                  handleNumberDraftChange("maxSentences", e.target.value)
+                }
+                className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">
+                sentences (default: {DEFAULT_MAX_SENTENCES.toLocaleString()})
+              </span>
+            </div>
+          </section>
+
+          <section className="space-y-3">
+            <h4 className="text-base font-medium">Gap penalty</h4>
+            <p className="text-sm text-muted-foreground">
+              How confident a match must be to beat leaving both sentences
+              unaligned. Higher values reject more weak matches — useful when
+              front matter, credits, or other boilerplate with no real
+              counterpart ends up glued to unrelated real sentences. Lower
+              values allow more (sometimes weaker but correct) matches through.
+            </p>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={GAP_PENALTY_MIN}
+                max={GAP_PENALTY_MAX}
+                step={0.05}
+                inputMode="decimal"
+                aria-label="Gap penalty"
+                value={numberDrafts.gapPenalty}
+                onChange={(e) =>
+                  handleNumberDraftChange("gapPenalty", e.target.value)
+                }
+                className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">
+                (default: {DEFAULT_GAP_PENALTY})
+              </span>
+            </div>
+          </section>
+
+          <section className="space-y-4">
+            <h3 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
+              Reader
+            </h3>
+            <h4 className="text-base font-medium">Reader font size</h4>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={FONT_SIZE_MIN}
+                max={FONT_SIZE_MAX}
+                step={1}
+                inputMode="numeric"
+                aria-label="Reader font size"
+                value={numberDrafts.fontSize}
+                onChange={(e) =>
+                  handleNumberDraftChange("fontSize", e.target.value)
+                }
+                className="w-20 rounded-md border bg-background px-2 py-1.5 text-sm"
+              />
+              <span className="text-sm text-muted-foreground">
+                px (default: {DEFAULT_FONT_SIZE})
+              </span>
+            </div>
+
+            {/* Live preview */}
+            <div
+              className="rounded-lg border bg-background p-5"
+              style={{ fontSize: previewFontSize, lineHeight: 1.75 }}
+            >
+              <p className="mb-[0.50em]">Ancient temples in Kyoto.</p>
+              <p>京都の古い寺院た。</p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                type="button"
+                disabled={!numberSettingsAreValid || !numberSettingsHaveChanges}
+                onClick={handleSaveNumberSettings}
+              >
+                Save changes
+              </Button>
+              {numberSettingsHaveChanges && numberSettingsAreValid && (
+                <p className="text-sm text-muted-foreground">Unsaved changes</p>
+              )}
+              {!numberSettingsAreValid && (
+                <p className="w-full text-sm text-destructive">
+                  Enter values within the shown ranges before saving.
+                </p>
+              )}
+            </div>
+          </section>
         </div>
       </section>
 
