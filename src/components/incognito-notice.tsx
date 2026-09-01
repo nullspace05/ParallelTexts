@@ -2,7 +2,7 @@ import {
   getStoredIncognitoNoticeDismissed,
   setStoredIncognitoNoticeDismissed,
 } from "@/lib/user-settings"
-import { WarningCircle, X } from "@phosphor-icons/react"
+import { DetectiveIcon, XIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 
 export function IncognitoNotice() {
@@ -24,10 +24,10 @@ export function IncognitoNotice() {
         className="absolute top-4 right-4 rounded-md p-1 text-primary transition-colors hover:bg-primary/10 hover:text-primary"
         aria-label="Dismiss incognito notice"
       >
-        <X className="size-4" />
+        <XIcon className="size-4" />
       </button>
       <div className="flex items-start gap-3">
-        <WarningCircle className="mt-0.5 size-5 shrink-0 text-primary" />
+        <DetectiveIcon className="mt-0.5 size-5 shrink-0 text-primary" />
         <div className="space-y-1">
           <h2 className="text-sm font-medium text-foreground">
             Incognito / private windows may not work
