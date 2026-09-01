@@ -42,7 +42,7 @@ The PRD contains the "what" and "why" of this project. Keep it in mind as the pr
 ## After every edit/session
 
 - Run `pnpm lint` to lint the code.
-- After implementing a feature, give me a full git command (git command itself + header + body), something i can easily copy paste, part of the commit message should be the reason for the change/feature/fix/etc (make the commit message multiline if necessary)
+- After implementing a feature, give me a full git command (git command itself + header in semantic commit format + body), something i can easily copy paste, part of the commit message should be the reason for the change/feature/fix/etc (make the commit message multiline if necessary)
 
 
 
