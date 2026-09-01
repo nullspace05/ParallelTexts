@@ -2,12 +2,12 @@ import { ClickableSampleImage } from "@/components/clickable-sample-image"
 import { SAMPLE_CREDITS } from "@/lib/sample-credits"
 import { GITHUB_REPO_URL } from "@/lib/site-links"
 import {
-  BookOpen,
-  Brain,
-  Download,
-  FileText,
-  GitMerge,
-  Users,
+  BookOpenIcon,
+  BrainIcon,
+  DownloadIcon,
+  FileTextIcon,
+  GitMergeIcon,
+  UsersIcon,
 } from "@phosphor-icons/react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 
@@ -65,7 +65,7 @@ function AboutPage() {
       </div>
 
       <div className="space-y-8">
-        <Section icon={BookOpen} title="What is it?">
+        <Section icon={BookOpenIcon} title="What is it?">
           <p>
             ParallelTexts takes two versions of the same book — one in your
             native language, one in the language you are learning — and
@@ -82,7 +82,7 @@ function AboutPage() {
           </p>
         </Section>
 
-        <Section icon={Users} title="Who is it for?">
+        <Section icon={UsersIcon} title="Who is it for?">
           <ul className="list-none space-y-1.5">
             <li>
               <span className="font-medium text-foreground">
@@ -110,7 +110,7 @@ function AboutPage() {
           </p>
         </Section>
 
-        <Section icon={Brain} title="How does the alignment work?">
+        <Section icon={BrainIcon} title="How does the alignment work?">
           <p>
             Under the hood, ParallelTexts runs a three-stage ML pipeline —
             entirely inside your browser using WebAssembly:
@@ -146,7 +146,7 @@ function AboutPage() {
           </p>
         </Section>
 
-        <Section icon={Download} title="The model download">
+        <Section icon={DownloadIcon} title="The model download">
           <p>
             The AI model (~500 MB–1.1 GB depending on which you choose) is
             downloaded once from the Hugging Face model hub and then cached
@@ -171,7 +171,7 @@ function AboutPage() {
           </p>
         </Section>
 
-        <Section icon={FileText} title="Supported file formats">
+        <Section icon={FileTextIcon} title="Supported file formats">
           <ul className="list-none space-y-1">
             <li>
               <span className="font-medium text-foreground">EPUB</span> — full
@@ -192,7 +192,7 @@ function AboutPage() {
           </p>
         </Section>
 
-        <Section icon={GitMerge} title="Reading your alignment">
+        <Section icon={GitMergeIcon} title="Reading your alignment">
           <p>After alignment completes you get two reading modes:</p>
           <ul className="mt-1 list-none space-y-1.5">
             <li>
@@ -253,7 +253,7 @@ function AboutPage() {
           </p>
         </Section>
 
-        <Section icon={BookOpen} title="Sample alignment credits">
+        <Section icon={BookOpenIcon} title="Sample alignment credits">
           <p>
             The example alignments on the homepage use texts from the sources
             below. ParallelTexts only hosts the aligned exports — not the

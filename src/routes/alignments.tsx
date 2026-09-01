@@ -18,14 +18,14 @@ import type {
 } from "@/types/alignment"
 import { MODEL_REGISTRY } from "@/utils/model-registry"
 import {
-  ArrowsLeftRight,
-  CheckCircle,
-  Clock,
-  Info,
-  Trash,
-  Upload,
-  WarningCircle,
-  X,
+  ArrowsLeftRightIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  InfoIcon,
+  TrashIcon,
+  UploadIcon,
+  WarningCircleIcon,
+  XIcon,
 } from "@phosphor-icons/react"
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
@@ -81,14 +81,14 @@ function AlignmentsPage() {
           onClick={() => setShowImport(true)}
           className="gap-1.5"
         >
-          <Upload className="size-4" />
+          <UploadIcon className="size-4" />
           Import
         </Button>
       </div>
 
       {records.length === 0 ? (
         <div className="flex min-h-[20vh] flex-col items-center justify-center gap-3 text-center">
-          <ArrowsLeftRight className="size-10 text-muted-foreground/40" />
+          <ArrowsLeftRightIcon className="size-10 text-muted-foreground/40" />
           <p className="text-muted-foreground">No alignments yet.</p>
         </div>
       ) : (
@@ -176,7 +176,7 @@ function AlignmentCard({ record }: { record: AlignmentRecord }) {
             </>
           ) : null}
           <span className="flex items-center gap-1">
-            <Clock className="size-3" />
+            <ClockIcon className="size-3" />
             {date}
           </span>
         </div>
@@ -207,7 +207,7 @@ function AlignmentCard({ record }: { record: AlignmentRecord }) {
           className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
           aria-label="Delete alignment"
         >
-          <Trash className="size-4" />
+          <TrashIcon className="size-4" />
         </button>
       )}
     </div>
@@ -391,14 +391,14 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             className="rounded-md p-1 text-muted-foreground hover:bg-muted"
           >
-            <X className="size-4" />
+            <XIcon className="size-4" />
           </button>
         </div>
 
         <div className="space-y-4 p-5">
           {/* Format info */}
           <div className="flex gap-2.5 rounded-lg border bg-muted/30 p-3 text-sm">
-            <Info className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+            <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <div className="space-y-1 text-muted-foreground">
               <p className="font-medium">Accepted formats</p>
               <ul className="list-inside list-disc space-y-0.5 text-xs">
@@ -431,7 +431,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
           >
-            <Upload className="size-6 text-muted-foreground" />
+            <UploadIcon className="size-6 text-muted-foreground" />
             {loading ? (
               <p className="text-sm text-muted-foreground">Reading file…</p>
             ) : fileName ? (
@@ -459,7 +459,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {fileState?.kind === "pt-epub" && (
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
               <p className="flex items-center gap-1.5 font-medium text-primary">
-                <CheckCircle className="size-4 shrink-0" />
+                <CheckCircleIcon className="size-4 shrink-0" />
                 ParallelTexts EPUB detected
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -473,7 +473,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {/* Bad EPUB */}
           {fileState?.kind === "bad-epub" && (
             <div className="flex gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-              <WarningCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <WarningCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
               <p className="text-sm text-destructive">
                 This EPUB was not exported by ParallelTexts and cannot be
                 imported as an alignment.
@@ -484,7 +484,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {/* TSV parse errors */}
           {tsvParsed && tsvParsed.errors.length > 0 && (
             <div className="flex gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
-              <WarningCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
+              <WarningCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
               <div className="space-y-1 text-sm">
                 {tsvParsed.errors.map((e, i) => (
                   <p key={i} className="text-destructive">
@@ -502,7 +502,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="flex items-center gap-1.5 font-medium text-primary">
-                    <CheckCircle className="size-4 shrink-0" />
+                    <CheckCircleIcon className="size-4 shrink-0" />
                     {tsvParsed.rows.length.toLocaleString()} pairs detected
                   </span>
                   <span className="text-muted-foreground">

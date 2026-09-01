@@ -140,3 +140,7 @@ Types: `src/types/book.ts`, `src/types/alignment.ts`.
 
 - No semicolons, double quotes, 80-char line width, trailing commas — enforced by `.prettierrc`
 - Tailwind class sorting uses `prettier-plugin-tailwindcss` with custom functions `cn` and `cva`
+
+### Icons
+
+- Use `@phosphor-icons/react` with the **`Icon` suffix** (`CaretLeftIcon`, `XIcon`, …). The unsuffixed names (`CaretLeft`, `X`) are deprecated aliases in v2.1+ and will be removed.

@@ -1,5 +1,5 @@
 import type { SampleImage } from "@/lib/sample-images"
-import { CaretLeft, CaretRight, X } from "@phosphor-icons/react"
+import { CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
 
 function NavButton({
@@ -9,7 +9,7 @@ function NavButton({
   direction: "prev" | "next"
   onClick: () => void
 }) {
-  const Icon = direction === "prev" ? CaretLeft : CaretRight
+  const Icon = direction === "prev" ? CaretLeftIcon : CaretRightIcon
   return (
     <button
       type="button"
@@ -74,7 +74,7 @@ export function ImageCarousel({
         aria-label="Close"
         className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
       >
-        <X className="size-5" />
+        <XIcon className="size-5" />
       </button>
 
       {/* Side arrows — desktop only, to avoid overlapping the image on

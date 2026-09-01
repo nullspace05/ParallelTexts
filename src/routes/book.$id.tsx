@@ -23,10 +23,10 @@ import { getExclusions, setExclusions } from "@/store/exclusions"
 import type { ImageAsset, SourceParagraph } from "@/types/alignment"
 import type { Book } from "@/types/book"
 import {
-  BookOpen,
-  BookOpenText,
-  CaretLeft,
-  CheckSquareOffset,
+  BookOpenIcon,
+  BookOpenTextIcon,
+  CaretLeftIcon,
+  CheckSquareOffsetIcon,
 } from "@phosphor-icons/react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -368,7 +368,7 @@ function BookReader({
             : "Select paragraphs to exclude from alignment"
         }
       >
-        <CheckSquareOffset className="size-5" />
+        <CheckSquareOffsetIcon className="size-5" />
       </button>
     </>
   )
@@ -473,7 +473,7 @@ function BookDetailPage() {
           to="/books"
           className="mt-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"
         >
-          <CaretLeft className="size-4" /> Back to books
+          <CaretLeftIcon className="size-4" /> Back to books
         </Link>
       </div>
     )
@@ -523,7 +523,7 @@ function BookDetailPage() {
           }
           className="absolute top-3 left-3 z-30 flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-sm ring-1 ring-border backdrop-blur-sm hover:text-foreground"
         >
-          <CaretLeft className="size-3.5" /> Detail
+          <CaretLeftIcon className="size-3.5" /> Detail
         </button>
 
         <BookReader
@@ -562,7 +562,7 @@ function BookDetailPage() {
         to="/books"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <CaretLeft className="size-4" /> Books
+        <CaretLeftIcon className="size-4" /> Books
       </Link>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -575,7 +575,7 @@ function BookDetailPage() {
           />
         ) : (
           <div className="flex h-48 w-full shrink-0 items-center justify-center rounded-lg border bg-muted sm:w-32">
-            <BookOpen className="size-10 text-muted-foreground/40" />
+            <BookOpenIcon className="size-10 text-muted-foreground/40" />
           </div>
         )}
 
@@ -598,7 +598,7 @@ function BookDetailPage() {
               navigate({ search: (prev) => ({ ...prev, view: "read" }) })
             }
           >
-            <BookOpenText className="size-4" />
+            <BookOpenTextIcon className="size-4" />
             {progressPct != null && progressPct > 0
               ? `Continue reading (${progressPct}%)`
               : "Read book"}

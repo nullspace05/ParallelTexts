@@ -1,4 +1,9 @@
-import { CaretDown, CaretUp, MagnifyingGlass, X } from "@phosphor-icons/react"
+import {
+  CaretDownIcon,
+  CaretUpIcon,
+  MagnifyingGlassIcon,
+  XIcon,
+} from "@phosphor-icons/react"
 import { useEffect, useRef, useState } from "react"
 
 export interface SearchResult {
@@ -143,7 +148,7 @@ export function ReaderSearch({
         className="absolute top-3 right-4 z-20 flex size-10 items-center justify-center rounded-full bg-background shadow-md ring-1 ring-border hover:bg-muted"
         aria-label="Search"
       >
-        <MagnifyingGlass className="size-4 text-muted-foreground" />
+        <MagnifyingGlassIcon className="size-4 text-muted-foreground" />
       </button>
     )
   }
@@ -194,7 +199,7 @@ export function ReaderSearch({
           className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           aria-label="Close"
         >
-          <X className="size-3.5" />
+          <XIcon className="size-3.5" />
         </button>
       </div>
 
@@ -202,7 +207,7 @@ export function ReaderSearch({
       {mode === "text" && (
         <>
           <div className="flex items-center gap-1.5 px-2.5 py-2">
-            <MagnifyingGlass className="size-3.5 shrink-0 text-muted-foreground" />
+            <MagnifyingGlassIcon className="size-3.5 shrink-0 text-muted-foreground" />
             <input
               ref={textInputRef}
               value={query}
@@ -230,7 +235,7 @@ export function ReaderSearch({
                     className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Previous result"
                   >
-                    <CaretUp className="size-3.5" />
+                    <CaretUpIcon className="size-3.5" />
                   </button>
                   <button
                     type="button"
@@ -238,7 +243,7 @@ export function ReaderSearch({
                     className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="Next result"
                   >
-                    <CaretDown className="size-3.5" />
+                    <CaretDownIcon className="size-3.5" />
                   </button>
                 </div>
               )}

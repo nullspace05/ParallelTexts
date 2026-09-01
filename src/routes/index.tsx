@@ -6,7 +6,7 @@ import {
   getStoredIntroDismissed,
   setStoredIntroDismissed,
 } from "@/lib/user-settings"
-import { Devices, X } from "@phosphor-icons/react"
+import { DevicesIcon, XIcon } from "@phosphor-icons/react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
 
@@ -41,7 +41,7 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
         className="absolute top-4 right-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         aria-label="Dismiss"
       >
-        <X className="size-4" />
+        <XIcon className="size-4" />
       </button>
 
       <div className="border-b px-6 py-4 pr-12">
@@ -97,7 +97,7 @@ function App() {
       <div className="mx-auto max-w-4xl space-y-8">
         {/* Mobile notice — hidden on sm+ */}
         <div className="flex items-start gap-2 rounded-lg border border-amber-300/50 bg-amber-50/80 px-3 py-2.5 text-xs text-amber-800 md:hidden dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-300">
-          <Devices className="mt-0.5 size-4 shrink-0" />
+          <DevicesIcon className="mt-0.5 size-4 shrink-0" />
           <span>
             Best on desktop — alignment is compute-intensive and works best with
             a full keyboard and more RAM.

@@ -4,7 +4,7 @@ import { removeBook } from "@/store/books"
 import type { Book } from "@/types/book"
 import { Link, createFileRoute } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
-import { Books, BookOpen, Trash } from "@phosphor-icons/react"
+import { BooksIcon, BookOpenIcon, TrashIcon } from "@phosphor-icons/react"
 import { useState } from "react"
 
 export const Route = createFileRoute("/books")({
@@ -25,7 +25,7 @@ function BooksPage() {
       <DropZone />
       {books.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-          <Books className="size-10 text-muted-foreground/40" />
+          <BooksIcon className="size-10 text-muted-foreground/40" />
           <p className="text-muted-foreground">No books uploaded yet.</p>
         </div>
       ) : (
@@ -58,7 +58,7 @@ function BooksPage() {
                     />
                   ) : (
                     <div className="mb-2 flex h-36 w-full items-center justify-center rounded bg-muted">
-                      <BookOpen className="size-8 text-muted-foreground/40" />
+                      <BookOpenIcon className="size-8 text-muted-foreground/40" />
                     </div>
                   )}
                   <p className="line-clamp-2 text-xs leading-tight font-medium">
@@ -101,7 +101,7 @@ function BooksPage() {
                     className="absolute top-1.5 right-1.5 rounded p-1 opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
                     aria-label="Delete book"
                   >
-                    <Trash className="size-3.5" />
+                    <TrashIcon className="size-3.5" />
                   </button>
                 )}
               </div>

@@ -17,7 +17,7 @@ import {
   charCountForPage,
   pageFromCharCount,
 } from "@/lib/reading-progress"
-import { CaretLeft, CaretRight } from "@phosphor-icons/react"
+import { CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react"
 import {
   forwardRef,
   useEffect,
@@ -491,7 +491,7 @@ export const PaginatedReader = forwardRef<
         }`}
         onClick={() => canPrev && setPage((p) => p - 1)}
       >
-        <CaretLeft
+        <CaretLeftIcon
           className={`transition-all duration-200 ${canPrev ? "opacity-0 group-hover:opacity-100" : "opacity-0"}`}
           style={{ width: 56, height: 56, strokeWidth: 2.5, color: "white" }}
         />
@@ -506,7 +506,7 @@ export const PaginatedReader = forwardRef<
         }`}
         onClick={() => canNext && setPage((p) => p + 1)}
       >
-        <CaretRight
+        <CaretRightIcon
           className={`transition-all duration-200 ${canNext ? "opacity-0 group-hover:opacity-100" : "opacity-0"}`}
           style={{ width: 56, height: 56, strokeWidth: 2.5, color: "white" }}
         />

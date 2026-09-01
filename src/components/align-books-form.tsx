@@ -35,12 +35,12 @@ import {
 import type { AlignWorkerOutput } from "@/workers/alignment.worker"
 import AlignmentWorker from "@/workers/alignment.worker?worker"
 import {
-  ArrowsLeftRight,
-  CaretDown,
-  CaretUp,
-  Question,
-  Trash,
-  Warning,
+  ArrowsLeftRightIcon,
+  CaretDownIcon,
+  CaretUpIcon,
+  QuestionIcon,
+  TrashIcon,
+  WarningIcon,
 } from "@phosphor-icons/react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
@@ -458,7 +458,7 @@ export function AlignBooksForm() {
             }}
             className="rounded-full border bg-background p-2 text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
           >
-            <ArrowsLeftRight className="size-4" />
+            <ArrowsLeftRightIcon className="size-4" />
           </button>
         </div>
         <BookLangSelector
@@ -481,9 +481,9 @@ export function AlignBooksForm() {
           onClick={() => setShowAdvanced((v) => !v)}
         >
           {showAdvanced ? (
-            <CaretUp className="size-4" />
+            <CaretUpIcon className="size-4" />
           ) : (
-            <CaretDown className="size-4" />
+            <CaretDownIcon className="size-4" />
           )}
           Advanced
         </button>
@@ -674,7 +674,7 @@ export function AlignBooksForm() {
                         className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
                         aria-label="Remove rule"
                       >
-                        <Trash className="size-3.5" />
+                        <TrashIcon className="size-3.5" />
                       </button>
                       {!valid && (
                         <span className="text-xs text-destructive">
@@ -739,7 +739,7 @@ export function AlignBooksForm() {
       {/* ── Truncation warning ── */}
       {truncationWarning && (
         <p className="mt-3 flex items-start gap-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
-          <Warning className="mt-0.5 size-4 shrink-0" />
+          <WarningIcon className="mt-0.5 size-4 shrink-0" />
           {truncationWarning}
         </p>
       )}
@@ -817,7 +817,7 @@ function BookLangSelector({
       <div className="flex items-center gap-1.5">
         <p className="text-sm font-medium">{label} book</p>
         <div className="group relative flex items-center">
-          <Question className="size-3.5 cursor-default text-muted-foreground/50 hover:text-muted-foreground" />
+          <QuestionIcon className="size-3.5 cursor-default text-muted-foreground/50 hover:text-muted-foreground" />
           <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 shadow-md transition-opacity group-hover:opacity-100">
             <span className="whitespace-nowrap">{hint}</span>
             {/* arrow */}

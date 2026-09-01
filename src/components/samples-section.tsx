@@ -8,7 +8,7 @@ import { parsePtEpub } from "@/lib/pt-epub"
 import { SAMPLE_ALIGNMENTS, sampleAlignmentUrl } from "@/lib/sample-books"
 import { cn } from "@/lib/utils"
 import { addAlignment } from "@/store/alignments"
-import { BookOpen, CircleNotch } from "@phosphor-icons/react"
+import { BookOpenIcon, CircleNotchIcon } from "@phosphor-icons/react"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -22,7 +22,7 @@ export function SampleDot({
 }) {
   if (loading) {
     return (
-      <CircleNotch
+      <CircleNotchIcon
         className="size-[1em] shrink-0 animate-spin text-primary"
         aria-hidden
       />
@@ -134,7 +134,7 @@ export function SamplesSection() {
             >
               <div className="flex w-full items-start justify-between gap-2">
                 <span className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-                  <BookOpen className="size-3" />
+                  <BookOpenIcon className="size-3" />
                   Example
                 </span>
                 <LangBadges

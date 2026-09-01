@@ -55,11 +55,11 @@ import type {
 import { MODEL_REGISTRY } from "@/utils/model-registry"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import {
-  ArrowsLeftRight,
-  CircleNotch,
-  DotsThree,
-  Info,
-  X,
+  ArrowsLeftRightIcon,
+  CircleNotchIcon,
+  DotsThreeIcon,
+  InfoIcon,
+  XIcon,
 } from "@phosphor-icons/react"
 import {
   forwardRef,
@@ -330,7 +330,7 @@ function AlignmentPage() {
         className="absolute right-4 bottom-4 z-20 flex size-10 items-center justify-center rounded-full bg-background shadow-md ring-1 ring-border hover:bg-muted"
         aria-label="Open details"
       >
-        <Info className="size-4 text-muted-foreground" />
+        <InfoIcon className="size-4 text-muted-foreground" />
       </button>
 
       {/* ── Drawer (vaul, right-side) ────────────────────── */}
@@ -339,7 +339,7 @@ function AlignmentPage() {
           <DrawerHeader className="relative flex-row items-center justify-between border-b">
             <DrawerTitle>Details</DrawerTitle>
             <DrawerClose className="absolute top-1/2 right-4 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted">
-              <X className="size-4" />
+              <XIcon className="size-4" />
             </DrawerClose>
           </DrawerHeader>
 
@@ -479,7 +479,7 @@ function AlignmentPage() {
                     ? `${result.tgt_lang.toUpperCase()} → ${result.src_lang.toUpperCase()}`
                     : `${result.src_lang.toUpperCase()} → ${result.tgt_lang.toUpperCase()}`}
                 </span>
-                <ArrowsLeftRight className="size-4" />
+                <ArrowsLeftRightIcon className="size-4" />
               </button>
             </div>
 
@@ -619,7 +619,7 @@ function AlignmentPage() {
                 >
                   {exporting === "tsv" ? (
                     <>
-                      <CircleNotch className="mr-1.5 size-3.5 animate-spin" />
+                      <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
                       Preparing TSV…
                     </>
                   ) : (
@@ -642,7 +642,7 @@ function AlignmentPage() {
                 >
                   {exporting === "epub" ? (
                     <>
-                      <CircleNotch className="mr-1.5 size-3.5 animate-spin" />
+                      <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
                       Preparing EPUB…
                     </>
                   ) : (
@@ -1009,9 +1009,9 @@ function PairPopoverContent({
         aria-label={showDetails ? "Hide details" : "Show details"}
       >
         {showDetails ? (
-          <X className="size-3.5" />
+          <XIcon className="size-3.5" />
         ) : (
-          <DotsThree className="size-4" />
+          <DotsThreeIcon className="size-4" />
         )}
       </button>
 

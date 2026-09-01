@@ -33,7 +33,7 @@ import {
   downloadModel,
 } from "@/utils/model"
 import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
-import { Desktop, Moon, Sun } from "@phosphor-icons/react"
+import { DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 
@@ -55,9 +55,9 @@ const THEME_OPTIONS: {
   label: string
   icon: React.ElementType
 }[] = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "System", icon: Desktop },
+  { value: "light", label: "Light", icon: SunIcon },
+  { value: "dark", label: "Dark", icon: MoonIcon },
+  { value: "system", label: "System", icon: DesktopIcon },
 ]
 
 const DEVICE_OPTIONS: {

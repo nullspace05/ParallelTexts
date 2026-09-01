@@ -1,10 +1,10 @@
 import { GITHUB_REPO_URL } from "@/lib/site-links"
 import {
-  ArrowsLeftRight,
-  Books,
-  Gear,
-  GithubLogo,
-  Info,
+  ArrowsLeftRightIcon,
+  BooksIcon,
+  GearIcon,
+  GithubLogoIcon,
+  InfoIcon,
 } from "@phosphor-icons/react"
 import { Link } from "@tanstack/react-router"
 
@@ -30,15 +30,15 @@ export function Header() {
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link to="/books" className={navLinkClass}>
-            <Books size={18} />
+            <BooksIcon size={18} />
             <span className="hidden sm:inline">Books</span>
           </Link>
           <Link to="/alignments" className={navLinkClass}>
-            <ArrowsLeftRight size={18} />
+            <ArrowsLeftRightIcon size={18} />
             <span className="hidden sm:inline">Alignments</span>
           </Link>
           <Link to="/about" className={navLinkClass}>
-            <Info size={18} />
+            <InfoIcon size={18} />
             <span className="hidden sm:inline">About</span>
           </Link>
         </nav>
@@ -54,10 +54,10 @@ export function Header() {
           aria-label="View source on GitHub"
           className={iconLinkClass}
         >
-          <GithubLogo size={22} weight="fill" />
+          <GithubLogoIcon size={22} weight="fill" />
         </a>
         <Link to="/settings" className={iconLinkClass}>
-          <Gear size={22} />
+          <GearIcon size={22} />
         </Link>
       </div>
     </header>

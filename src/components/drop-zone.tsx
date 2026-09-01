@@ -7,7 +7,7 @@ import { extractPdfMetadata } from "@/lib/pdf"
 import { extractTxtMetadata } from "@/lib/txt"
 import { addBook } from "@/store/books"
 import type { Book, BookType } from "@/types/book"
-import { FileArrowUp } from "@phosphor-icons/react"
+import { FileArrowUpIcon } from "@phosphor-icons/react"
 import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
@@ -108,7 +108,7 @@ export function DropZone() {
       className={`flex min-h-[200px] cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/25 bg-muted/25 px-6 py-10 transition-colors hover:border-muted-foreground/40 hover:bg-muted/40 ${isDragActive ? "border-primary bg-primary/5" : ""} ${status === "loading" ? "pointer-events-none opacity-70" : ""}`}
     >
       <input {...getInputProps()} />
-      <FileArrowUp
+      <FileArrowUpIcon
         className={`size-9 ${isDragActive ? "text-primary" : "text-muted-foreground/70"}`}
       />
       <div className="space-y-1 text-center">
