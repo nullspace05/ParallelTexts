@@ -1,9 +1,6 @@
 import { useState } from "react"
 
-const STAND_IN_FIXTURES = [
-  "i-am-a-cat-ja-en.json",
-  "short-alignment.json",
-]
+const STAND_IN_FIXTURES = ["i-am-a-cat-ja-en.json", "short-alignment.json"]
 
 export function DevEmbeddingControls() {
   const [usePrecomputed, setUsePrecomputed] = useState(false)
