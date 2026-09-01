@@ -105,7 +105,7 @@ export async function downloadModel(
   await trackOperation("model_download", { modelId, resolvedDevice }, () =>
     withTimeout(
       "Model download",
-      15 * 60_000,
+      6 * 60_000,
       pipeline("feature-extraction", modelId, {
         device: resolvedDevice,
         dtype: "fp32",
