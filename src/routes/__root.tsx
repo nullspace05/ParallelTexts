@@ -1,7 +1,9 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
 import { Header } from "@/components/header"
+import { BrowserStorageNotice } from "@/components/browser-storage-notice"
 import { ThemeProvider } from "@/components/theme-provider"
+import { Toaster } from "@/components/ui/sonner"
 import { OG_IMAGE_URL, SITE_URL } from "@/lib/site-links"
 import { THEME_INIT_SCRIPT } from "@/lib/theme"
 import { PostHogProvider } from "@posthog/react"
@@ -133,8 +135,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </head>
         <body>
           <ThemeProvider>
+            <BrowserStorageNotice />
             <Header />
             <main className="flex-1">{children}</main>
+            <Toaster />
             {/* <TanStackDevtools
             config={{
               position: "bottom-right",
