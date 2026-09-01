@@ -23,9 +23,21 @@ const config = defineConfig({
   plugins: [
     devtools(),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      spa: {
+        enabled: true,
+      },
+    }),
     viteReact(),
     cloudflare({
+      // SPA mode prerenders its shell through Vite's local preview server.
+      // It does not need the sample-book bucket, so avoid requiring remote R2
+      // credentials only for that build-time preview. Vite dev and the deployed
+      // Worker retain the remote binding from wrangler.jsonc.
+      // NOTE: CLOUDFLARE_VITE_BUILD = internal environment variable used by the Cloudflare Vite plugin.
+      // you can verify yourself using strings node_modules/@cloudflare/vite-plugin/dist/index.mjs | rg CLOUDFLARE_VITE_BUILD
+      // rg CLOUDFLARE_VITE_BUILD node_modules/@cloudflare/vite-plugin
+      remoteBindings: process.env.CLOUDFLARE_VITE_BUILD !== "true",
       viteEnvironment: {
         name: "ssr",
       },
