@@ -160,7 +160,7 @@ export function LanguageCombobox({
     return out
   }, [options])
 
-  const selectedLabel = value ? nameOf(value) : null
+  const hasSelection = Boolean(value) && value !== "und"
 
   return (
     <Combobox<string>
@@ -173,23 +173,29 @@ export function LanguageCombobox({
     >
       <ComboboxTrigger
         id={id}
+        aria-label={label}
         className={cn(
-          buttonVariants({ variant: "outline", size: "sm" }),
-          "border-dashed"
+          buttonVariants({ variant: "outline", size: "default" }),
+          "w-full justify-start border-dashed font-normal"
         )}
       >
-        <PlusCircleIcon className="size-4" />
-        <span className="text-muted-foreground">{label}</span>
-        {selectedLabel && (
-          <>
-            <span className="mx-1 h-4 w-px bg-border" />
-            <Badge variant="secondary">{selectedLabel}</Badge>
-          </>
+        <PlusCircleIcon className="size-4 shrink-0 opacity-50" />
+        {hasSelection ? (
+          <Badge variant="secondary" className="font-normal">
+            {nameOf(value)}
+          </Badge>
+        ) : (
+          <span className="truncate text-muted-foreground">
+            {nameOf(value || "und")}
+          </span>
         )}
-        <CaretUpDownIcon className="size-4 shrink-0 opacity-50" />
+        <CaretUpDownIcon className="ml-auto size-4 shrink-0 opacity-50" />
       </ComboboxTrigger>
 
-      <ComboboxContent align="start" className="w-[260px]">
+      <ComboboxContent
+        align="start"
+        className="w-(--anchor-width) min-w-[240px]"
+      >
         <ComboboxInput placeholder="Search language…" />
         <ComboboxEmpty>No language found.</ComboboxEmpty>
         <ComboboxList>

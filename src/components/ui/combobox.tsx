@@ -101,16 +101,25 @@ function ComboboxList({ className, ...props }: ComboboxPrimitive.List.Props) {
   )
 }
 
-function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
+function ComboboxEmpty({
+  className,
+  children,
+  ...props
+}: ComboboxPrimitive.Empty.Props) {
+  // Base UI keeps this element mounted as an aria-live region even when the
+  // list is not empty (it just nulls the children). Keep all padding on the
+  // inner wrapper so the outer element collapses to 0px when there's a match.
   return (
-    <ComboboxPrimitive.Empty
-      data-slot="combobox-empty"
-      className={cn(
-        "px-2 py-6 text-center text-sm text-muted-foreground",
-        className
-      )}
-      {...props}
-    />
+    <ComboboxPrimitive.Empty data-slot="combobox-empty" {...props}>
+      <div
+        className={cn(
+          "px-2 py-6 text-center text-sm text-muted-foreground",
+          className
+        )}
+      >
+        {children}
+      </div>
+    </ComboboxPrimitive.Empty>
   )
 }
 

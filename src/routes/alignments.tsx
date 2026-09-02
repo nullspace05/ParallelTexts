@@ -588,12 +588,16 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   />
                 </div>
               </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
+                  <label
+                    htmlFor="import-src-lang"
+                    className="text-xs text-muted-foreground"
+                  >
                     Source language
                   </label>
                   <LanguageCombobox
+                    id="import-src-lang"
                     label="Source language"
                     value={srcLang}
                     onChange={setSrcLang}
@@ -601,10 +605,14 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
+                  <label
+                    htmlFor="import-tgt-lang"
+                    className="text-xs text-muted-foreground"
+                  >
                     Target language
                   </label>
                   <LanguageCombobox
+                    id="import-tgt-lang"
                     label="Target language"
                     value={tgtLang}
                     onChange={setTgtLang}
