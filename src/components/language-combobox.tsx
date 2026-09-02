@@ -13,16 +13,12 @@ import {
   ComboboxSeparator,
   ComboboxTrigger,
 } from "@/components/ui/combobox"
+import type { LanguageOption } from "@/lib/model-languages"
 import { cn } from "@/lib/utils"
 import { CaretUpDownIcon, PlusCircleIcon } from "@phosphor-icons/react"
 import { useMemo } from "react"
 
-export interface LanguageOption {
-  code: string
-  label: string
-  /** Popular languages are floated to the top in a dedicated group. */
-  popular?: boolean
-}
+export type { LanguageOption }
 
 // ── Stand-in catalog ─────────────────────────────────────────────────────────
 // Step 2 only: a hardcoded list so the combobox UX can be judged before the
