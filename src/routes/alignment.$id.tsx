@@ -5,6 +5,7 @@ import {
   type ParagraphData,
 } from "@/lib/alignment-paragraphs"
 import { EQUIVALENCE_PALETTE } from "@/lib/equivalence-palette"
+import { resolveTextLang } from "@/lib/lang"
 import {
   PaginatedReader,
   ReaderSkeleton,
@@ -51,6 +52,7 @@ import type {
   AlignedPair,
   AlignmentMeta,
   AlignmentRecord,
+  AlignmentResult,
 } from "@/types/alignment"
 import { MODEL_REGISTRY } from "@/utils/model-registry"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
@@ -112,6 +114,26 @@ function swapRecord(record: AlignmentRecord): AlignmentRecord {
               : p.alignment_type,
       })),
     },
+  }
+}
+
+// `lang` tags for the two sides of an alignment — the declared code, or a
+// guess from the text itself for records created before language capture.
+// Tagging the rendered text is what makes the browser pick a Japanese font
+// for Japanese prose instead of a Chinese one (Han unification). See
+// src/lib/lang.ts.
+function alignmentLangs(result: AlignmentResult): {
+  srcLang: string | undefined
+  tgtLang: string | undefined
+} {
+  const sample = (key: "src_text" | "tgt_text") =>
+    result.pairs
+      .slice(0, 40)
+      .map((p) => p[key])
+      .join(" ")
+  return {
+    srcLang: resolveTextLang(result.src_lang, sample("src_text")),
+    tgtLang: resolveTextLang(result.tgt_lang, sample("tgt_text")),
   }
 }
 
@@ -752,12 +774,16 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   pairNumbers,
   showLineNumbers,
   showEquivalence,
+  srcLang,
+  tgtLang,
 }: {
   para: ParagraphData
   pIdx: number
   pairNumbers: number[]
   showLineNumbers: boolean
   showEquivalence: boolean
+  srcLang: string | undefined
+  tgtLang: string | undefined
 }) {
   // Local to this paragraph — a pair's source/target spans always live in the
   // same paragraph block, so hover state never needs to reach further than this.
@@ -795,7 +821,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
       ))}
       {para.pairs.length > 0 && (
         <div className="grid grid-cols-1 gap-x-10 gap-y-3 sm:grid-cols-2">
-          <p>
+          <p lang={srcLang}>
             {para.pairs.map((pair, pairIdx) => (
               <SideBySideSentence
                 key={pairIdx}
@@ -815,7 +841,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
               />
             ))}
           </p>
-          <p className="border-t pt-3 sm:border-t-0 sm:pt-0">
+          <p lang={tgtLang} className="border-t pt-3 sm:border-t-0 sm:pt-0">
             {para.pairs.map((pair, pairIdx) => (
               <SideBySideSentence
                 key={pairIdx}
@@ -875,6 +901,11 @@ function SideBySideView({
   const pairNumbers = useMemo(
     () => numberParagraphPairs(paragraphs),
     [paragraphs]
+  )
+
+  const { srcLang, tgtLang } = useMemo(
+    () => alignmentLangs(record.result),
+    [record.result]
   )
 
   const searchData = useMemo(
@@ -977,6 +1008,8 @@ function SideBySideView({
           pairNumbers={pairNumbers[pIdx]}
           showLineNumbers={showLineNumbers}
           showEquivalence={showEquivalence}
+          srcLang={srcLang}
+          tgtLang={tgtLang}
         />
       ))}
     </PaginatedReader>
@@ -991,17 +1024,22 @@ function PairPopoverContent({
   pair,
   prevPair,
   nextPair,
+  lang,
 }: {
   pair: AlignedPair
   prevPair?: AlignedPair | null
   nextPair?: AlignedPair | null
+  lang?: string
 }) {
   const [showDetails, setShowDetails] = useState(false)
   const [prevExpanded, setPrevExpanded] = useState(false)
   const [nextExpanded, setNextExpanded] = useState(false)
 
   return (
-    <div className="relative flex w-full min-w-0 flex-col gap-3 pr-6">
+    <div
+      lang={lang}
+      className="relative flex w-full min-w-0 flex-col gap-3 pr-6"
+    >
       <button
         type="button"
         onClick={() => setShowDetails((v) => !v)}
@@ -1104,6 +1142,7 @@ const PairSpan = memo(function PairSpan({
   setOpenKey,
   prevPair,
   nextPair,
+  tgtLang,
 }: {
   pair: AlignedPair
   pIdx: number
@@ -1112,6 +1151,7 @@ const PairSpan = memo(function PairSpan({
   setOpenKey: (key: string | null) => void
   prevPair?: AlignedPair | null
   nextPair?: AlignedPair | null
+  tgtLang?: string
 }) {
   const handleChange = useCallback(
     (open: boolean) => {
@@ -1152,6 +1192,7 @@ const PairSpan = memo(function PairSpan({
           pair={pair}
           prevPair={prevPair}
           nextPair={nextPair}
+          lang={tgtLang}
         />
       </PopoverContent>
     </Popover>
@@ -1167,11 +1208,13 @@ const ParagraphBlock = memo(
     pIdx,
     openKey,
     setOpenKey,
+    tgtLang,
   }: {
     para: ParagraphData
     pIdx: number
     openKey: string | null
     setOpenKey: (key: string | null) => void
+    tgtLang: string | undefined
   }) {
     return (
       <div
@@ -1204,6 +1247,7 @@ const ParagraphBlock = memo(
                   setOpenKey={setOpenKey}
                   prevPair={para.pairs[pairIdx - 1]}
                   nextPair={para.pairs[pairIdx + 1]}
+                  tgtLang={tgtLang}
                 />
                 {pairIdx < para.pairs.length - 1 ? " " : ""}
               </span>
@@ -1214,7 +1258,12 @@ const ParagraphBlock = memo(
     )
   },
   (prev, next) => {
-    if (prev.para !== next.para || prev.pIdx !== next.pIdx) return false
+    if (
+      prev.para !== next.para ||
+      prev.pIdx !== next.pIdx ||
+      prev.tgtLang !== next.tgtLang
+    )
+      return false
     // Only re-render if the openKey change belongs to this paragraph
     const prevOwns = prev.openKey?.startsWith(`${prev.pIdx}-`) ?? false
     const nextOwns = next.openKey?.startsWith(`${next.pIdx}-`) ?? false
@@ -1231,30 +1280,32 @@ interface ParagraphListHandle {
 }
 
 const ParagraphList = memo(
-  forwardRef<ParagraphListHandle, { paragraphs: ParagraphData[] }>(
-    function ParagraphList({ paragraphs }, ref) {
-      const [openKey, setOpenKey] = useState<string | null>(null)
+  forwardRef<
+    ParagraphListHandle,
+    { paragraphs: ParagraphData[]; tgtLang?: string }
+  >(function ParagraphList({ paragraphs, tgtLang }, ref) {
+    const [openKey, setOpenKey] = useState<string | null>(null)
 
-      useImperativeHandle(ref, () => ({
-        resetOpenKey: () => setOpenKey(null),
-        setOpenKey,
-      }))
+    useImperativeHandle(ref, () => ({
+      resetOpenKey: () => setOpenKey(null),
+      setOpenKey,
+    }))
 
-      return (
-        <>
-          {paragraphs.map((para, pIdx) => (
-            <ParagraphBlock
-              key={pIdx}
-              para={para}
-              pIdx={pIdx}
-              openKey={openKey}
-              setOpenKey={setOpenKey}
-            />
-          ))}
-        </>
-      )
-    }
-  )
+    return (
+      <>
+        {paragraphs.map((para, pIdx) => (
+          <ParagraphBlock
+            key={pIdx}
+            para={para}
+            pIdx={pIdx}
+            openKey={openKey}
+            setOpenKey={setOpenKey}
+            tgtLang={tgtLang}
+          />
+        ))}
+      </>
+    )
+  })
 )
 
 function PopoverView({
@@ -1284,6 +1335,11 @@ function PopoverView({
   const paragraphs = useMemo(
     () => buildAlignmentParagraphs(record.result, imageMode),
     [record.result, imageMode]
+  )
+
+  const { srcLang, tgtLang } = useMemo(
+    () => alignmentLangs(record.result),
+    [record.result]
   )
 
   // Build display results + pairKeys for opening popovers
@@ -1397,7 +1453,13 @@ function PopoverView({
         />
       }
     >
-      <ParagraphList ref={paragraphListRef} paragraphs={paragraphs} />
+      <div style={{ display: "contents" }} lang={srcLang}>
+        <ParagraphList
+          ref={paragraphListRef}
+          paragraphs={paragraphs}
+          tgtLang={tgtLang}
+        />
+      </div>
     </PaginatedReader>
   )
 }

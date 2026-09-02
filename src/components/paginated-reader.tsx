@@ -375,7 +375,22 @@ export const PaginatedReader = forwardRef<
     recalc(false)
     const ro = new ResizeObserver(() => recalc(true))
     ro.observe(outer)
-    return () => ro.disconnect()
+
+    // A web font that arrives after first layout (the self-hosted Japanese
+    // font, fetched lazily for `:lang(ja)` text) changes glyph metrics and
+    // therefore the page count, but never changes `outer`'s size — so the
+    // ResizeObserver won't catch it. Re-measure once fonts settle.
+    let fontsCancelled = false
+    if (typeof document !== "undefined" && document.fonts) {
+      document.fonts.ready.then(() => {
+        if (!fontsCancelled && outer.isConnected) recalc(true)
+      })
+    }
+
+    return () => {
+      fontsCancelled = true
+      ro.disconnect()
+    }
   }, [paragraphs, fontSize])
 
   // ── Sync page → scroll position ───────────────────────────────────────────

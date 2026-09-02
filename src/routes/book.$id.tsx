@@ -6,6 +6,7 @@ import {
 import { ReaderSearch, type SearchResult } from "@/components/reader-search"
 import { Button } from "@/components/ui/button"
 import { extractEpubContent } from "@/lib/epub"
+import { detectCjkLang } from "@/lib/lang"
 import { normalizeParagraphs } from "@/lib/paragraphs"
 import {
   getOperationErrorMessage,
@@ -213,6 +214,19 @@ function BookReader({
     return { results, hasMore }
   }, [searchQuery, paragraphs])
 
+  // A Book carries no language, so tag the rendered text by script so the
+  // browser picks a Japanese (not Chinese) font for Japanese prose — see
+  // src/lib/lang.ts. `undefined` when there's no CJK content, so Latin text
+  // keeps inheriting the document language.
+  const bookLang = useMemo(() => {
+    if (!paragraphs) return undefined
+    const sample = paragraphs
+      .slice(0, 60)
+      .map((p) => p.text)
+      .join(" ")
+    return detectCjkLang(sample) || undefined
+  }, [paragraphs])
+
   // Reset selection (no auto-jump) when query changes
   useEffect(() => {
     setSearchIdx(-1)
@@ -336,16 +350,18 @@ function BookReader({
           />
         }
       >
-        {paragraphs.map((para, idx) => (
-          <BookParagraphBlock
-            key={idx}
-            para={para}
-            pIdx={idx}
-            selectionMode={selectionMode}
-            excluded={excludedParaIdxs.has(idx)}
-            onToggleExclude={toggleExcludedPara}
-          />
-        ))}
+        <div style={{ display: "contents" }} lang={bookLang}>
+          {paragraphs.map((para, idx) => (
+            <BookParagraphBlock
+              key={idx}
+              para={para}
+              pIdx={idx}
+              selectionMode={selectionMode}
+              excluded={excludedParaIdxs.has(idx)}
+              onToggleExclude={toggleExcludedPara}
+            />
+          ))}
+        </div>
       </PaginatedReader>
       <button
         type="button"

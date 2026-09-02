@@ -2,6 +2,11 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
+/* Japanese web font, self-hosted. Only fetched when a `:lang(ja)` element
+   actually renders a glyph with this family — i.e. when the reader shows
+   Japanese text on a device that lacks a local Japanese font. See the
+   `:lang(ja)` rule below and src/lib/lang.ts. */
+@import "@fontsource/noto-sans-jp/japanese-400.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -126,5 +131,16 @@
     }
   html {
     @apply font-sans;
+    }
+
+  /* Han unification: tag Japanese text so the browser picks a Japanese
+     font. Local Japanese fonts come first, so devices that have one (iOS
+     Hiragino, Windows Yu Gothic/Meiryo) use it with no download; only
+     devices without one fall back to the self-hosted Noto Sans JP. Chinese
+     (:lang(zh)) is deliberately left alone so it keeps its own glyphs. */
+  :lang(ja) {
+    font-family:
+      "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "YuGothic",
+      Meiryo, "Noto Sans JP", var(--font-sans), sans-serif;
     }
 }
