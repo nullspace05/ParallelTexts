@@ -48,8 +48,25 @@ export function getStoredModelId(): string {
   return safeGet(KEY_MODEL_ID) ?? DEFAULT_MODEL_ID
 }
 
+type ModelIdListener = () => void
+const modelIdListeners = new Set<ModelIdListener>()
+
+/**
+ * Subscribe to same-tab changes of the stored model id. The `storage` event
+ * only fires in *other* tabs, so anything that needs to react to a write from
+ * its own tab (e.g. the align form or Settings updating the model) must go
+ * through this. Returns an unsubscribe function.
+ */
+export function subscribeStoredModelId(listener: ModelIdListener): () => void {
+  modelIdListeners.add(listener)
+  return () => {
+    modelIdListeners.delete(listener)
+  }
+}
+
 export function setStoredModelId(id: string): void {
   safeSet(KEY_MODEL_ID, id)
+  for (const listener of modelIdListeners) listener()
 }
 
 export function getStoredMaxSentences(): number {
