@@ -1,5 +1,9 @@
 import { AlignBooksForm } from "@/components/align-books-form"
 import { IncognitoNotice } from "@/components/incognito-notice"
+import {
+  LanguageCombobox,
+  STANDIN_LANGUAGE_OPTIONS,
+} from "@/components/language-combobox"
 import { SampleDot } from "@/components/samples-section"
 import { Button } from "@/components/ui/button"
 import { computeAlignmentStats } from "@/lib/alignment-exclusions"
@@ -30,18 +34,6 @@ import {
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useCallback, useRef, useState } from "react"
-
-const LANGUAGES = [
-  { code: "ja", label: "Japanese" },
-  { code: "en", label: "English" },
-  { code: "zh", label: "Chinese (Simplified)" },
-  { code: "zh-tw", label: "Chinese (Traditional)" },
-  { code: "ko", label: "Korean" },
-  { code: "fr", label: "French" },
-  { code: "de", label: "German" },
-  { code: "es", label: "Spanish" },
-  { code: "und", label: "Other" },
-]
 
 function formatDuration(ms: number): string {
   const s = Math.round(ms / 1000)
@@ -596,38 +588,28 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-wrap gap-3">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
                     Source language
                   </label>
-                  <select
+                  <LanguageCombobox
+                    label="Source language"
                     value={srcLang}
-                    onChange={(e) => setSrcLang(e.target.value)}
-                    className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-                  >
-                    {LANGUAGES.map((l) => (
-                      <option key={l.code} value={l.code}>
-                        {l.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setSrcLang}
+                    options={STANDIN_LANGUAGE_OPTIONS}
+                  />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
                     Target language
                   </label>
-                  <select
+                  <LanguageCombobox
+                    label="Target language"
                     value={tgtLang}
-                    onChange={(e) => setTgtLang(e.target.value)}
-                    className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-                  >
-                    {LANGUAGES.map((l) => (
-                      <option key={l.code} value={l.code}>
-                        {l.label}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={setTgtLang}
+                    options={STANDIN_LANGUAGE_OPTIONS}
+                  />
                 </div>
               </div>
             </div>
