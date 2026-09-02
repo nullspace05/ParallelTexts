@@ -32,9 +32,41 @@ describe("model-languages catalog", () => {
   })
 
   it("keeps every historically-stored code selectable", () => {
-    for (const code of ["ja", "en", "zh", "zh-tw", "ko", "fr", "de", "es", "und"]) {
+    for (const code of [
+      "ja",
+      "en",
+      "zh",
+      "zh-tw",
+      "ko",
+      "fr",
+      "de",
+      "es",
+      "und",
+    ]) {
       expect(LANGUAGE_NAMES).toHaveProperty(code)
     }
+  })
+})
+
+describe("per-model coverage (pinned to model cards, Step 5)", () => {
+  it("gives the paraphrase-multilingual family the 53-code sbert.net list", () => {
+    const codes = MODEL_LANGUAGE_CODES[MPNET]
+    expect(codes).toHaveLength(53)
+    // sbert.net docs list, with zh-cn folded into the app's zh
+    expect(codes).toEqual(
+      expect.arrayContaining(["zh", "zh-tw", "fr-ca", "pt-br"])
+    )
+    expect(codes).not.toContain("zh-cn")
+  })
+
+  it("treats EmbeddingGemma as the whole catalog", () => {
+    const codes =
+      MODEL_LANGUAGE_CODES["onnx-community/embeddinggemma-300m-ONNX"]
+    expect([...codes].sort()).toEqual(
+      Object.keys(LANGUAGE_NAMES)
+        .filter((c) => c !== "und")
+        .sort()
+    )
   })
 })
 
@@ -53,9 +85,9 @@ describe("getModelLanguages", () => {
     expect(popularBlock.every((o) => o.popular)).toBe(true)
 
     // nothing after the block is flagged popular
-    expect(opts.slice(1 + POPULAR_LANGUAGE_CODES.length).some((o) => o.popular)).toBe(
-      false
-    )
+    expect(
+      opts.slice(1 + POPULAR_LANGUAGE_CODES.length).some((o) => o.popular)
+    ).toBe(false)
   })
 
   it("sorts the non-popular tail A–Z by name", () => {

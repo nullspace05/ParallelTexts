@@ -5,9 +5,9 @@
 // `model-registry.ts`) so the light list/label surfaces that import it don't
 // drag the ML runtime into their bundles.
 //
-// The per-model code lists here are a best-effort stand-in written from
-// memory. Step 5 of .docs/feature_plans/06_model_aware_language_list.md pins
-// them against the published model cards.
+// The per-model code lists were pinned against the published model cards in
+// Step 5 of .docs/feature_plans/06_model_aware_language_list.md — see the
+// sources on each list below.
 
 export interface LanguageOption {
   code: string
@@ -94,9 +94,17 @@ export const POPULAR_LANGUAGE_CODES = [
   "zh",
 ]
 
-// The sentence-transformers `paraphrase-multilingual-*` family (mpnet + MiniLM)
-// was trained on the same ~50-language parallel corpus, so both models share
-// this list. `zh-cn` from the card is mapped to the app's `zh`.
+// The 53-language parallel corpus the sentence-transformers multilingual
+// models were distilled on — from "Making Monolingual Sentence Embeddings
+// Multilingual", as tabulated at
+// https://www.sbert.net/docs/sentence_transformer/pretrained_models.html
+// (`zh-cn` mapped to the app's `zh`). The HF model-card YAML tag lists are a
+// truncated 49-code subset that drops zh and the regional variants; these
+// models demonstrably embed Chinese, so the fuller docs list is used.
+//
+// Shared by mpnet-base-v2, MiniLM-L12-v2 (same corpus), and
+// distiluse-base-multilingual-cased-v2 ("-v2" = same 50+ corpus; only the
+// distiluse *-v1 model is the smaller 15-language one).
 const PARAPHRASE_MULTILINGUAL = [
   "ar",
   "bg",
@@ -153,16 +161,15 @@ const PARAPHRASE_MULTILINGUAL = [
   "zh-tw",
 ]
 
-// EmbeddingGemma advertises "100+ languages" without a definitive public list,
-// so it is treated as covering the whole catalog until Step 5 says otherwise.
+// EmbeddingGemma (onnx-community/embeddinggemma-300m-ONNX) was trained on
+// "100+ languages" per the Google model card, with no definitive public list,
+// so it is treated as covering the whole catalog.
 const ALL_CODES = Object.keys(LANGUAGE_NAMES).filter((c) => c !== UND)
 
 /** Model id -> the codes that model can encode (`und` is added separately). */
 export const MODEL_LANGUAGE_CODES: Record<string, string[]> = {
   "Xenova/paraphrase-multilingual-mpnet-base-v2": PARAPHRASE_MULTILINGUAL,
   "Xenova/paraphrase-multilingual-MiniLM-L12-v2": PARAPHRASE_MULTILINGUAL,
-  // distiluse v2 is "multilingual knowledge distilled" over the same parallel
-  // data as the paraphrase family — stand in with the same list for now.
   "Xenova/distiluse-base-multilingual-cased-v2": PARAPHRASE_MULTILINGUAL,
   "onnx-community/embeddinggemma-300m-ONNX": ALL_CODES,
 }
