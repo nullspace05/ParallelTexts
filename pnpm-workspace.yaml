@@ -5,3 +5,4 @@ allowBuilds:
   lightningcss: true
   unrs-resolver: true
   msw: false
+  onnxruntime-node: false
