@@ -1,14 +1,13 @@
 import { AlignBooksForm } from "@/components/align-books-form"
 import { IncognitoNotice } from "@/components/incognito-notice"
-import {
-  LanguageCombobox,
-  STANDIN_LANGUAGE_OPTIONS,
-} from "@/components/language-combobox"
+import { LanguageCombobox } from "@/components/language-combobox"
 import { SampleDot } from "@/components/samples-section"
 import { Button } from "@/components/ui/button"
+import { useStoredModelId } from "@/hooks/use-stored-model-id"
 import { computeAlignmentStats } from "@/lib/alignment-exclusions"
 import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
 import { parseTsv } from "@/lib/import-tsv"
+import { getModelLanguages, withSelectedCode } from "@/lib/model-languages"
 import { parsePtEpub } from "@/lib/pt-epub"
 import {
   addAlignment,
@@ -20,6 +19,7 @@ import type {
   AlignmentMeta,
   AlignmentRecord,
 } from "@/types/alignment"
+import { checkModelCached } from "@/utils/model-cache"
 import { MODEL_REGISTRY } from "@/utils/model-registry"
 import {
   ArrowsLeftRightIcon,
@@ -33,7 +33,7 @@ import {
 } from "@phosphor-icons/react"
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
-import { useCallback, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 function formatDuration(ms: number): string {
   const s = Math.round(ms / 1000)
@@ -229,6 +229,34 @@ function ImportModal({ onClose }: { onClose: () => void }) {
   const [tgtLang, setTgtLang] = useState("und")
 
   const [importing, setImporting] = useState(false)
+
+  // Language options track the selected embedding model's coverage, but never
+  // drop the code the current selection already holds (e.g. pre-filled from a
+  // TSV header for a language this model doesn't list).
+  const modelId = useStoredModelId()
+  const modelLanguages = useMemo(() => getModelLanguages(modelId), [modelId])
+  const srcLangOptions = useMemo(
+    () => withSelectedCode(modelLanguages, srcLang),
+    [modelLanguages, srcLang]
+  )
+  const tgtLangOptions = useMemo(
+    () => withSelectedCode(modelLanguages, tgtLang),
+    [modelLanguages, tgtLang]
+  )
+
+  // Assume cached until proven otherwise so the hint doesn't flash on open.
+  const [modelCached, setModelCached] = useState(true)
+  useEffect(() => {
+    let alive = true
+    checkModelCached(modelId).then((cached) => {
+      if (alive) setModelCached(cached)
+    })
+    return () => {
+      alive = false
+    }
+  }, [modelId])
+  const activeModelLabel =
+    MODEL_REGISTRY.find((m) => m.id === modelId)?.label ?? modelId
 
   async function applyFile(file: File) {
     setFileName(file.name)
@@ -601,7 +629,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                     label="Source language"
                     value={srcLang}
                     onChange={setSrcLang}
-                    options={STANDIN_LANGUAGE_OPTIONS}
+                    options={srcLangOptions}
                   />
                 </div>
                 <div className="space-y-1">
@@ -616,10 +644,27 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                     label="Target language"
                     value={tgtLang}
                     onChange={setTgtLang}
-                    options={STANDIN_LANGUAGE_OPTIONS}
+                    options={tgtLangOptions}
                   />
                 </div>
               </div>
+
+              {!modelCached && (
+                <p className="text-xs text-muted-foreground">
+                  Language list is based on{" "}
+                  <span className="font-medium text-foreground">
+                    {activeModelLabel}
+                  </span>
+                  .{" "}
+                  <Link
+                    to="/settings"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    Download a model in Settings
+                  </Link>{" "}
+                  to align.
+                </p>
+              )}
             </div>
           )}
 

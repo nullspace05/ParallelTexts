@@ -7,6 +7,11 @@ import { extractAndSplit } from "@/lib/alignment-pipeline"
 import { db } from "@/lib/db"
 import { extractEpubContent } from "@/lib/epub"
 import { SAMPLE_CARD_DOT_COLORS } from "@/lib/equivalence-palette"
+import {
+  getModelLanguages,
+  withSelectedCode,
+  type LanguageOption,
+} from "@/lib/model-languages"
 import { getOperationErrorMessage } from "@/lib/operation-diagnostics"
 import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
@@ -44,23 +49,12 @@ import {
 } from "@phosphor-icons/react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "sonner"
 import { DevEmbeddingControls } from "./dev-embedding-controls"
+import { LanguageCombobox } from "./language-combobox"
 import { SampleDot } from "./samples-section"
 import { Button } from "./ui/button"
-
-const LANGUAGES = [
-  { code: "ja", label: "Japanese" },
-  { code: "en", label: "English" },
-  { code: "zh", label: "Chinese (Simplified)" },
-  { code: "zh-tw", label: "Chinese (Traditional)" },
-  { code: "ko", label: "Korean" },
-  { code: "fr", label: "French" },
-  { code: "de", label: "German" },
-  { code: "es", label: "Spanish" },
-  { code: "und", label: "Other" },
-]
 
 const PHASE_LABELS: Record<string, string> = {
   extracting_source: "Extracting source text…",
@@ -124,6 +118,9 @@ export function AlignBooksForm() {
   const [srcLang, setSrcLang] = useState("ja")
   const [tgtLang, setTgtLang] = useState("en")
   const [modelId, setModelId] = useState("")
+  // Offer the languages the chosen model can encode. `modelId` starts empty
+  // and resolves via the effects below; an empty id yields the full catalog.
+  const modelLanguages = useMemo(() => getModelLanguages(modelId), [modelId])
   const [maxSentences, setMaxSentences] = useState(() =>
     getStoredMaxSentences()
   )
@@ -444,6 +441,7 @@ export function AlignBooksForm() {
           onSelectId={setSrcBookId}
           lang={srcLang}
           onSelectLang={setSrcLang}
+          modelLanguages={modelLanguages}
           disabledId={tgtBookId}
         />
         <div className="flex items-center justify-center sm:pt-6">
@@ -469,6 +467,7 @@ export function AlignBooksForm() {
           onSelectId={setTgtBookId}
           lang={tgtLang}
           onSelectLang={setTgtLang}
+          modelLanguages={modelLanguages}
           disabledId={srcBookId}
         />
       </div>
@@ -796,6 +795,7 @@ interface BookLangSelectorProps {
   onSelectId: (id: string) => void
   lang: string
   onSelectLang: (lang: string) => void
+  modelLanguages: LanguageOption[]
   disabledId: string
 }
 
@@ -807,10 +807,17 @@ function BookLangSelector({
   onSelectId,
   lang,
   onSelectLang,
+  modelLanguages,
   disabledId,
 }: BookLangSelectorProps) {
   const selected = books.find((b) => b.id === selectedId)
   const { count, counting } = useSentenceCount(selected, lang)
+  // Never drop the language the user already picked, even if the current
+  // model doesn't list it — resetting it would silently change the alignment.
+  const langOptions = useMemo(
+    () => withSelectedCode(modelLanguages, lang),
+    [modelLanguages, lang]
+  )
 
   return (
     <div className="space-y-2">
@@ -847,17 +854,12 @@ function BookLangSelector({
         />
       )}
 
-      <select
+      <LanguageCombobox
+        label={`${label} language`}
         value={lang}
-        onChange={(e) => onSelectLang(e.target.value)}
-        className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
-      >
-        {LANGUAGES.map((l) => (
-          <option key={l.code} value={l.code}>
-            {l.label}
-          </option>
-        ))}
-      </select>
+        onChange={onSelectLang}
+        options={langOptions}
+      />
 
       {selected && (
         <p className="text-xs text-muted-foreground">

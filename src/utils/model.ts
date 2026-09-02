@@ -115,49 +115,6 @@ export async function downloadModel(
   )
 }
 
-/**
- * Returns true if the model's fp32 ONNX file is already in the browser
- * Cache API (populated by downloadModel(), cleared by
- * deleteModelFromCache()). Models are fetched directly from Hugging Face,
- * cached under the full resolve URL
- * "https://huggingface.co/{modelId}/resolve/main/{filePath}" — matching on
- * "includes modelId" + "ends with filePath" is robust to that shape.
- */
-export async function checkModelCached(modelId: string): Promise<boolean> {
-  const filePath = "onnx/model.onnx"
-
-  if (typeof caches === "undefined") return false
-  try {
-    const names = await caches.keys()
-    for (const name of names) {
-      const cache = await caches.open(name)
-      const keys = await cache.keys()
-      if (
-        keys.some((r) => r.url.includes(modelId) && r.url.endsWith(filePath))
-      ) {
-        return true
-      }
-    }
-    return false
-  } catch {
-    return false
-  }
-}
-
-/**
- * Removes all cached files for a model from every CacheStorage bucket.
- */
-export async function deleteModelFromCache(modelId: string): Promise<void> {
-  if (typeof caches === "undefined") return
-  try {
-    const names = await caches.keys()
-    await Promise.all(
-      names.map(async (name) => {
-        const cache = await caches.open(name)
-        const keys = await cache.keys()
-        const toDelete = keys.filter((r) => r.url.includes(`/${modelId}/`))
-        await Promise.all(toDelete.map((r) => cache.delete(r)))
-      })
-    )
-  } catch {}
-}
+// Cache-API helpers moved to model-cache.ts (no transformers import); still
+// re-exported here so callers that already pull in this file don't churn.
+export { checkModelCached, deleteModelFromCache } from "@/utils/model-cache"
