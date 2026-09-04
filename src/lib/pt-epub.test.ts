@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest"
 
 import type { AlignmentRecord } from "@/types/alignment"
 
-import { buildAlignmentEpubBlob } from "./export-epub"
+import {
+  buildAlignmentEpubBlob,
+  buildSideBySideAlignmentEpubBlob,
+} from "./export-epub"
 import {
   PT_MANIFEST_PATH,
   buildPtManifest,
@@ -222,6 +225,30 @@ describe("parsePtEpub", () => {
     const restored = await parsePtEpub(blob)
     expect(restored!.createdAt).toBe(original.createdAt)
     expect(restored!.id).toBe(original.id)
+  })
+
+  it("roundtrip: side-by-side EPUB restores the full alignment payload", async () => {
+    const original = makeRecord()
+    original.result.pairs[0].src_excluded = true
+    original.result.pairs[1].tgt_excluded = true
+    original.result.pairs[0].src_images = [SRC_IMG]
+    original.result.pairs[0].tgt_images = [TGT_IMG]
+
+    const { blob } = await buildSideBySideAlignmentEpubBlob(original, "both")
+    const restored = await parsePtEpub(blob)
+
+    expect(restored).not.toBeNull()
+    expect(restored!.sourceBookTitle).toBe(original.sourceBookTitle)
+    expect(restored!.targetBookTitle).toBe(original.targetBookTitle)
+    expect(restored!.result.src_lang).toBe(original.result.src_lang)
+    expect(restored!.result.tgt_lang).toBe(original.result.tgt_lang)
+    expect(restored!.result.source_paragraphs).toEqual(
+      original.result.source_paragraphs
+    )
+    expect(restored!.result.target_paragraphs).toEqual(
+      original.result.target_paragraphs
+    )
+    expect(restored!.result.pairs).toEqual(original.result.pairs)
   })
 })
 

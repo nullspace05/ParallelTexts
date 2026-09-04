@@ -1,9 +1,18 @@
 import JSZip from "jszip"
 import { describe, expect, it } from "vitest"
 
-import type { AlignmentRecord } from "@/types/alignment"
+import type {
+  AlignedPair,
+  AlignmentRecord,
+  ImageAsset,
+} from "@/types/alignment"
 
-import { buildAlignmentEpubBlob } from "./export-epub"
+import {
+  SIDE_BY_SIDE_CSS,
+  buildAlignmentEpubBlob,
+  buildSideBySideAlignmentEpubBlob,
+  sideBySideParagraphXhtml,
+} from "./export-epub"
 
 // Minimal valid AlignmentRecord for testing
 function makeRecord(overrides?: Partial<AlignmentRecord>): AlignmentRecord {
@@ -87,6 +96,137 @@ function makeRecord(overrides?: Partial<AlignmentRecord>): AlignmentRecord {
     ...overrides,
   }
 }
+
+const ONE_BY_ONE_PAIR: AlignedPair = {
+  src_text: 'Source & "quoted"',
+  tgt_text: "Target <translated>",
+  src_sent_idx: 0,
+  src_para_idx: 0,
+  src_global_idx: 0,
+  tgt_sent_idx: 0,
+  tgt_para_idx: 0,
+  tgt_global_idx: 0,
+  alignment_type: "1:1",
+  confidence: 0.9,
+  src_images: null,
+  tgt_images: null,
+}
+
+const SOURCE_ONLY_PAIR: AlignedPair = {
+  src_text: "Source only",
+  tgt_text: "",
+  src_sent_idx: 1,
+  src_para_idx: 0,
+  src_global_idx: 1,
+  tgt_sent_idx: null,
+  tgt_para_idx: null,
+  tgt_global_idx: null,
+  alignment_type: "1:0",
+  confidence: null,
+  src_images: null,
+  tgt_images: null,
+}
+
+const TARGET_ONLY_PAIR: AlignedPair = {
+  src_text: "",
+  tgt_text: "Target only",
+  src_sent_idx: null,
+  src_para_idx: null,
+  src_global_idx: null,
+  tgt_sent_idx: 1,
+  tgt_para_idx: 0,
+  tgt_global_idx: 1,
+  alignment_type: "0:1",
+  confidence: null,
+  src_images: null,
+  tgt_images: null,
+}
+
+const SRC_IMG: ImageAsset = {
+  id: "OEBPS/images/src.jpg",
+  mime_type: "image/jpeg",
+  data_base64: "/9j/AAAA",
+}
+
+const TGT_IMG: ImageAsset = {
+  id: "OEBPS/images/tgt.png",
+  mime_type: "image/png",
+  data_base64: "AAAAAAAA",
+}
+
+describe("sideBySideParagraphXhtml", () => {
+  it("renders source and target columns with gap placeholders and escaped text", () => {
+    const xhtml = sideBySideParagraphXhtml(
+      {
+        pairs: [ONE_BY_ONE_PAIR, SOURCE_ONLY_PAIR, TARGET_ONLY_PAIR],
+        images: [],
+        sourceImages: [],
+        targetImages: [],
+      },
+      new Map(),
+      "en",
+      "ja"
+    )
+
+    expect(xhtml).toContain('class="sbs-col sbs-source"')
+    expect(xhtml).toContain('class="sbs-col sbs-target"')
+    expect(xhtml).toContain('xml:lang="en"')
+    expect(xhtml).toContain('xml:lang="ja"')
+    expect(xhtml).toContain("Source &amp; &quot;quoted&quot;")
+    expect(xhtml).toContain("Target &lt;translated&gt;")
+    expect(xhtml.match(/Source only/g)).toHaveLength(1)
+    expect(xhtml.match(/Target only/g)).toHaveLength(1)
+    expect(xhtml.match(/sbs-gap/g)).toHaveLength(2)
+    expect(xhtml.match(/&#160;/g)).toHaveLength(2)
+    expect(xhtml).not.toContain("&nbsp;")
+    expect(xhtml).not.toContain('Source & "quoted"')
+    expect(xhtml).not.toContain("Target <translated>")
+  })
+
+  it("keeps source and target images in their own columns", () => {
+    const xhtml = sideBySideParagraphXhtml(
+      {
+        pairs: [ONE_BY_ONE_PAIR],
+        images: [SRC_IMG, TGT_IMG],
+        sourceImages: [SRC_IMG],
+        targetImages: [TGT_IMG],
+      },
+      new Map([
+        [SRC_IMG.id, "src_src.jpg"],
+        [TGT_IMG.id, "src_tgt.png"],
+      ]),
+      "en",
+      "ja"
+    )
+
+    const sourceColumn = xhtml.slice(
+      xhtml.indexOf('class="sbs-col sbs-source"'),
+      xhtml.indexOf('class="sbs-col sbs-target"')
+    )
+    const targetColumn = xhtml.slice(
+      xhtml.indexOf('class="sbs-col sbs-target"')
+    )
+
+    expect(sourceColumn).toContain("src_src.jpg")
+    expect(sourceColumn).not.toContain("src_tgt.png")
+    expect(targetColumn).toContain("src_tgt.png")
+    expect(targetColumn).not.toContain("src_src.jpg")
+  })
+})
+
+describe("SIDE_BY_SIDE_CSS", () => {
+  it("defines two-column reading and source-then-target narrow layout", () => {
+    expect(SIDE_BY_SIDE_CSS).toContain(
+      "grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)"
+    )
+    expect(SIDE_BY_SIDE_CSS).toContain("@media (max-width: 42em)")
+    expect(SIDE_BY_SIDE_CSS).toContain("grid-template-columns: 1fr")
+    expect(SIDE_BY_SIDE_CSS.indexOf(".sbs-source")).toBeLessThan(
+      SIDE_BY_SIDE_CSS.indexOf(".sbs-target")
+    )
+    expect(SIDE_BY_SIDE_CSS).toContain("break-inside: avoid")
+  })
+})
 
 describe("buildAlignmentEpubBlob", () => {
   it("returns a blob with .epub filename containing short titles", async () => {
@@ -293,6 +433,17 @@ describe("buildAlignmentEpubBlob", () => {
     expect(names.some((n) => n.includes("tgt.png"))).toBe(true)
   })
 
+  it("popover export keeps details/summary reveal structure", async () => {
+    const { blob } = await buildAlignmentEpubBlob(makeRecord())
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+    const ch = await zip.files["EPUB/ch001.xhtml"].async("string")
+
+    expect(ch).toContain("<details")
+    expect(ch).toContain("<summary")
+    expect(ch).toContain('class="pair gap"')
+    expect(ch).not.toContain("sbs-para")
+  })
+
   it("splits large alignments into multiple chapters", async () => {
     const record = makeRecord()
     // Create 120 pairs — enough to trigger chunking (chunkSize = max(50, ceil(120/20)=6) = 50 → 3 chunks)
@@ -349,4 +500,79 @@ describe("buildAlignmentEpubBlob", () => {
     const ch = await zip.files["EPUB/ch001.xhtml"].async("string")
     expect(ch).toContain("one can see rightly")
   })
+})
+
+describe("buildSideBySideAlignmentEpubBlob", () => {
+  function makeSideBySideRecord() {
+    const record = makeRecord()
+    record.result.pairs = [ONE_BY_ONE_PAIR, SOURCE_ONLY_PAIR, TARGET_ONLY_PAIR]
+    record.result.source_paragraphs = [
+      {
+        para_idx: 0,
+        text: "Source & quoted Source only",
+        images: [SRC_IMG],
+      },
+    ]
+    record.result.target_paragraphs = [
+      {
+        para_idx: 0,
+        text: "Target translated Target only",
+        images: [TGT_IMG],
+      },
+    ]
+    return record
+  }
+
+  it("builds a separate EPUB archive with side-by-side chapters", async () => {
+    const { blob, filename } = await buildSideBySideAlignmentEpubBlob(
+      makeSideBySideRecord(),
+      "both"
+    )
+    const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+    const names = Object.keys(zip.files)
+    const ch = await zip.files["EPUB/ch001.xhtml"].async("string")
+
+    expect(filename).toMatch(/_side-by-side\.epub$/)
+    expect(names).toContain("mimetype")
+    expect(names).toContain("META-INF/container.xml")
+    expect(names).toContain("EPUB/content.opf")
+    expect(names).toContain("EPUB/nav.xhtml")
+    expect(names).toContain("EPUB/styles.css")
+    expect(names).toContain("pt-manifest.json")
+    expect(ch).toContain('class="sbs-para"')
+    expect(ch).toContain('class="sbs-col sbs-source"')
+    expect(ch).toContain('class="sbs-col sbs-target"')
+    expect(ch).not.toContain("<details")
+    expect(ch).not.toContain("<summary")
+    expect(ch.match(/Source &amp; &quot;quoted&quot;/g)).toHaveLength(1)
+    expect(ch.match(/Target &lt;translated&gt;/g)).toHaveLength(1)
+    expect(ch.match(/Source only/g)).toHaveLength(1)
+    expect(ch.match(/Target only/g)).toHaveLength(1)
+  })
+
+  it.each([
+    ["source", true, false],
+    ["target", false, true],
+    ["both", true, true],
+    ["none", false, false],
+  ] as const)(
+    "imageMode=%s places only selected images in side-by-side XHTML",
+    async (mode, showsSource, showsTarget) => {
+      const { blob } = await buildSideBySideAlignmentEpubBlob(
+        makeSideBySideRecord(),
+        mode
+      )
+      const zip = await JSZip.loadAsync(await blob.arrayBuffer())
+      const ch = await zip.files["EPUB/ch001.xhtml"].async("string")
+      const opf = await zip.files["EPUB/content.opf"].async("string")
+      const names = Object.keys(zip.files)
+
+      expect(ch.includes("src.jpg")).toBe(showsSource)
+      expect(ch.includes("tgt.png")).toBe(showsTarget)
+      expect(names.some((n) => n.includes("src.jpg"))).toBe(true)
+      expect(names.some((n) => n.includes("tgt.png"))).toBe(true)
+      expect(opf).toContain("src.jpg")
+      expect(opf).toContain("tgt.png")
+    }
+  )
 })

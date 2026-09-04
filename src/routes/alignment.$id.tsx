@@ -25,7 +25,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { downloadAlignmentEpub } from "@/lib/export-epub"
+import {
+  downloadAlignmentEpub,
+  downloadSideBySideAlignmentEpub,
+} from "@/lib/export-epub"
 import { downloadAlignmentTsv } from "@/lib/export-tsv"
 import {
   getAlignmentProgress,
@@ -203,7 +206,9 @@ function AlignmentPage() {
     getStoredShowEquivalence()
   )
   const [swapped, setSwapped] = useState(false)
-  const [exporting, setExporting] = useState<"tsv" | "epub" | null>(null)
+  const [exporting, setExporting] = useState<
+    "tsv" | "popover-epub" | "side-by-side-epub" | null
+  >(null)
   // Tracks when charCount last changed in this session — used for "last saved" display.
   const [savedAt, setSavedAt] = useState<number | null>(null)
 
@@ -654,7 +659,7 @@ function AlignmentPage() {
                   className="w-full"
                   disabled={exporting !== null}
                   onClick={async () => {
-                    setExporting("epub")
+                    setExporting("popover-epub")
                     try {
                       await downloadAlignmentEpub(displayRecord, imageMode)
                     } finally {
@@ -662,13 +667,39 @@ function AlignmentPage() {
                     }
                   }}
                 >
-                  {exporting === "epub" ? (
+                  {exporting === "popover-epub" ? (
                     <>
                       <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                      Preparing EPUB…
+                      Preparing Popover EPUB…
                     </>
                   ) : (
-                    "Export EPUB"
+                    "Popover EPUB"
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  disabled={exporting !== null}
+                  onClick={async () => {
+                    setExporting("side-by-side-epub")
+                    try {
+                      await downloadSideBySideAlignmentEpub(
+                        displayRecord,
+                        imageMode
+                      )
+                    } finally {
+                      setExporting(null)
+                    }
+                  }}
+                >
+                  {exporting === "side-by-side-epub" ? (
+                    <>
+                      <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
+                      Preparing Side-by-side EPUB…
+                    </>
+                  ) : (
+                    "Side-by-side EPUB"
                   )}
                 </Button>
               </div>
