@@ -17,6 +17,7 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
@@ -364,7 +365,12 @@ function AlignmentPage() {
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} direction="right">
         <DrawerContent className="flex flex-col">
           <DrawerHeader className="relative flex-row items-center justify-between border-b">
-            <DrawerTitle>Details</DrawerTitle>
+            <div>
+              <DrawerTitle>Details</DrawerTitle>
+              <DrawerDescription className="sr-only">
+                Alignment details and export options
+              </DrawerDescription>
+            </div>
             <DrawerClose className="absolute top-1/2 right-4 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted">
               <XIcon className="size-4" />
             </DrawerClose>
@@ -1210,6 +1216,7 @@ const PairSpan = memo(function PairSpan({
     <Popover open={isOpen} onOpenChange={handleChange}>
       <PopoverTrigger
         render={<span />}
+        nativeButton={false}
         className={`cursor-pointer rounded-sm transition-colors hover:bg-muted/50 ${isOpen ? "bg-muted" : ""}`}
       >
         {pair.src_text}
