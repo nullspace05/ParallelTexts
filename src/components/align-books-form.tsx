@@ -484,7 +484,7 @@ export function AlignBooksForm() {
           ) : (
             <CaretDownIcon className="size-4" />
           )}
-          Advanced
+          <span>Advanced</span>
         </button>
 
         {showAdvanced && (
@@ -775,7 +775,7 @@ export function AlignBooksForm() {
               className="font-medium text-foreground underline-offset-2 hover:underline"
               onClick={() => setShowAdvanced(true)}
             >
-              Advanced
+              <span>Advanced</span>
             </button>
             .
           </p>
