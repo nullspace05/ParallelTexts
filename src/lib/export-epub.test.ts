@@ -158,6 +158,7 @@ describe("sideBySideParagraphXhtml", () => {
   it("renders source and target columns with gap placeholders and escaped text", () => {
     const xhtml = sideBySideParagraphXhtml(
       {
+        sourceText: 'Source & "quoted" Source only',
         pairs: [ONE_BY_ONE_PAIR, SOURCE_ONLY_PAIR, TARGET_ONLY_PAIR],
         images: [],
         sourceImages: [],
@@ -176,8 +177,10 @@ describe("sideBySideParagraphXhtml", () => {
     expect(xhtml).toContain("Target &lt;translated&gt;")
     expect(xhtml.match(/Source only/g)).toHaveLength(1)
     expect(xhtml.match(/Target only/g)).toHaveLength(1)
-    expect(xhtml.match(/sbs-gap/g)).toHaveLength(2)
-    expect(xhtml.match(/&#160;/g)).toHaveLength(2)
+    expect(xhtml).toContain('class="sbs-source-text"')
+    expect(xhtml.match(/sbs-source-text/g)).toHaveLength(1)
+    expect(xhtml.match(/sbs-gap/g)).toHaveLength(1)
+    expect(xhtml.match(/&#160;/g)).toHaveLength(1)
     expect(xhtml).not.toContain("&nbsp;")
     expect(xhtml).not.toContain('Source & "quoted"')
     expect(xhtml).not.toContain("Target <translated>")
@@ -186,6 +189,7 @@ describe("sideBySideParagraphXhtml", () => {
   it("keeps source and target images in their own columns", () => {
     const xhtml = sideBySideParagraphXhtml(
       {
+        sourceText: ONE_BY_ONE_PAIR.src_text,
         pairs: [ONE_BY_ONE_PAIR],
         images: [SRC_IMG, TGT_IMG],
         sourceImages: [SRC_IMG],
@@ -211,6 +215,29 @@ describe("sideBySideParagraphXhtml", () => {
     expect(sourceColumn).not.toContain("src_tgt.png")
     expect(targetColumn).toContain("src_tgt.png")
     expect(targetColumn).not.toContain("src_src.jpg")
+  })
+
+  it("keeps the source paragraph intact instead of rendering each sentence separately", () => {
+    const xhtml = sideBySideParagraphXhtml(
+      {
+        sourceText: "First source sentence. Second source sentence.",
+        pairs: [
+          ONE_BY_ONE_PAIR,
+          { ...SOURCE_ONLY_PAIR, src_text: "Second source sentence." },
+        ],
+        images: [],
+        sourceImages: [],
+        targetImages: [],
+      },
+      new Map(),
+      "en",
+      "ja"
+    )
+
+    expect(xhtml).toContain(
+      '<p class="sbs-source-text">First source sentence. Second source sentence.</p>'
+    )
+    expect(xhtml.match(/class="sbs-sentence sbs-src/g)).toBeNull()
   })
 })
 
@@ -544,7 +571,7 @@ describe("buildSideBySideAlignmentEpubBlob", () => {
     expect(ch).toContain('class="sbs-col sbs-target"')
     expect(ch).not.toContain("<details")
     expect(ch).not.toContain("<summary")
-    expect(ch.match(/Source &amp; &quot;quoted&quot;/g)).toHaveLength(1)
+    expect(ch.match(/Source &amp; quoted Source only/g)).toHaveLength(1)
     expect(ch.match(/Target &lt;translated&gt;/g)).toHaveLength(1)
     expect(ch.match(/Source only/g)).toHaveLength(1)
     expect(ch.match(/Target only/g)).toHaveLength(1)
