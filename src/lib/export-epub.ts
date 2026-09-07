@@ -43,7 +43,6 @@ function imageEpubFilename(img: ImageAsset): string {
 // ── Display paragraph builder (mirrors viewer logic) ──────────────────────────
 
 interface DisplayPara {
-  sourceText: string
   pairs: AlignedPair[]
   images: ImageAsset[]
   sourceImages: ImageAsset[]
@@ -123,7 +122,6 @@ function buildDisplayParas(
 
     return filtered
       .map((sp, displayIdx) => ({
-        sourceText: sp.text,
         pairs: (grouped.get(sp.para_idx) ?? []).filter(
           (p) => p.src_text.trim() || p.tgt_text.trim()
         ),
@@ -158,10 +156,6 @@ function buildDisplayParas(
       )
       const tgtImgs = [...tgtIdxSet].flatMap((i) => tgtImagesByIdx.get(i) ?? [])
       return {
-        sourceText: ps
-          .map((p) => p.src_text.trim())
-          .filter(Boolean)
-          .join(" "),
         pairs: ps.filter((p) => p.src_text.trim() || p.tgt_text.trim()),
         images: pickImages(srcImgs, tgtImgs, imageMode),
         sourceImages:
@@ -186,21 +180,26 @@ export function sideBySideParagraphXhtml(
   const sourceImages = para.sourceImages.map(imageTag).filter(Boolean)
   const targetImages = para.targetImages.map(imageTag).filter(Boolean)
 
-  const renderTargetCell = (text: string, gap: boolean) =>
-    `<p class="sbs-sentence sbs-tgt${gap ? " sbs-gap" : ""}" xml:lang="${tgtLang}">${gap ? "&#160;" : esc(text)}</p>`
-
+  const renderSentence = (text: string, side: "src" | "tgt") => {
+    const gap = !text.trim()
+    const prefix = gap && side === "src" ? "<br/>" : ""
+    return `${prefix}<span class="sbs-sentence sbs-${side}${gap ? " sbs-gap" : ""}">${gap ? "—" : esc(text)}</span>`
+  }
+  const sourceContent = para.pairs
+    .map((pair) => renderSentence(pair.src_text, "src"))
+    .join(" ")
   const targetContent = para.pairs
-    .map((pair) => renderTargetCell(pair.tgt_text, !pair.tgt_text.trim()))
+    .map((pair) => renderSentence(pair.tgt_text, "tgt"))
     .join("\n      ")
 
   return `  <section class="sbs-para">
     <div class="sbs-col sbs-source" xml:lang="${srcLang}">
       ${sourceImages.join("\n      ")}
-      <p class="sbs-source-text">${esc(para.sourceText)}</p>
+      <p class="sbs-source-text">${sourceContent}</p>
     </div>
     <div class="sbs-col sbs-target" xml:lang="${tgtLang}">
       ${targetImages.join("\n      ")}
-      ${targetContent}
+      <p class="sbs-target-text">${targetContent}</p>
     </div>
   </section>`
 }
@@ -384,13 +383,11 @@ h1 {
   padding-left: 1.2em;
 }
 .sbs-source-text,
-.sbs-sentence {
+.sbs-target-text {
   margin: 0 0 .45em;
 }
-.sbs-gap {
-  min-height: 1.2em;
-  color: transparent;
-}
+.sbs-sentence { display: inline; }
+.sbs-gap { color: rgba(0,0,0,.4); }
 .illus {
   display: block;
   max-width: 100%;
