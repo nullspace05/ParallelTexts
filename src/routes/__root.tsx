@@ -1,7 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
-import { Header } from "@/components/header"
 import { BrowserStorageNotice } from "@/components/browser-storage-notice"
+import { Header } from "@/components/header"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { OG_IMAGE_URL, SITE_URL } from "@/lib/site-links"
@@ -22,7 +22,7 @@ export const Route = createRootRoute({
       {
         name: "description",
         content:
-          "Parallel Texts is a multilingual sentence alignment tool that runs entirely in the browser. The goal is to make it easy for non-technical people to create their own parallel corpora — no server-side processing, no command line, no Python notebooks.",
+          "Create and read Bilingual/Parallel texts from your own books.",
       },
       {
         title: "ParallelTexts",
