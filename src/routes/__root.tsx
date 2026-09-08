@@ -42,7 +42,7 @@ export const Route = createRootRoute({
       {
         property: "og:description",
         content:
-          "Create your own bilingual books for language learning. Align two books sentence-by-sentence — entirely in your browser.",
+          "Create and read your own bilingual books for language learning. Align two books sentence-by-sentence — entirely in your browser.",
       },
       {
         property: "og:image",
@@ -63,7 +63,7 @@ export const Route = createRootRoute({
       {
         name: "twitter:description",
         content:
-          "Create your own bilingual books for language learning. Align two books sentence-by-sentence — entirely in your browser.",
+          "Create and read your own bilingual books for language learning. Align two books sentence-by-sentence — entirely in your browser.",
       },
       {
         name: "twitter:image",
