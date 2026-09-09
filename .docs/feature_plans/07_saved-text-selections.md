@@ -112,19 +112,19 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 4 - add focused saved-selection store functions
 
-- [ ] Add `src/store/saved-selections.ts` with small Dexie wrappers:
+- [x] Add `src/store/saved-selections.ts` with small Dexie wrappers:
   `createSavedSelection`, `getSavedSelectionsForOwner`, and
   `deleteSavedSelection`. Add `getSavedSelectionsPage` only for the collection
   route's ordered, filtered pagination.
-- [ ] Have `getSavedSelectionsForOwner` take an owner type and ID, order items
+- [x] Have `getSavedSelectionsForOwner` take an owner type and ID, order items
   newest first, and optionally accept a `side` filter for alignment readers.
-- [ ] Validate every segment before writing it: offsets are integers,
+- [x] Validate every segment before writing it: offsets are integers,
   `startOffset >= 0`, `endOffset > startOffset`, segments are ordered in one
   stream, and the saved-text snapshot is non-empty.
-- [ ] Keep the store ignorant of routing, rendering, selection APIs, and page
+- [x] Keep the store ignorant of routing, rendering, selection APIs, and page
   numbers. It only reads and writes records.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Add Vitest coverage for creating book, source-alignment, and
     target-alignment records.
   - Assert an owner query never returns records belonging to another book or
@@ -132,7 +132,7 @@ interaction without notes, colors, tags, or export in the first release.
   - Delete one record and assert that only it disappears after a fresh query.
   - Run `pnpm vitest run src/store/saved-selections.test.ts` and `pnpm lint`.
 
-- [ ] **Confirm understanding:** explain why the store receives an owner ID and
+- [x] **Confirm understanding:** explain why the store receives an owner ID and
   optional side filter instead of letting each reader scan every saved item.
 
 ### Step 5 - replace the book-reader stand-in with persisted selections

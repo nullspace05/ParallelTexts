@@ -156,9 +156,12 @@ export function TemporaryHighlightController({
   onSave,
 }: {
   children: ReactNode
-  onSave: (highlight: TemporaryHighlight) => void
+  onSave: (
+    highlight: TemporaryHighlight & { text: string }
+  ) => boolean | void | Promise<boolean | void>
 }) {
   const [pending, setPending] = useState<PendingTemporaryHighlight | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   const inspectSelection = useCallback(() => {
     window.setTimeout(() => setPending(pendingHighlight()), 0)
@@ -177,11 +180,17 @@ export function TemporaryHighlightController({
     }
   }, [inspectSelection])
 
-  function savePending() {
-    if (!pending) return
-    onSave(pending)
-    window.getSelection()?.removeAllRanges()
-    setPending(null)
+  async function savePending() {
+    if (!pending || isSaving) return
+    setIsSaving(true)
+    try {
+      const saved = await onSave(pending)
+      if (saved === false) return
+      window.getSelection()?.removeAllRanges()
+      setPending(null)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -192,11 +201,12 @@ export function TemporaryHighlightController({
           type="button"
           onPointerDown={(event) => event.preventDefault()}
           onClick={savePending}
+          disabled={isSaving}
           className="fixed z-40 inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-3 text-xs font-medium text-primary-foreground shadow-lg hover:bg-primary/80"
           style={{ top: pending.top, left: pending.left }}
         >
           <BookmarkSimpleIcon className="size-3.5" />
-          Save highlight
+          {isSaving ? "Saving…" : "Save highlight"}
         </button>
       )}
     </div>

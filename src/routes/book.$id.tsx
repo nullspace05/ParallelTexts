@@ -27,8 +27,16 @@ import { getStoredFontSize } from "@/lib/user-settings"
 import { cn } from "@/lib/utils"
 import { getBook } from "@/store/books"
 import { getExclusions, setExclusions } from "@/store/exclusions"
+import {
+  createSavedSelection,
+  getSavedSelectionsForOwner,
+} from "@/store/saved-selections"
 import type { ImageAsset, SourceParagraph } from "@/types/alignment"
 import type { Book } from "@/types/book"
+import type {
+  BookSavedSelection,
+  BookSelectionSegment,
+} from "@/types/saved-selection"
 import {
   BookOpenIcon,
   BookOpenTextIcon,
@@ -37,6 +45,7 @@ import {
 } from "@phosphor-icons/react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { toast } from "sonner"
 
 export const Route = createFileRoute("/book/$id")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -126,6 +135,39 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
 const MAX_BOOK_RESULTS = 30
 const CONTEXT_CHARS = 50
 
+function bookSegmentsFromHighlight(
+  highlight: TemporaryHighlight
+): BookSelectionSegment[] | null {
+  const segments = highlight.segments.map((segment) => {
+    const match = /^book:(\d+)$/.exec(segment.key)
+    if (!match) return null
+    return {
+      paraIdx: Number(match[1]),
+      startOffset: segment.startOffset,
+      endOffset: segment.endOffset,
+    }
+  })
+  return segments.every((segment) => segment !== null) ? segments : null
+}
+
+function highlightsForBook(
+  selections: BookSavedSelection[],
+  paragraphs: SourceParagraph[]
+): TemporaryHighlight[] {
+  return selections.flatMap((selection) => {
+    const segments = selection.segments.flatMap((segment) => {
+      const text = paragraphs[segment.paraIdx]?.text
+      if (!text || segment.endOffset > text.length) return []
+      return {
+        key: `book:${segment.paraIdx}`,
+        startOffset: segment.startOffset,
+        endOffset: segment.endOffset,
+      }
+    })
+    return segments.length === selection.segments.length ? [{ segments }] : []
+  })
+}
+
 function BookReader({
   book,
   fontSize,
@@ -204,9 +246,9 @@ function BookReader({
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIdx, setSearchIdx] = useState(-1)
-  const [temporaryHighlights, setTemporaryHighlights] = useState<
-    TemporaryHighlight[]
-  >([])
+  const [savedSelections, setSavedSelections] = useState<BookSavedSelection[]>(
+    []
+  )
 
   const searchData = useMemo((): {
     results: SearchResult[]
@@ -291,8 +333,40 @@ function BookReader({
     setSearchIdx(-1)
   }
 
-  function saveTemporaryHighlight(highlight: TemporaryHighlight) {
-    setTemporaryHighlights((current) => [...current, highlight])
+  const savedHighlights = useMemo(
+    () => (paragraphs ? highlightsForBook(savedSelections, paragraphs) : []),
+    [paragraphs, savedSelections]
+  )
+
+  async function saveBookHighlight(
+    highlight: TemporaryHighlight & { text: string }
+  ): Promise<boolean> {
+    const segments = bookSegmentsFromHighlight(highlight)
+    if (!segments) {
+      toast.error("Could not save highlight", {
+        description: "The selected text no longer belongs to this book.",
+      })
+      return false
+    }
+
+    const selection: BookSavedSelection = {
+      id: crypto.randomUUID(),
+      ownerType: "book",
+      ownerId: book.id,
+      segments,
+      selectedText: highlight.text,
+      createdAt: Date.now(),
+    }
+    try {
+      await createSavedSelection(selection)
+      setSavedSelections((current) => [selection, ...current])
+      return true
+    } catch (error) {
+      toast.error("Could not save highlight", {
+        description: getOperationErrorMessage(error, "Please try again."),
+      })
+      return false
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
@@ -328,6 +402,25 @@ function BookReader({
     }
   }, [book.id, book.type])
 
+  useEffect(() => {
+    let cancelled = false
+    setSavedSelections([])
+    getSavedSelectionsForOwner("book", book.id)
+      .then((selections) => {
+        if (!cancelled) setSavedSelections(selections)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast.error("Could not load highlights", {
+            description: getOperationErrorMessage(error, "Please try again."),
+          })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [book.id])
+
   if (extractError) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -348,7 +441,7 @@ function BookReader({
 
   return (
     <>
-      <TemporaryHighlightController onSave={saveTemporaryHighlight}>
+      <TemporaryHighlightController onSave={saveBookHighlight}>
         <PaginatedReader
           ref={readerRef}
           paragraphs={paragraphs}
@@ -388,7 +481,7 @@ function BookReader({
                 selectionMode={selectionMode}
                 excluded={excludedParaIdxs.has(idx)}
                 onToggleExclude={toggleExcludedPara}
-                temporaryHighlights={temporaryHighlights}
+                temporaryHighlights={savedHighlights}
               />
             ))}
           </div>
