@@ -182,17 +182,17 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 7 - persist selections in the side-by-side alignment reader
 
-- [ ] Mark each selectable alignment sentence span with its canonical
+- [x] Mark each selectable alignment sentence span with its canonical
   paragraph index, pair index, and source or target side. Offset calculation
   must be relative to the individual `AlignedPair` text, not the whole visual
   column.
-- [ ] Map a visual selection back to canonical source or target coordinates
+- [x] Map a visual selection back to canonical source or target coordinates
   before saving. When the user has swapped alignment direction, invert the
   visual side before it reaches the store.
-- [ ] Load and render saved ranges on both columns. Keep source and target
+- [x] Load and render saved ranges on both columns. Keep source and target
   highlight styles identical apart from an accessible label that names the
   side.
-- [ ] Accept selections spanning consecutive sentences on one side, but reject
+- [x] Accept selections spanning consecutive sentences on one side, but reject
   selections that cross source and target sides.
 
 - [ ] **Verify:**
@@ -208,15 +208,15 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 8 - add target selections and navigation to popover alignment view
 
-- [ ] Reuse the source-side sentence selection behavior in the paginated
+- [x] Reuse the source-side sentence selection behavior in the paginated
   popover reader.
-- [ ] Make the target text in `PairPopoverContent` selectable and save it with
+- [x] Make the target text in `PairPopoverContent` selectable and save it with
   the same canonical paragraph and pair coordinates as the triggering source
   sentence.
-- [ ] For navigation, jump to the paragraph, open the saved pair's popover,
+- [x] For navigation, jump to the paragraph, open the saved pair's popover,
   then apply the short focus treatment to the selected source text or target
   text. Do not depend on a page number.
-- [ ] Preserve the existing popover behavior for unmatched pairs. A side with
+- [x] Preserve the existing popover behavior for unmatched pairs. A side with
   empty text cannot create a saved selection.
 
 - [ ] **Verify:**

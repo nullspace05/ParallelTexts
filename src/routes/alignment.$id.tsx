@@ -100,6 +100,7 @@ interface AlignmentSearchParams {
   pageNumHidden: boolean | undefined
   charCount: number
   totalChars: number
+  selectionId: string | undefined
 }
 
 const MAX_SEARCH_RESULTS = 30
@@ -176,7 +177,8 @@ function alignmentSegmentsFromHighlight(
 /** Recreates renderer highlights only when saved coordinates still match text. */
 function highlightsForAlignment(
   selections: AlignmentSavedSelection[],
-  result: AlignmentResult
+  result: AlignmentResult,
+  focusedSelectionId?: string
 ): TemporaryHighlight[] {
   return selections.flatMap((selection) => {
     const segments = selection.segments.flatMap((segment) => {
@@ -198,10 +200,24 @@ function highlightsForAlignment(
         ),
         startOffset: segment.startOffset,
         endOffset: segment.endOffset,
+        isFocused: selection.id === focusedSelectionId,
       }
     })
     return segments.length === selection.segments.length ? [{ segments }] : []
   })
+}
+
+/** Finds the paginated display paragraph that contains a saved alignment pair. */
+function displayParagraphIndexForSelection(
+  paragraphs: ParagraphData[],
+  selection: AlignmentSavedSelection
+): number | null {
+  const pairIdx = selection.segments[0]?.pairIdx
+  if (pairIdx == null) return null
+  const index = paragraphs.findIndex((paragraph) =>
+    paragraph.pairs.some((pair) => recordPairIdx(pair) === pairIdx)
+  )
+  return index >= 0 ? index : null
 }
 
 function swapRecord(record: AlignmentRecord): AlignmentRecord {
@@ -277,6 +293,10 @@ export const Route = createFileRoute("/alignment/$id")({
       typeof search.totalChars === "number" && search.totalChars > 0
         ? Math.floor(search.totalChars)
         : 0,
+    selectionId:
+      typeof search.selectionId === "string" && search.selectionId.length > 0
+        ? search.selectionId
+        : undefined,
   }),
   component: AlignmentPage,
 })
@@ -304,7 +324,8 @@ function formatSavedAt(savedAt: number): string {
 
 function AlignmentPage() {
   const { id } = Route.useParams()
-  const { view, pageNumHidden, charCount, totalChars } = Route.useSearch()
+  const { view, pageNumHidden, charCount, totalChars, selectionId } =
+    Route.useSearch()
   const navigate = useNavigate({ from: "/alignment/$id" })
   const [record, setRecord] = useState<AlignmentRecord | null | undefined>(
     undefined
@@ -461,6 +482,7 @@ function AlignmentPage() {
           record={displayRecord}
           canonicalResult={resolvedCanonicalRecord.result}
           swapped={swapped}
+          selectionId={selectionId}
           fontSize={fontSize}
           pageNumHidden={effectivePageNumHidden}
           onTogglePageNum={togglePageNum}
@@ -473,6 +495,7 @@ function AlignmentPage() {
           record={displayRecord}
           canonicalResult={resolvedCanonicalRecord.result}
           swapped={swapped}
+          selectionId={selectionId}
           fontSize={fontSize}
           pageNumHidden={effectivePageNumHidden}
           onTogglePageNum={togglePageNum}
@@ -1072,6 +1095,7 @@ function SideBySideView({
   record,
   canonicalResult,
   swapped,
+  selectionId,
   fontSize,
   pageNumHidden,
   onTogglePageNum,
@@ -1082,6 +1106,7 @@ function SideBySideView({
   record: AlignmentRecord
   canonicalResult: AlignmentResult
   swapped: boolean
+  selectionId?: string
   fontSize: number
   pageNumHidden: boolean
   onTogglePageNum: () => void
@@ -1123,9 +1148,20 @@ function SideBySideView({
   )
 
   const savedHighlights = useMemo(
-    () => highlightsForAlignment(savedSelections, canonicalResult),
-    [canonicalResult, savedSelections]
+    () => highlightsForAlignment(savedSelections, canonicalResult, selectionId),
+    [canonicalResult, savedSelections, selectionId]
   )
+
+  useEffect(() => {
+    if (!selectionId) return
+    const selection = savedSelections.find((item) => item.id === selectionId)
+    if (!selection) return
+    const paragraphIndex = displayParagraphIndexForSelection(
+      paragraphs,
+      selection
+    )
+    if (paragraphIndex != null) readerRef.current?.jumpToParaIdx(paragraphIndex)
+  }, [paragraphs, savedSelections, selectionId])
 
   useEffect(() => {
     setSearchIdx(-1)
@@ -1646,6 +1682,7 @@ function PopoverView({
   record,
   canonicalResult,
   swapped,
+  selectionId,
   fontSize,
   pageNumHidden,
   onTogglePageNum,
@@ -1654,6 +1691,7 @@ function PopoverView({
   record: AlignmentRecord
   canonicalResult: AlignmentResult
   swapped: boolean
+  selectionId?: string
   fontSize: number
   pageNumHidden: boolean
   onTogglePageNum: () => void
@@ -1684,9 +1722,31 @@ function PopoverView({
   )
 
   const renderedHighlights = useMemo(
-    () => [...highlightsForAlignment(savedSelections, canonicalResult)],
-    [canonicalResult, savedSelections]
+    () => highlightsForAlignment(savedSelections, canonicalResult, selectionId),
+    [canonicalResult, savedSelections, selectionId]
   )
+
+  useEffect(() => {
+    if (!selectionId) return
+    const selection = savedSelections.find((item) => item.id === selectionId)
+    if (!selection) return
+    const paragraphIndex = displayParagraphIndexForSelection(
+      paragraphs,
+      selection
+    )
+    if (paragraphIndex == null) return
+
+    readerRef.current?.jumpToParaIdx(paragraphIndex)
+    const pairIndex = paragraphs[paragraphIndex].pairs.findIndex(
+      (pair) => recordPairIdx(pair) === selection.segments[0]?.pairIdx
+    )
+    if (pairIndex >= 0) {
+      const timeout = window.setTimeout(() => {
+        paragraphListRef.current?.setOpenKey(`${paragraphIndex}-${pairIndex}`)
+      }, 50)
+      return () => window.clearTimeout(timeout)
+    }
+  }, [paragraphs, savedSelections, selectionId])
 
   useEffect(() => {
     let cancelled = false
