@@ -4,6 +4,12 @@ import {
   type PaginatedReaderHandle,
 } from "@/components/paginated-reader"
 import { ReaderSearch, type SearchResult } from "@/components/reader-search"
+import {
+  TemporaryHighlightController,
+  TemporaryHighlightText,
+  highlightSegmentsForKey,
+  type TemporaryHighlight,
+} from "@/components/temporary-highlights"
 import { Button } from "@/components/ui/button"
 import { extractEpubContent } from "@/lib/epub"
 import { detectCjkLang } from "@/lib/lang"
@@ -56,12 +62,14 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
   selectionMode = false,
   excluded = false,
   onToggleExclude,
+  temporaryHighlights = [],
 }: {
   para: SourceParagraph
   pIdx: number
   selectionMode?: boolean
   excluded?: boolean
   onToggleExclude?: (pIdx: number) => void
+  temporaryHighlights?: TemporaryHighlight[]
 }) {
   return (
     <div
@@ -95,7 +103,20 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
           className="mx-auto mb-4 max-h-80 max-w-full object-contain"
         />
       ))}
-      {para.text && <p>{para.text}</p>}
+      {para.text && (
+        <p
+          data-temporary-highlight-key={`book:${pIdx}`}
+          data-temporary-highlight-stream="book"
+        >
+          <TemporaryHighlightText
+            text={para.text}
+            highlights={highlightSegmentsForKey(
+              temporaryHighlights,
+              `book:${pIdx}`
+            )}
+          />
+        </p>
+      )}
     </div>
   )
 })
@@ -183,6 +204,9 @@ function BookReader({
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIdx, setSearchIdx] = useState(-1)
+  const [temporaryHighlights, setTemporaryHighlights] = useState<
+    TemporaryHighlight[]
+  >([])
 
   const searchData = useMemo((): {
     results: SearchResult[]
@@ -267,6 +291,10 @@ function BookReader({
     setSearchIdx(-1)
   }
 
+  function saveTemporaryHighlight(highlight: TemporaryHighlight) {
+    setTemporaryHighlights((current) => [...current, highlight])
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -320,49 +348,52 @@ function BookReader({
 
   return (
     <>
-      <PaginatedReader
-        ref={readerRef}
-        paragraphs={paragraphs}
-        savedCharCount={savedCharCount}
-        fontSize={fontSize}
-        pageNumHidden={pageNumHidden}
-        onTogglePageNum={onTogglePageNum}
-        onSaveProgress={onSaveProgress}
-        emptyMessage="No text found in this book."
-        searchSlot={
-          <ReaderSearch
-            query={searchQuery}
-            onQueryChange={(q) => setSearchQuery(q)}
-            results={searchData.results}
-            hasMore={searchData.hasMore}
-            currentIndex={searchIdx}
-            onSelect={handleSelect}
-            onPrev={handleSearchPrev}
-            onNext={handleSearchNext}
-            isOpen={searchOpen}
-            onOpen={() => setSearchOpen(true)}
-            onClose={handleSearchClose}
-            getPage={(paraIdx) =>
-              readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
-            }
-            onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
-            getTotal={() => readerRef.current?.getTotalPages() ?? 1}
-          />
-        }
-      >
-        <div style={{ display: "contents" }} lang={bookLang}>
-          {paragraphs.map((para, idx) => (
-            <BookParagraphBlock
-              key={idx}
-              para={para}
-              pIdx={idx}
-              selectionMode={selectionMode}
-              excluded={excludedParaIdxs.has(idx)}
-              onToggleExclude={toggleExcludedPara}
+      <TemporaryHighlightController onSave={saveTemporaryHighlight}>
+        <PaginatedReader
+          ref={readerRef}
+          paragraphs={paragraphs}
+          savedCharCount={savedCharCount}
+          fontSize={fontSize}
+          pageNumHidden={pageNumHidden}
+          onTogglePageNum={onTogglePageNum}
+          onSaveProgress={onSaveProgress}
+          emptyMessage="No text found in this book."
+          searchSlot={
+            <ReaderSearch
+              query={searchQuery}
+              onQueryChange={(q) => setSearchQuery(q)}
+              results={searchData.results}
+              hasMore={searchData.hasMore}
+              currentIndex={searchIdx}
+              onSelect={handleSelect}
+              onPrev={handleSearchPrev}
+              onNext={handleSearchNext}
+              isOpen={searchOpen}
+              onOpen={() => setSearchOpen(true)}
+              onClose={handleSearchClose}
+              getPage={(paraIdx) =>
+                readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
+              }
+              onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
+              getTotal={() => readerRef.current?.getTotalPages() ?? 1}
             />
-          ))}
-        </div>
-      </PaginatedReader>
+          }
+        >
+          <div style={{ display: "contents" }} lang={bookLang}>
+            {paragraphs.map((para, idx) => (
+              <BookParagraphBlock
+                key={idx}
+                para={para}
+                pIdx={idx}
+                selectionMode={selectionMode}
+                excluded={excludedParaIdxs.has(idx)}
+                onToggleExclude={toggleExcludedPara}
+                temporaryHighlights={temporaryHighlights}
+              />
+            ))}
+          </div>
+        </PaginatedReader>
+      </TemporaryHighlightController>
       <button
         type="button"
         onClick={() => setSelectionMode((v) => !v)}

@@ -12,6 +12,12 @@ import {
   type PaginatedReaderHandle,
 } from "@/components/paginated-reader"
 import { ReaderSearch } from "@/components/reader-search"
+import {
+  TemporaryHighlightController,
+  TemporaryHighlightText,
+  highlightSegmentsForKey,
+  type TemporaryHighlight,
+} from "@/components/temporary-highlights"
 import { Button } from "@/components/ui/button"
 import {
   Drawer,
@@ -745,6 +751,8 @@ function SideBySideSentence({
   ownLine,
   flagUnmatched,
   excluded,
+  selectionKey,
+  temporaryHighlights,
 }: {
   text: string
   number: number
@@ -772,6 +780,8 @@ function SideBySideSentence({
   // applies on both sides, including 1:0 pairs which flagUnmatched never
   // reaches.
   excluded: boolean
+  selectionKey: string
+  temporaryHighlights: TemporaryHighlight[]
 }) {
   const hasText = text.trim().length > 0
   const colorable = showEquivalence && hasMatch
@@ -798,7 +808,26 @@ function SideBySideSentence({
             {number}
           </sup>
         )}
-        {hasText ? text : <span className="text-muted-foreground/40">—</span>}
+        {hasText ? (
+          <span
+            data-temporary-highlight-key={selectionKey}
+            data-temporary-highlight-stream={
+              selectionKey.endsWith(":source")
+                ? "side-by-side:source"
+                : "side-by-side:target"
+            }
+          >
+            <TemporaryHighlightText
+              text={text}
+              highlights={highlightSegmentsForKey(
+                temporaryHighlights,
+                selectionKey
+              )}
+            />
+          </span>
+        ) : (
+          <span className="text-muted-foreground/40">—</span>
+        )}
       </span>
       {ownLine ? isLast ? "" : <br /> : isLast ? "" : " "}
     </span>
@@ -813,6 +842,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   showEquivalence,
   srcLang,
   tgtLang,
+  temporaryHighlights,
 }: {
   para: ParagraphData
   pIdx: number
@@ -821,6 +851,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   showEquivalence: boolean
   srcLang: string | undefined
   tgtLang: string | undefined
+  temporaryHighlights: TemporaryHighlight[]
 }) {
   // Local to this paragraph — a pair's source/target spans always live in the
   // same paragraph block, so hover state never needs to reach further than this.
@@ -875,6 +906,8 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 ownLine={isZeroOnePair[pairIdx]}
                 flagUnmatched={isZeroOnePair[pairIdx]}
                 excluded={isExcludedPair[pairIdx]}
+                selectionKey={`side-by-side:${pIdx}:${pairIdx}:source`}
+                temporaryHighlights={temporaryHighlights}
               />
             ))}
           </p>
@@ -895,6 +928,8 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 ownLine={false}
                 flagUnmatched={isZeroOnePair[pairIdx]}
                 excluded={isExcludedPair[pairIdx]}
+                selectionKey={`side-by-side:${pIdx}:${pairIdx}:target`}
+                temporaryHighlights={temporaryHighlights}
               />
             ))}
           </p>
@@ -929,6 +964,9 @@ function SideBySideView({
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIdx, setSearchIdx] = useState(-1)
+  const [temporaryHighlights, setTemporaryHighlights] = useState<
+    TemporaryHighlight[]
+  >([])
 
   const paragraphs = useMemo(
     () => buildAlignmentParagraphs(record.result, imageMode),
@@ -1006,50 +1044,57 @@ function SideBySideView({
     [navigate, record.id]
   )
 
+  function saveTemporaryHighlight(highlight: TemporaryHighlight) {
+    setTemporaryHighlights((current) => [...current, highlight])
+  }
+
   return (
-    <PaginatedReader
-      ref={readerRef}
-      paragraphs={paragraphs}
-      savedCharCount={savedCharCount}
-      fontSize={fontSize}
-      pageNumHidden={pageNumHidden}
-      onTogglePageNum={onTogglePageNum}
-      onSaveProgress={handleSaveProgress}
-      emptyMessage="No source text in this alignment."
-      searchSlot={
-        <ReaderSearch
-          query={searchQuery}
-          onQueryChange={(q) => setSearchQuery(q)}
-          results={searchData.results}
-          hasMore={searchData.hasMore}
-          currentIndex={searchIdx}
-          onSelect={handleSelect}
-          onPrev={handleSearchPrev}
-          onNext={handleSearchNext}
-          isOpen={searchOpen}
-          onOpen={() => setSearchOpen(true)}
-          onClose={handleSearchClose}
-          getPage={(paraIdx) =>
-            readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
-          }
-          onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
-          getTotal={() => readerRef.current?.getTotalPages() ?? 1}
-        />
-      }
-    >
-      {paragraphs.map((para, pIdx) => (
-        <SideBySideParagraphBlock
-          key={pIdx}
-          para={para}
-          pIdx={pIdx}
-          pairNumbers={pairNumbers[pIdx]}
-          showLineNumbers={showLineNumbers}
-          showEquivalence={showEquivalence}
-          srcLang={srcLang}
-          tgtLang={tgtLang}
-        />
-      ))}
-    </PaginatedReader>
+    <TemporaryHighlightController onSave={saveTemporaryHighlight}>
+      <PaginatedReader
+        ref={readerRef}
+        paragraphs={paragraphs}
+        savedCharCount={savedCharCount}
+        fontSize={fontSize}
+        pageNumHidden={pageNumHidden}
+        onTogglePageNum={onTogglePageNum}
+        onSaveProgress={handleSaveProgress}
+        emptyMessage="No source text in this alignment."
+        searchSlot={
+          <ReaderSearch
+            query={searchQuery}
+            onQueryChange={(q) => setSearchQuery(q)}
+            results={searchData.results}
+            hasMore={searchData.hasMore}
+            currentIndex={searchIdx}
+            onSelect={handleSelect}
+            onPrev={handleSearchPrev}
+            onNext={handleSearchNext}
+            isOpen={searchOpen}
+            onOpen={() => setSearchOpen(true)}
+            onClose={handleSearchClose}
+            getPage={(paraIdx) =>
+              readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
+            }
+            onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
+            getTotal={() => readerRef.current?.getTotalPages() ?? 1}
+          />
+        }
+      >
+        {paragraphs.map((para, pIdx) => (
+          <SideBySideParagraphBlock
+            key={pIdx}
+            para={para}
+            pIdx={pIdx}
+            pairNumbers={pairNumbers[pIdx]}
+            showLineNumbers={showLineNumbers}
+            showEquivalence={showEquivalence}
+            srcLang={srcLang}
+            tgtLang={tgtLang}
+            temporaryHighlights={temporaryHighlights}
+          />
+        ))}
+      </PaginatedReader>
+    </TemporaryHighlightController>
   )
 }
 
@@ -1062,11 +1107,15 @@ function PairPopoverContent({
   prevPair,
   nextPair,
   lang,
+  targetSelectionKey,
+  temporaryHighlights,
 }: {
   pair: AlignedPair
   prevPair?: AlignedPair | null
   nextPair?: AlignedPair | null
   lang?: string
+  targetSelectionKey: string
+  temporaryHighlights: TemporaryHighlight[]
 }) {
   const [showDetails, setShowDetails] = useState(false)
   const [prevExpanded, setPrevExpanded] = useState(false)
@@ -1117,7 +1166,19 @@ function PairPopoverContent({
             )}
           </p>
         )}
-        <p className="font-semibold italic">{pair.tgt_text}</p>
+        <p
+          data-temporary-highlight-key={targetSelectionKey}
+          data-temporary-highlight-stream="popover:target"
+          className="font-semibold italic"
+        >
+          <TemporaryHighlightText
+            text={pair.tgt_text}
+            highlights={highlightSegmentsForKey(
+              temporaryHighlights,
+              targetSelectionKey
+            )}
+          />
+        </p>
         {nextPair?.tgt_text.trim() && (
           <p className="text-muted-foreground opacity-30">
             {nextPair.tgt_excluded && (
@@ -1180,6 +1241,7 @@ const PairSpan = memo(function PairSpan({
   prevPair,
   nextPair,
   tgtLang,
+  temporaryHighlights,
 }: {
   pair: AlignedPair
   pIdx: number
@@ -1189,6 +1251,7 @@ const PairSpan = memo(function PairSpan({
   prevPair?: AlignedPair | null
   nextPair?: AlignedPair | null
   tgtLang?: string
+  temporaryHighlights: TemporaryHighlight[]
 }) {
   const handleChange = useCallback(
     (open: boolean) => {
@@ -1196,10 +1259,13 @@ const PairSpan = memo(function PairSpan({
     },
     [pIdx, pairIdx, setOpenKey]
   )
+  const sourceSelectionKey = `popover:${pIdx}:${pairIdx}:source`
 
   if (pair.alignment_type !== "1:1") {
     return (
       <span
+        data-temporary-highlight-key={sourceSelectionKey}
+        data-temporary-highlight-stream="popover:source"
         className={
           pair.src_excluded
             ? "border-b-2 border-dotted border-amber-500 opacity-70"
@@ -1207,7 +1273,13 @@ const PairSpan = memo(function PairSpan({
         }
         title={pair.src_excluded ? "Excluded from alignment" : undefined}
       >
-        {pair.src_text}
+        <TemporaryHighlightText
+          text={pair.src_text}
+          highlights={highlightSegmentsForKey(
+            temporaryHighlights,
+            sourceSelectionKey
+          )}
+        />
       </span>
     )
   }
@@ -1219,7 +1291,18 @@ const PairSpan = memo(function PairSpan({
         nativeButton={false}
         className={`cursor-pointer rounded-sm transition-colors hover:bg-muted/50 ${isOpen ? "bg-muted" : ""}`}
       >
-        {pair.src_text}
+        <span
+          data-temporary-highlight-key={sourceSelectionKey}
+          data-temporary-highlight-stream="popover:source"
+        >
+          <TemporaryHighlightText
+            text={pair.src_text}
+            highlights={highlightSegmentsForKey(
+              temporaryHighlights,
+              sourceSelectionKey
+            )}
+          />
+        </span>
       </PopoverTrigger>
       <PopoverContent
         className="w-[min(calc(100vw-1rem),36rem)]"
@@ -1231,6 +1314,8 @@ const PairSpan = memo(function PairSpan({
           prevPair={prevPair}
           nextPair={nextPair}
           lang={tgtLang}
+          targetSelectionKey={`popover:${pIdx}:${pairIdx}:target`}
+          temporaryHighlights={temporaryHighlights}
         />
       </PopoverContent>
     </Popover>
@@ -1247,12 +1332,14 @@ const ParagraphBlock = memo(
     openKey,
     setOpenKey,
     tgtLang,
+    temporaryHighlights,
   }: {
     para: ParagraphData
     pIdx: number
     openKey: string | null
     setOpenKey: (key: string | null) => void
     tgtLang: string | undefined
+    temporaryHighlights: TemporaryHighlight[]
   }) {
     return (
       <div
@@ -1286,6 +1373,7 @@ const ParagraphBlock = memo(
                   prevPair={para.pairs[pairIdx - 1]}
                   nextPair={para.pairs[pairIdx + 1]}
                   tgtLang={tgtLang}
+                  temporaryHighlights={temporaryHighlights}
                 />
                 {pairIdx < para.pairs.length - 1 ? " " : ""}
               </span>
@@ -1299,7 +1387,8 @@ const ParagraphBlock = memo(
     if (
       prev.para !== next.para ||
       prev.pIdx !== next.pIdx ||
-      prev.tgtLang !== next.tgtLang
+      prev.tgtLang !== next.tgtLang ||
+      prev.temporaryHighlights !== next.temporaryHighlights
     )
       return false
     // Only re-render if the openKey change belongs to this paragraph
@@ -1320,8 +1409,12 @@ interface ParagraphListHandle {
 const ParagraphList = memo(
   forwardRef<
     ParagraphListHandle,
-    { paragraphs: ParagraphData[]; tgtLang?: string }
-  >(function ParagraphList({ paragraphs, tgtLang }, ref) {
+    {
+      paragraphs: ParagraphData[]
+      tgtLang?: string
+      temporaryHighlights: TemporaryHighlight[]
+    }
+  >(function ParagraphList({ paragraphs, tgtLang, temporaryHighlights }, ref) {
     const [openKey, setOpenKey] = useState<string | null>(null)
 
     useImperativeHandle(ref, () => ({
@@ -1339,6 +1432,7 @@ const ParagraphList = memo(
             openKey={openKey}
             setOpenKey={setOpenKey}
             tgtLang={tgtLang}
+            temporaryHighlights={temporaryHighlights}
           />
         ))}
       </>
@@ -1369,6 +1463,9 @@ function PopoverView({
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIdx, setSearchIdx] = useState(-1)
+  const [temporaryHighlights, setTemporaryHighlights] = useState<
+    TemporaryHighlight[]
+  >([])
 
   const paragraphs = useMemo(
     () => buildAlignmentParagraphs(record.result, imageMode),
@@ -1459,46 +1556,53 @@ function PopoverView({
     [navigate, record.id]
   )
 
+  function saveTemporaryHighlight(highlight: TemporaryHighlight) {
+    setTemporaryHighlights((current) => [...current, highlight])
+  }
+
   return (
-    <PaginatedReader
-      ref={readerRef}
-      paragraphs={paragraphs}
-      savedCharCount={savedCharCount}
-      fontSize={fontSize}
-      pageNumHidden={pageNumHidden}
-      onTogglePageNum={onTogglePageNum}
-      onSaveProgress={handleSaveProgress}
-      onPageChange={handlePageChange}
-      emptyMessage="No source text in this alignment."
-      searchSlot={
-        <ReaderSearch
-          query={searchQuery}
-          onQueryChange={(q) => setSearchQuery(q)}
-          results={searchData.results}
-          hasMore={searchData.hasMore}
-          currentIndex={searchIdx}
-          onSelect={handleSelect}
-          onPrev={handleSearchPrev}
-          onNext={handleSearchNext}
-          isOpen={searchOpen}
-          onOpen={() => setSearchOpen(true)}
-          onClose={handleSearchClose}
-          getPage={(paraIdx) =>
-            readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
-          }
-          onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
-          getTotal={() => readerRef.current?.getTotalPages() ?? 1}
-        />
-      }
-    >
-      <div style={{ display: "contents" }} lang={srcLang}>
-        <ParagraphList
-          ref={paragraphListRef}
-          paragraphs={paragraphs}
-          tgtLang={tgtLang}
-        />
-      </div>
-    </PaginatedReader>
+    <TemporaryHighlightController onSave={saveTemporaryHighlight}>
+      <PaginatedReader
+        ref={readerRef}
+        paragraphs={paragraphs}
+        savedCharCount={savedCharCount}
+        fontSize={fontSize}
+        pageNumHidden={pageNumHidden}
+        onTogglePageNum={onTogglePageNum}
+        onSaveProgress={handleSaveProgress}
+        onPageChange={handlePageChange}
+        emptyMessage="No source text in this alignment."
+        searchSlot={
+          <ReaderSearch
+            query={searchQuery}
+            onQueryChange={(q) => setSearchQuery(q)}
+            results={searchData.results}
+            hasMore={searchData.hasMore}
+            currentIndex={searchIdx}
+            onSelect={handleSelect}
+            onPrev={handleSearchPrev}
+            onNext={handleSearchNext}
+            isOpen={searchOpen}
+            onOpen={() => setSearchOpen(true)}
+            onClose={handleSearchClose}
+            getPage={(paraIdx) =>
+              readerRef.current?.getPageForParaIdx(paraIdx) ?? 1
+            }
+            onJumpToPage={(page) => readerRef.current?.jumpToPage(page)}
+            getTotal={() => readerRef.current?.getTotalPages() ?? 1}
+          />
+        }
+      >
+        <div style={{ display: "contents" }} lang={srcLang}>
+          <ParagraphList
+            ref={paragraphListRef}
+            paragraphs={paragraphs}
+            tgtLang={tgtLang}
+            temporaryHighlights={temporaryHighlights}
+          />
+        </div>
+      </PaginatedReader>
+    </TemporaryHighlightController>
   )
 }
 
