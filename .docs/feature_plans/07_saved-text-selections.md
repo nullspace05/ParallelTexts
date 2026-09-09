@@ -85,20 +85,20 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 3 - add the saved-selection data model and database migration
 
-- [ ] Add `src/types/saved-selection.ts` with a `SavedSelection` type. Include
+- [x] Add `src/types/saved-selection.ts` with a `SavedSelection` type. Include
   an ID, `ownerType` (`"book"` or `"alignment"`), `ownerId`, `segments`, a
   selected-text snapshot, and `createdAt`.
-- [ ] Define discriminated segment types. A book segment has `paraIdx`,
+- [x] Define discriminated segment types. A book segment has `paraIdx`,
   `startOffset`, and `endOffset`. An alignment segment also has `side`
   (`"source" | "target"`) and `pairIdx`. Do not infer these values from the
   text, current view, or swapped-reader state.
-- [ ] Add a new Dexie schema version in `src/lib/db.ts` with a
+- [x] Add a new Dexie schema version in `src/lib/db.ts` with a
   `savedSelections` table. Index the owner fields needed to retrieve one
   reader's items without loading the entire collection.
-- [ ] Leave existing tables and their records unchanged. Dexie must upgrade an
+- [x] Leave existing tables and their records unchanged. Dexie must upgrade an
   existing local database without deleting books, alignments, or exclusions.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Add a focused test or a temporary browser-console check that creates one
     book selection and source and target selections for the same alignment.
   - Inspect the stored rows in IndexedDB. Confirm the two alignment rows share
@@ -106,7 +106,7 @@ interaction without notes, colors, tags, or export in the first release.
   - Reload the app. Confirm all three rows remain and existing books and
     alignments still open.
 
-- [ ] **Confirm understanding:** explain why an alignment selection needs both
+- [x] **Confirm understanding:** explain why an alignment selection needs both
   an alignment ID and a side, rather than associating it directly with one of
   the alignment's books.
 
