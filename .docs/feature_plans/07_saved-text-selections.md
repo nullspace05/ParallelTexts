@@ -33,21 +33,21 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 1 - prototype the reader selection interaction with stand-in data
 
-- [ ] Implement a temporary client-only selection controller in the book reader
+- [x] Implement a temporary client-only selection controller in the book reader
   and both alignment views. When the user selects non-empty text in one stream,
   collect every intersected paragraph or sentence segment and show a small
   anchored action with a
   bookmark-style icon and the label "Save highlight".
-- [ ] Make the action add a temporary `segments[]` item to component state.
+- [x] Make the action add a temporary `segments[]` item to component state.
   Render every captured range with a subtle highlight, then clear the browser
   selection.
-- [ ] Accept a book selection across paragraphs and an alignment selection
+- [x] Accept a book selection across paragraphs and an alignment selection
   across consecutive sentences on one side. Reject whitespace-only selections,
   reader controls, source-to-target selections, and selections that disappear
   before the action is pressed.
-- [ ] Do not add Dexie tables, route changes, or persistent state in this step.
+- [x] Do not add Dexie tables, route changes, or persistent state in this step.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Open one book and one alignment in each reader mode.
   - Select a few words inside a paragraph. Confirm the action appears beside
     the selection and the text becomes visibly highlighted after saving.
@@ -58,21 +58,21 @@ interaction without notes, colors, tags, or export in the first release.
   - Turn a page and return. Confirm the temporary highlight remains for that
     mounted reader session.
 
-- [ ] **Confirm understanding:** explain why one selection uses several
+- [x] **Confirm understanding:** explain why one selection uses several
   stable-text segments rather than one page range, and why source-to-target
   selections are rejected.
 
 ### Step 2 - confirm the selection UX before persistence work
 
-- [ ] Do not implement anything in this step. Review the Step 1 prototype on a
+- [x] Do not implement anything in this step. Review the Step 1 prototype on a
   mouse and a touch-capable device if one is available.
-- [ ] Decide whether the save action should stay next to the selected text or
+- [x] Decide whether the save action should stay next to the selected text or
   move to a fixed reader control. Keep the interaction that is less likely to
   cover the selected text or interfere with page navigation.
-- [ ] Confirm that the selected text remains readable after saving and that a
+- [x] Confirm that the selected text remains readable after saving and that a
   saved range is visually distinct from an active browser text selection.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Proceed only when the save action is easy to find in a book and both
     alignment views.
   - If the action overlaps text, closes too easily, or conflicts with touch
@@ -80,7 +80,7 @@ interaction without notes, colors, tags, or export in the first release.
   - Record the approved interaction in this document before building the
     database layer.
 
-- [ ] **Confirm understanding:** state which reader interaction was approved
+- [x] **Confirm understanding:** state which reader interaction was approved
   and what information it must supply when a user saves a selection.
 
 ### Step 3 - add the saved-selection data model and database migration
