@@ -163,21 +163,21 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 6 - prove book selection navigation end to end
 
-- [ ] Add a temporary, reader-local list of saved book selections using the
+- [x] Add a temporary, reader-local list of saved book selections using the
   real store data. Clicking an item calls `jumpToParaIdx` and gives the saved
   text a brief focus treatment after the page changes.
-- [ ] Ensure navigation works when the book opens from a saved selection rather
+- [x] Ensure navigation works when the book opens from a saved selection rather
   than from the current reading location.
-- [ ] Keep this list temporary. It proves navigation before a collection route
+- [x] Keep this list temporary. It proves navigation before a collection route
   and its pagination add more UI at once.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Save selections on at least three different pages, reload at page one, and
     activate each list item.
   - Confirm the reader lands on the right paragraph after viewport resizing.
   - Confirm the focus treatment clears without changing reading progress.
 
-- [ ] **Confirm understanding:** describe what makes paragraph navigation
+- [x] **Confirm understanding:** describe what makes paragraph navigation
   stable when pagination changes.
 
 ### Step 7 - persist selections in the side-by-side alignment reader

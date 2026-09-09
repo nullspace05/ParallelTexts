@@ -58,12 +58,20 @@ import {
   trackOperation,
 } from "@/lib/operation-diagnostics"
 import { getAlignment } from "@/store/alignments"
+import {
+  createSavedSelection,
+  getSavedSelectionsForOwner,
+} from "@/store/saved-selections"
 import type {
   AlignedPair,
   AlignmentMeta,
   AlignmentRecord,
   AlignmentResult,
 } from "@/types/alignment"
+import type {
+  AlignmentSavedSelection,
+  AlignmentSelectionSegment,
+} from "@/types/saved-selection"
 import { MODEL_REGISTRY } from "@/utils/model-registry"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import {
@@ -83,6 +91,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { toast } from "sonner"
 
 type Tab = "side-by-side" | "popover"
 
@@ -94,6 +103,106 @@ interface AlignmentSearchParams {
 }
 
 const MAX_SEARCH_RESULTS = 30
+
+type DisplayPair = AlignedPair & { recordPairIdx: number }
+
+function withRecordPairIndexes(record: AlignmentRecord): AlignmentRecord {
+  return {
+    ...record,
+    result: {
+      ...record.result,
+      pairs: record.result.pairs.map((pair, index) => ({
+        ...pair,
+        recordPairIdx: index,
+      })),
+    },
+  }
+}
+
+function recordPairIdx(pair: AlignedPair): number | null {
+  const index = (pair as DisplayPair).recordPairIdx
+  return Number.isInteger(index) && index >= 0 ? index : null
+}
+
+function alignmentSelectionKey(
+  paraIdx: number,
+  pairIdx: number,
+  side: "source" | "target"
+): string {
+  return `side-by-side:${paraIdx}:${pairIdx}:${side}`
+}
+
+/** Returns a canonical key for one visual side, even after direction swap. */
+function sideBySideSelectionKey(
+  pair: AlignedPair,
+  visualSide: "source" | "target",
+  swapped: boolean
+): string | undefined {
+  const pairIdx = recordPairIdx(pair)
+  const paraIdx =
+    visualSide === "source" ? pair.src_para_idx : pair.tgt_para_idx
+  if (pairIdx == null || paraIdx == null) return undefined
+
+  const side = swapped
+    ? visualSide === "source"
+      ? "target"
+      : "source"
+    : visualSide
+  return alignmentSelectionKey(paraIdx, pairIdx, side)
+}
+
+/** Converts rendered sentence keys back into stable alignment coordinates.
+ *
+ * @example
+ * side-by-side:12:48:target -> { paraIdx: 12, pairIdx: 48, side: "target" }
+ */
+function alignmentSegmentsFromHighlight(
+  highlight: TemporaryHighlight
+): AlignmentSelectionSegment[] | null {
+  const segments = highlight.segments.map((segment) => {
+    const match = /^side-by-side:(\d+):(\d+):(source|target)$/.exec(segment.key)
+    if (!match) return null
+    return {
+      paraIdx: Number(match[1]),
+      pairIdx: Number(match[2]),
+      side: match[3] as "source" | "target",
+      startOffset: segment.startOffset,
+      endOffset: segment.endOffset,
+    }
+  })
+  return segments.every((segment) => segment !== null) ? segments : null
+}
+
+/** Recreates renderer highlights only when saved coordinates still match text. */
+function highlightsForAlignment(
+  selections: AlignmentSavedSelection[],
+  result: AlignmentResult
+): TemporaryHighlight[] {
+  return selections.flatMap((selection) => {
+    const segments = selection.segments.flatMap((segment) => {
+      const pair = result.pairs[segment.pairIdx]
+      const paraIdx =
+        segment.side === "source" ? pair?.src_para_idx : pair?.tgt_para_idx
+      const text = segment.side === "source" ? pair?.src_text : pair?.tgt_text
+      if (
+        paraIdx !== segment.paraIdx ||
+        !text ||
+        segment.endOffset > text.length
+      )
+        return []
+      return {
+        key: alignmentSelectionKey(
+          segment.paraIdx,
+          segment.pairIdx,
+          segment.side
+        ),
+        startOffset: segment.startOffset,
+        endOffset: segment.endOffset,
+      }
+    })
+    return segments.length === selection.segments.length ? [{ segments }] : []
+  })
+}
 
 function swapRecord(record: AlignmentRecord): AlignmentRecord {
   return {
@@ -218,6 +327,12 @@ function AlignmentPage() {
   >(null)
   // Tracks when charCount last changed in this session — used for "last saved" display.
   const [savedAt, setSavedAt] = useState<number | null>(null)
+  // This hook must run while the record is still loading too. The reader
+  // starts with no record, then re-renders with one after IndexedDB resolves.
+  const canonicalRecord = useMemo(
+    () => (record ? withRecordPairIndexes(record) : null),
+    [record]
+  )
 
   const loadRecord = useCallback(async () => {
     setRecord(undefined)
@@ -295,7 +410,11 @@ function AlignmentPage() {
     )
   }
 
-  const displayRecord = swapped ? swapRecord(record) : record
+  const resolvedCanonicalRecord =
+    canonicalRecord ?? withRecordPairIndexes(record)
+  const displayRecord = swapped
+    ? swapRecord(resolvedCanonicalRecord)
+    : resolvedCanonicalRecord
   const { result } = record
   // Excluded pairs are user-chosen skips, not alignment failures — keep
   // them out of the match-rate denominator so excluding content doesn't
@@ -340,6 +459,8 @@ function AlignmentPage() {
       {effectiveView === "side-by-side" ? (
         <SideBySideView
           record={displayRecord}
+          canonicalResult={resolvedCanonicalRecord.result}
+          swapped={swapped}
           fontSize={fontSize}
           pageNumHidden={effectivePageNumHidden}
           onTogglePageNum={togglePageNum}
@@ -780,7 +901,7 @@ function SideBySideSentence({
   // applies on both sides, including 1:0 pairs which flagUnmatched never
   // reaches.
   excluded: boolean
-  selectionKey: string
+  selectionKey?: string
   temporaryHighlights: TemporaryHighlight[]
 }) {
   const hasText = text.trim().length > 0
@@ -809,22 +930,26 @@ function SideBySideSentence({
           </sup>
         )}
         {hasText ? (
-          <span
-            data-temporary-highlight-key={selectionKey}
-            data-temporary-highlight-stream={
-              selectionKey.endsWith(":source")
-                ? "side-by-side:source"
-                : "side-by-side:target"
-            }
-          >
-            <TemporaryHighlightText
-              text={text}
-              highlights={highlightSegmentsForKey(
-                temporaryHighlights,
-                selectionKey
-              )}
-            />
-          </span>
+          selectionKey ? (
+            <span
+              data-temporary-highlight-key={selectionKey}
+              data-temporary-highlight-stream={
+                selectionKey.endsWith(":source")
+                  ? "side-by-side:source"
+                  : "side-by-side:target"
+              }
+            >
+              <TemporaryHighlightText
+                text={text}
+                highlights={highlightSegmentsForKey(
+                  temporaryHighlights,
+                  selectionKey
+                )}
+              />
+            </span>
+          ) : (
+            text
+          )
         ) : (
           <span className="text-muted-foreground/40">—</span>
         )}
@@ -843,6 +968,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   srcLang,
   tgtLang,
   temporaryHighlights,
+  swapped,
 }: {
   para: ParagraphData
   pIdx: number
@@ -852,6 +978,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   srcLang: string | undefined
   tgtLang: string | undefined
   temporaryHighlights: TemporaryHighlight[]
+  swapped: boolean
 }) {
   // Local to this paragraph — a pair's source/target spans always live in the
   // same paragraph block, so hover state never needs to reach further than this.
@@ -906,7 +1033,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 ownLine={isZeroOnePair[pairIdx]}
                 flagUnmatched={isZeroOnePair[pairIdx]}
                 excluded={isExcludedPair[pairIdx]}
-                selectionKey={`side-by-side:${pIdx}:${pairIdx}:source`}
+                selectionKey={sideBySideSelectionKey(pair, "source", swapped)}
                 temporaryHighlights={temporaryHighlights}
               />
             ))}
@@ -928,7 +1055,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
                 ownLine={false}
                 flagUnmatched={isZeroOnePair[pairIdx]}
                 excluded={isExcludedPair[pairIdx]}
-                selectionKey={`side-by-side:${pIdx}:${pairIdx}:target`}
+                selectionKey={sideBySideSelectionKey(pair, "target", swapped)}
                 temporaryHighlights={temporaryHighlights}
               />
             ))}
@@ -941,6 +1068,8 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
 
 function SideBySideView({
   record,
+  canonicalResult,
+  swapped,
   fontSize,
   pageNumHidden,
   onTogglePageNum,
@@ -949,6 +1078,8 @@ function SideBySideView({
   showEquivalence,
 }: {
   record: AlignmentRecord
+  canonicalResult: AlignmentResult
+  swapped: boolean
   fontSize: number
   pageNumHidden: boolean
   onTogglePageNum: () => void
@@ -964,8 +1095,8 @@ function SideBySideView({
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIdx, setSearchIdx] = useState(-1)
-  const [temporaryHighlights, setTemporaryHighlights] = useState<
-    TemporaryHighlight[]
+  const [savedSelections, setSavedSelections] = useState<
+    AlignmentSavedSelection[]
   >([])
 
   const paragraphs = useMemo(
@@ -987,6 +1118,11 @@ function SideBySideView({
     () =>
       searchAlignmentParagraphs(paragraphs, searchQuery, MAX_SEARCH_RESULTS),
     [searchQuery, paragraphs]
+  )
+
+  const savedHighlights = useMemo(
+    () => highlightsForAlignment(savedSelections, canonicalResult),
+    [canonicalResult, savedSelections]
   )
 
   useEffect(() => {
@@ -1044,12 +1180,58 @@ function SideBySideView({
     [navigate, record.id]
   )
 
-  function saveTemporaryHighlight(highlight: TemporaryHighlight) {
-    setTemporaryHighlights((current) => [...current, highlight])
+  async function saveAlignmentHighlight(
+    highlight: TemporaryHighlight & { text: string }
+  ): Promise<boolean> {
+    const segments = alignmentSegmentsFromHighlight(highlight)
+    if (!segments) {
+      toast.error("Could not save highlight", {
+        description: "The selected text no longer belongs to this alignment.",
+      })
+      return false
+    }
+
+    const selection: AlignmentSavedSelection = {
+      id: crypto.randomUUID(),
+      ownerType: "alignment",
+      ownerId: record.id,
+      segments,
+      selectedText: highlight.text,
+      createdAt: Date.now(),
+    }
+    try {
+      await createSavedSelection(selection)
+      setSavedSelections((current) => [selection, ...current])
+      return true
+    } catch (error) {
+      toast.error("Could not save highlight", {
+        description: getOperationErrorMessage(error, "Please try again."),
+      })
+      return false
+    }
   }
 
+  useEffect(() => {
+    let cancelled = false
+    setSavedSelections([])
+    getSavedSelectionsForOwner("alignment", record.id)
+      .then((selections) => {
+        if (!cancelled) setSavedSelections(selections)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast.error("Could not load highlights", {
+            description: getOperationErrorMessage(error, "Please try again."),
+          })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [record.id])
+
   return (
-    <TemporaryHighlightController onSave={saveTemporaryHighlight}>
+    <TemporaryHighlightController onSave={saveAlignmentHighlight}>
       <PaginatedReader
         ref={readerRef}
         paragraphs={paragraphs}
@@ -1090,7 +1272,8 @@ function SideBySideView({
             showEquivalence={showEquivalence}
             srcLang={srcLang}
             tgtLang={tgtLang}
-            temporaryHighlights={temporaryHighlights}
+            temporaryHighlights={savedHighlights}
+            swapped={swapped}
           />
         ))}
       </PaginatedReader>
