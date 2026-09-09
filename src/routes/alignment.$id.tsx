@@ -129,7 +129,7 @@ function alignmentSelectionKey(
   pairIdx: number,
   side: "source" | "target"
 ): string {
-  return `side-by-side:${paraIdx}:${pairIdx}:${side}`
+  return `alignment:${paraIdx}:${pairIdx}:${side}`
 }
 
 /** Returns a canonical key for one visual side, even after direction swap. */
@@ -154,13 +154,13 @@ function sideBySideSelectionKey(
 /** Converts rendered sentence keys back into stable alignment coordinates.
  *
  * @example
- * side-by-side:12:48:target -> { paraIdx: 12, pairIdx: 48, side: "target" }
+ * alignment:12:48:target -> { paraIdx: 12, pairIdx: 48, side: "target" }
  */
 function alignmentSegmentsFromHighlight(
   highlight: TemporaryHighlight
 ): AlignmentSelectionSegment[] | null {
   const segments = highlight.segments.map((segment) => {
-    const match = /^side-by-side:(\d+):(\d+):(source|target)$/.exec(segment.key)
+    const match = /^alignment:(\d+):(\d+):(source|target)$/.exec(segment.key)
     if (!match) return null
     return {
       paraIdx: Number(match[1]),
@@ -471,6 +471,8 @@ function AlignmentPage() {
       ) : (
         <PopoverView
           record={displayRecord}
+          canonicalResult={resolvedCanonicalRecord.result}
+          swapped={swapped}
           fontSize={fontSize}
           pageNumHidden={effectivePageNumHidden}
           onTogglePageNum={togglePageNum}
@@ -1425,6 +1427,7 @@ const PairSpan = memo(function PairSpan({
   nextPair,
   tgtLang,
   temporaryHighlights,
+  swapped,
 }: {
   pair: AlignedPair
   pIdx: number
@@ -1435,6 +1438,7 @@ const PairSpan = memo(function PairSpan({
   nextPair?: AlignedPair | null
   tgtLang?: string
   temporaryHighlights: TemporaryHighlight[]
+  swapped: boolean
 }) {
   const handleChange = useCallback(
     (open: boolean) => {
@@ -1442,7 +1446,8 @@ const PairSpan = memo(function PairSpan({
     },
     [pIdx, pairIdx, setOpenKey]
   )
-  const sourceSelectionKey = `popover:${pIdx}:${pairIdx}:source`
+  const sourceSelectionKey = sideBySideSelectionKey(pair, "source", swapped)
+  const targetSelectionKey = sideBySideSelectionKey(pair, "target", swapped)
 
   if (pair.alignment_type !== "1:1") {
     return (
@@ -1458,10 +1463,11 @@ const PairSpan = memo(function PairSpan({
       >
         <TemporaryHighlightText
           text={pair.src_text}
-          highlights={highlightSegmentsForKey(
-            temporaryHighlights,
+          highlights={
             sourceSelectionKey
-          )}
+              ? highlightSegmentsForKey(temporaryHighlights, sourceSelectionKey)
+              : []
+          }
         />
       </span>
     )
@@ -1480,10 +1486,14 @@ const PairSpan = memo(function PairSpan({
         >
           <TemporaryHighlightText
             text={pair.src_text}
-            highlights={highlightSegmentsForKey(
-              temporaryHighlights,
+            highlights={
               sourceSelectionKey
-            )}
+                ? highlightSegmentsForKey(
+                    temporaryHighlights,
+                    sourceSelectionKey
+                  )
+                : []
+            }
           />
         </span>
       </PopoverTrigger>
@@ -1497,7 +1507,7 @@ const PairSpan = memo(function PairSpan({
           prevPair={prevPair}
           nextPair={nextPair}
           lang={tgtLang}
-          targetSelectionKey={`popover:${pIdx}:${pairIdx}:target`}
+          targetSelectionKey={targetSelectionKey ?? ""}
           temporaryHighlights={temporaryHighlights}
         />
       </PopoverContent>
@@ -1516,6 +1526,7 @@ const ParagraphBlock = memo(
     setOpenKey,
     tgtLang,
     temporaryHighlights,
+    swapped,
   }: {
     para: ParagraphData
     pIdx: number
@@ -1523,6 +1534,7 @@ const ParagraphBlock = memo(
     setOpenKey: (key: string | null) => void
     tgtLang: string | undefined
     temporaryHighlights: TemporaryHighlight[]
+    swapped: boolean
   }) {
     return (
       <div
@@ -1557,6 +1569,7 @@ const ParagraphBlock = memo(
                   nextPair={para.pairs[pairIdx + 1]}
                   tgtLang={tgtLang}
                   temporaryHighlights={temporaryHighlights}
+                  swapped={swapped}
                 />
                 {pairIdx < para.pairs.length - 1 ? " " : ""}
               </span>
@@ -1571,7 +1584,8 @@ const ParagraphBlock = memo(
       prev.para !== next.para ||
       prev.pIdx !== next.pIdx ||
       prev.tgtLang !== next.tgtLang ||
-      prev.temporaryHighlights !== next.temporaryHighlights
+      prev.temporaryHighlights !== next.temporaryHighlights ||
+      prev.swapped !== next.swapped
     )
       return false
     // Only re-render if the openKey change belongs to this paragraph
@@ -1596,8 +1610,12 @@ const ParagraphList = memo(
       paragraphs: ParagraphData[]
       tgtLang?: string
       temporaryHighlights: TemporaryHighlight[]
+      swapped: boolean
     }
-  >(function ParagraphList({ paragraphs, tgtLang, temporaryHighlights }, ref) {
+  >(function ParagraphList(
+    { paragraphs, tgtLang, temporaryHighlights, swapped },
+    ref
+  ) {
     const [openKey, setOpenKey] = useState<string | null>(null)
 
     useImperativeHandle(ref, () => ({
@@ -1616,6 +1634,7 @@ const ParagraphList = memo(
             setOpenKey={setOpenKey}
             tgtLang={tgtLang}
             temporaryHighlights={temporaryHighlights}
+            swapped={swapped}
           />
         ))}
       </>
@@ -1625,12 +1644,16 @@ const ParagraphList = memo(
 
 function PopoverView({
   record,
+  canonicalResult,
+  swapped,
   fontSize,
   pageNumHidden,
   onTogglePageNum,
   imageMode,
 }: {
   record: AlignmentRecord
+  canonicalResult: AlignmentResult
+  swapped: boolean
   fontSize: number
   pageNumHidden: boolean
   onTogglePageNum: () => void
@@ -1646,8 +1669,8 @@ function PopoverView({
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchIdx, setSearchIdx] = useState(-1)
-  const [temporaryHighlights, setTemporaryHighlights] = useState<
-    TemporaryHighlight[]
+  const [savedSelections, setSavedSelections] = useState<
+    AlignmentSavedSelection[]
   >([])
 
   const paragraphs = useMemo(
@@ -1659,6 +1682,29 @@ function PopoverView({
     () => alignmentLangs(record.result),
     [record.result]
   )
+
+  const renderedHighlights = useMemo(
+    () => [...highlightsForAlignment(savedSelections, canonicalResult)],
+    [canonicalResult, savedSelections]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+    getSavedSelectionsForOwner("alignment", record.id)
+      .then((selections) => {
+        if (!cancelled) setSavedSelections(selections)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          toast.error("Could not load highlights", {
+            description: getOperationErrorMessage(error, "Please try again."),
+          })
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [record.id])
 
   // Build display results + pairKeys for opening popovers
   const searchData = useMemo(() => {
@@ -1739,12 +1785,39 @@ function PopoverView({
     [navigate, record.id]
   )
 
-  function saveTemporaryHighlight(highlight: TemporaryHighlight) {
-    setTemporaryHighlights((current) => [...current, highlight])
+  async function saveAlignmentHighlight(
+    highlight: TemporaryHighlight & { text: string }
+  ): Promise<boolean> {
+    const segments = alignmentSegmentsFromHighlight(highlight)
+    if (!segments) {
+      toast.error("Could not save highlight", {
+        description: "The selected text no longer belongs to this alignment.",
+      })
+      return false
+    }
+
+    const selection: AlignmentSavedSelection = {
+      id: crypto.randomUUID(),
+      ownerType: "alignment",
+      ownerId: record.id,
+      segments,
+      selectedText: highlight.text,
+      createdAt: Date.now(),
+    }
+    try {
+      await createSavedSelection(selection)
+      setSavedSelections((current) => [selection, ...current])
+      return true
+    } catch (error) {
+      toast.error("Could not save highlight", {
+        description: getOperationErrorMessage(error, "Please try again."),
+      })
+      return false
+    }
   }
 
   return (
-    <TemporaryHighlightController onSave={saveTemporaryHighlight}>
+    <TemporaryHighlightController onSave={saveAlignmentHighlight}>
       <PaginatedReader
         ref={readerRef}
         paragraphs={paragraphs}
@@ -1781,7 +1854,8 @@ function PopoverView({
             ref={paragraphListRef}
             paragraphs={paragraphs}
             tgtLang={tgtLang}
-            temporaryHighlights={temporaryHighlights}
+            temporaryHighlights={renderedHighlights}
+            swapped={swapped}
           />
         </div>
       </PaginatedReader>
