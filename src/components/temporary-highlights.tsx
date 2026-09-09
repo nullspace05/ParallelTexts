@@ -6,6 +6,7 @@ export interface TemporaryHighlightSegment {
   key: string
   startOffset: number
   endOffset: number
+  isFocused?: boolean
 }
 
 export interface TemporaryHighlight {
@@ -138,10 +139,20 @@ export function TemporaryHighlightText({
       (highlight) =>
         highlight.startOffset <= start && highlight.endOffset >= end
     )
+    const isFocused = highlights.some(
+      (highlight) =>
+        highlight.isFocused &&
+        highlight.startOffset <= start &&
+        highlight.endOffset >= end
+    )
     return isHighlighted ? (
       <mark
         key={`${start}-${end}`}
-        className="rounded-sm bg-amber-200/80 px-px text-inherit dark:bg-amber-400/30"
+        className={
+          isFocused
+            ? "rounded-sm bg-amber-300 px-px text-inherit ring-2 ring-amber-400/70 dark:bg-amber-400/50"
+            : "rounded-sm bg-amber-200/80 px-px text-inherit dark:bg-amber-400/30"
+        }
       >
         {segment}
       </mark>

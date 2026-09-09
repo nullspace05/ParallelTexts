@@ -137,19 +137,19 @@ interaction without notes, colors, tags, or export in the first release.
 
 ### Step 5 - replace the book-reader stand-in with persisted selections
 
-- [ ] Extract the DOM-range-to-segments calculation used by Step 1 into a small
+- [x] Extract the DOM-range-to-segments calculation used by Step 1 into a small
   reader helper. It must enumerate every intersected book paragraph and return
   offsets relative to each paragraph's original `text`.
-- [ ] In `src/routes/book.$id.tsx`, load that book's items, render saved ranges
+- [x] In `src/routes/book.$id.tsx`, load that book's items, render saved ranges
   without changing the paragraph's source text, and replace the Step 1 stub
   with `createSavedSelection`.
-- [ ] On a failed write, keep the browser selection available and show a clear
+- [x] On a failed write, keep the browser selection available and show a clear
   error. Do not leave an optimistic highlight in the reader.
-- [ ] When saved offsets no longer match the stored quote, hide that range
+- [x] When saved offsets no longer match the stored quote, hide that range
   rather than highlighting the wrong words. The collection can still show the
   saved snapshot and offer deletion.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Save selections at the beginning, middle, and end of a paragraph.
   - Refresh, change font size, resize the viewport, and reopen the book.
     Confirm each selection remains on the same words.
@@ -158,7 +158,7 @@ interaction without notes, colors, tags, or export in the first release.
   - Run a focused unit test for DOM-range offset conversion and a manual Dexie
     persistence check.
 
-- [ ] **Confirm understanding:** explain why offsets are relative to extracted
+- [x] **Confirm understanding:** explain why offsets are relative to extracted
   paragraph text, not the current page or a browser DOM node path.
 
 ### Step 6 - prove book selection navigation end to end

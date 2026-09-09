@@ -40,6 +40,7 @@ import type {
 import {
   BookOpenIcon,
   BookOpenTextIcon,
+  BookmarkSimpleIcon,
   CaretLeftIcon,
   CheckSquareOffsetIcon,
 } from "@phosphor-icons/react"
@@ -152,7 +153,8 @@ function bookSegmentsFromHighlight(
 
 function highlightsForBook(
   selections: BookSavedSelection[],
-  paragraphs: SourceParagraph[]
+  paragraphs: SourceParagraph[],
+  focusedSelectionId: string | null
 ): TemporaryHighlight[] {
   return selections.flatMap((selection) => {
     const segments = selection.segments.flatMap((segment) => {
@@ -162,6 +164,7 @@ function highlightsForBook(
         key: `book:${segment.paraIdx}`,
         startOffset: segment.startOffset,
         endOffset: segment.endOffset,
+        isFocused: selection.id === focusedSelectionId,
       }
     })
     return segments.length === selection.segments.length ? [{ segments }] : []
@@ -249,6 +252,11 @@ function BookReader({
   const [savedSelections, setSavedSelections] = useState<BookSavedSelection[]>(
     []
   )
+  const [highlightListOpen, setHighlightListOpen] = useState(false)
+  const [focusedSelectionId, setFocusedSelectionId] = useState<string | null>(
+    null
+  )
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const searchData = useMemo((): {
     results: SearchResult[]
@@ -334,9 +342,27 @@ function BookReader({
   }
 
   const savedHighlights = useMemo(
-    () => (paragraphs ? highlightsForBook(savedSelections, paragraphs) : []),
-    [paragraphs, savedSelections]
+    () =>
+      paragraphs
+        ? highlightsForBook(savedSelections, paragraphs, focusedSelectionId)
+        : [],
+    [focusedSelectionId, paragraphs, savedSelections]
   )
+
+  function openSavedSelection(selection: BookSavedSelection) {
+    const firstSegment = selection.segments[0]
+    if (!firstSegment) return
+
+    readerRef.current?.jumpToParaIdx(firstSegment.paraIdx)
+    setFocusedSelectionId(selection.id)
+    setHighlightListOpen(false)
+
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+    focusTimerRef.current = setTimeout(() => {
+      setFocusedSelectionId(null)
+      focusTimerRef.current = null
+    }, 1600)
+  }
 
   async function saveBookHighlight(
     highlight: TemporaryHighlight & { text: string }
@@ -421,6 +447,12 @@ function BookReader({
     }
   }, [book.id])
 
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+    }
+  }, [])
+
   if (extractError) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -487,6 +519,44 @@ function BookReader({
           </div>
         </PaginatedReader>
       </TemporaryHighlightController>
+      {highlightListOpen && (
+        <div className="absolute right-4 bottom-16 z-30 w-72 rounded-lg border bg-background p-2 shadow-lg">
+          <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
+            Saved highlights
+          </p>
+          {savedSelections.length === 0 ? (
+            <p className="px-2 py-3 text-sm text-muted-foreground">
+              No saved highlights yet.
+            </p>
+          ) : (
+            <div className="max-h-64 space-y-1 overflow-y-auto">
+              {savedSelections.map((selection) => (
+                <button
+                  key={selection.id}
+                  type="button"
+                  onClick={() => openSavedSelection(selection)}
+                  className="w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
+                >
+                  <span className="line-clamp-2">{selection.selectedText}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setHighlightListOpen((open) => !open)}
+        className={cn(
+          "absolute right-16 bottom-3 z-30 flex size-10 items-center justify-center rounded-full bg-background text-muted-foreground shadow-md ring-1 ring-border transition-colors hover:bg-muted",
+          highlightListOpen && "bg-muted text-foreground"
+        )}
+        aria-expanded={highlightListOpen}
+        aria-label="Show saved highlights"
+        title="Saved highlights"
+      >
+        <BookmarkSimpleIcon className="size-5" />
+      </button>
       <button
         type="button"
         onClick={() => setSelectionMode((v) => !v)}
