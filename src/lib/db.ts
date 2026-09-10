@@ -1,11 +1,13 @@
 import type { AlignmentRecord } from "@/types/alignment"
 import type { Book, ParagraphExclusion } from "@/types/book"
+import type { SavedSelection } from "@/types/saved-selection"
 import Dexie, { type Table } from "dexie"
 
 export class BooksDatabase extends Dexie {
   books!: Table<Book, string>
   alignments!: Table<AlignmentRecord, string>
   paragraphExclusions!: Table<ParagraphExclusion, string>
+  savedSelections!: Table<SavedSelection, string>
 
   constructor() {
     super("local-books")
@@ -20,6 +22,12 @@ export class BooksDatabase extends Dexie {
       books: "id, title, type, fileName",
       alignments: "id, sourceBookId, targetBookId, createdAt",
       paragraphExclusions: "bookId",
+    })
+    this.version(4).stores({
+      books: "id, title, type, fileName",
+      alignments: "id, sourceBookId, targetBookId, createdAt",
+      paragraphExclusions: "bookId",
+      savedSelections: "id, [ownerType+ownerId], createdAt",
     })
   }
 }

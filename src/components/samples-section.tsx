@@ -13,6 +13,8 @@ import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
 import { toast } from "sonner"
 
+const SAMPLE_OPEN_TIMEOUT_MS = 20_000
+
 export function SampleDot({
   colorClass,
   loading,
@@ -63,6 +65,7 @@ export function SamplesSection() {
 
   async function openSample(sample: (typeof SAMPLE_ALIGNMENTS)[number]) {
     setLoadingId(sample.id)
+    const controller = new AbortController()
     try {
       const id = await trackOperation(
         "sample_open",
@@ -70,15 +73,17 @@ export function SamplesSection() {
         async () => {
           const response = await withTimeout(
             "Sample book download",
-            60_000,
-            fetch(sampleAlignmentUrl(sample.filename))
+            SAMPLE_OPEN_TIMEOUT_MS,
+            fetch(sampleAlignmentUrl(sample.filename), {
+              signal: controller.signal,
+            })
           )
           if (!response.ok)
             throw new Error("Failed to download the sample file.")
 
           const record = await withTimeout(
             "Sample book processing",
-            60_000,
+            SAMPLE_OPEN_TIMEOUT_MS,
             response.blob().then((blob) => parsePtEpub(blob))
           )
           if (!record) throw new Error("The sample file could not be read.")
@@ -108,9 +113,11 @@ export function SamplesSection() {
         },
       })
     } catch (err) {
-      setLoadingId(null)
       const message = getOperationErrorMessage(err, "Something went wrong.")
       toast.error("Could not open sample book", { description: message })
+    } finally {
+      controller.abort()
+      setLoadingId(null)
     }
   }
 
