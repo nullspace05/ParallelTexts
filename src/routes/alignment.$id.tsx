@@ -60,6 +60,7 @@ import {
 import { getAlignment } from "@/store/alignments"
 import {
   createSavedSelection,
+  deleteSavedSelection,
   getSavedSelectionsForOwner,
 } from "@/store/saved-selections"
 import type {
@@ -94,13 +95,19 @@ import {
 import { toast } from "sonner"
 
 type Tab = "side-by-side" | "popover"
+type DetailsTab = "details" | "highlights"
+
+interface AlignmentHighlightController {
+  selections: AlignmentSavedSelection[]
+  openSelection: (selection: AlignmentSavedSelection) => void
+  deleteSelection: (id: string) => Promise<void>
+}
 
 interface AlignmentSearchParams {
   view: Tab | undefined
   pageNumHidden: boolean | undefined
   charCount: number
   totalChars: number
-  selectionId: string | undefined
 }
 
 const MAX_SEARCH_RESULTS = 30
@@ -293,10 +300,6 @@ export const Route = createFileRoute("/alignment/$id")({
       typeof search.totalChars === "number" && search.totalChars > 0
         ? Math.floor(search.totalChars)
         : 0,
-    selectionId:
-      typeof search.selectionId === "string" && search.selectionId.length > 0
-        ? search.selectionId
-        : undefined,
   }),
   component: AlignmentPage,
 })
@@ -324,14 +327,16 @@ function formatSavedAt(savedAt: number): string {
 
 function AlignmentPage() {
   const { id } = Route.useParams()
-  const { view, pageNumHidden, charCount, totalChars, selectionId } =
-    Route.useSearch()
+  const { view, pageNumHidden, charCount, totalChars } = Route.useSearch()
   const navigate = useNavigate({ from: "/alignment/$id" })
   const [record, setRecord] = useState<AlignmentRecord | null | undefined>(
     undefined
   )
   const [loadError, setLoadError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [detailsTab, setDetailsTab] = useState<DetailsTab>("details")
+  const [highlightController, setHighlightController] =
+    useState<AlignmentHighlightController | null>(null)
   const [fontSize] = useState(() => getStoredFontSize())
   const [imageMode, setImageMode] = useState<ImageMode>(() =>
     getStoredImageMode()
@@ -482,7 +487,7 @@ function AlignmentPage() {
           record={displayRecord}
           canonicalResult={resolvedCanonicalRecord.result}
           swapped={swapped}
-          selectionId={selectionId}
+          onHighlightControllerChange={setHighlightController}
           fontSize={fontSize}
           pageNumHidden={effectivePageNumHidden}
           onTogglePageNum={togglePageNum}
@@ -495,7 +500,7 @@ function AlignmentPage() {
           record={displayRecord}
           canonicalResult={resolvedCanonicalRecord.result}
           swapped={swapped}
-          selectionId={selectionId}
+          onHighlightControllerChange={setHighlightController}
           fontSize={fontSize}
           pageNumHidden={effectivePageNumHidden}
           onTogglePageNum={togglePageNum}
@@ -528,343 +533,504 @@ function AlignmentPage() {
             </DrawerClose>
           </DrawerHeader>
 
-          {/* Drawer body */}
-          <div className="flex-1 space-y-6 overflow-auto p-4">
-            {/* Titles */}
-            <div className="space-y-0.5">
-              <p className="text-sm font-medium">{record.sourceBookTitle}</p>
-              <p className="text-xs text-muted-foreground">
-                ↔ {record.targetBookTitle}
-              </p>
-              <p className="pt-1 text-xs text-muted-foreground">
-                {result.src_lang.toUpperCase()} →{" "}
-                {result.tgt_lang.toUpperCase()}
-                &ensp;·&ensp;{date}
-              </p>
-            </div>
-
-            {/* Stats */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Stats
-              </p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                <Stat
-                  label="Matched"
-                  value={`${result.aligned_count.toLocaleString()} (${matchPct}%)`}
-                  accent="text-primary"
-                />
-                <Stat
-                  label="Src gaps"
-                  value={result.src_gap_count.toLocaleString()}
-                />
-                <Stat
-                  label="Tgt gaps"
-                  value={result.tgt_gap_count.toLocaleString()}
-                />
-                <Stat
-                  label="Total pairs"
-                  value={result.pairs.length.toLocaleString()}
-                />
-                <Stat
-                  label="Src sentences"
-                  value={result.total_src_sentences.toLocaleString()}
-                />
-                <Stat
-                  label="Tgt sentences"
-                  value={result.total_tgt_sentences.toLocaleString()}
-                />
-                {!!result.excluded_count && (
-                  <Stat
-                    label="Excluded"
-                    value={result.excluded_count.toLocaleString()}
-                  />
-                )}
-              </div>
-            </div>
-
-            {/* Origin / model metadata */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Origin
-              </p>
-              {record.importedFrom === "tsv" ? (
-                <div className="flex items-center gap-2">
-                  <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium">
-                    TSV import
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    Imported from an external TSV file
-                  </span>
-                </div>
-              ) : record.meta ? (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                  <div className="col-span-2">
-                    <p className="text-xs text-muted-foreground">Model</p>
-                    <p className="text-sm font-medium">
-                      {metaModelLabel(record.meta)}
-                    </p>
-                  </div>
-                  <Stat
-                    label="Device"
-                    value={record.meta.device.toUpperCase()}
-                  />
-                  <Stat label="Precision" value={record.meta.dtype} />
-                  <Stat
-                    label="Duration"
-                    value={formatDuration(record.meta.durationMs)}
-                  />
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Generated by alignment pipeline
-                </p>
-              )}
-            </div>
-
-            {/* View mode */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                View
-              </p>
-              <div className="flex gap-1 rounded-lg bg-muted p-1">
-                {(["side-by-side", "popover"] as Tab[]).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setView(t)}
-                    className={`flex-1 rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                      effectiveView === t
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t === "side-by-side" ? "Side by side" : "Popover"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Direction swap */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Direction
-              </p>
+          <div className="grid grid-cols-2 gap-1 border-b p-2">
+            {(["details", "highlights"] as DetailsTab[]).map((tab) => (
               <button
+                key={tab}
                 type="button"
-                onClick={() => setSwapped((s) => !s)}
-                className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${
-                  swapped
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground hover:text-foreground"
+                onClick={() => setDetailsTab(tab)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  detailsTab === tab
+                    ? "bg-muted text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                <span>
-                  {swapped
-                    ? `${result.tgt_lang.toUpperCase()} → ${result.src_lang.toUpperCase()}`
-                    : `${result.src_lang.toUpperCase()} → ${result.tgt_lang.toUpperCase()}`}
-                </span>
-                <ArrowsLeftRightIcon className="size-4" />
+                {tab === "details" ? "Details" : "Highlights"}
               </button>
-            </div>
+            ))}
+          </div>
 
-            {/* Display */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Display
-              </p>
-              <ToggleSwitch
-                checked={!effectivePageNumHidden}
-                onChange={togglePageNum}
-                label="Page number"
-              />
-            </div>
+          {/* Drawer body */}
+          <div className="flex-1 overflow-auto p-4">
+            {detailsTab === "details" ? (
+              <div className="space-y-6">
+                {/* Titles */}
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">
+                    {record.sourceBookTitle}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ↔ {record.targetBookTitle}
+                  </p>
+                  <p className="pt-1 text-xs text-muted-foreground">
+                    {result.src_lang.toUpperCase()} →{" "}
+                    {result.tgt_lang.toUpperCase()}
+                    &ensp;·&ensp;{date}
+                  </p>
+                </div>
 
-            {/* Side-by-side only */}
-            {effectiveView === "side-by-side" && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Side-by-side
-                </p>
-                <ToggleSwitch
-                  checked={showLineNumbers}
-                  onChange={toggleLineNumbers}
-                  label="Line numbers"
-                />
-                <ToggleSwitch
-                  checked={showEquivalence}
-                  onChange={toggleEquivalence}
-                  label="Show equivalence"
-                />
-              </div>
-            )}
-
-            {/* Images */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Images
-              </p>
-              <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
-                {(
-                  [
-                    ["source", "Source"],
-                    ["target", "Target"],
-                    ["both", "Both"],
-                    ["none", "None"],
-                  ] as [ImageMode, string][]
-                ).map(([m, label]) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => {
-                      setImageMode(m)
-                      setStoredImageMode(m)
-                    }}
-                    className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-                      imageMode === m
-                        ? "bg-background text-foreground shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Reading progress */}
-            {totalChars > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Reading progress
-                </p>
-                <div className="space-y-1.5 text-sm">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      {charCount.toLocaleString()} /{" "}
-                      {totalChars.toLocaleString()} chars
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {Math.round((charCount / totalChars) * 100)}%
-                    </span>
-                  </div>
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-300"
-                      style={{
-                        width: `${Math.round((charCount / totalChars) * 100)}%`,
-                      }}
+                {/* Stats */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Stats
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                    <Stat
+                      label="Matched"
+                      value={`${result.aligned_count.toLocaleString()} (${matchPct}%)`}
+                      accent="text-primary"
                     />
+                    <Stat
+                      label="Src gaps"
+                      value={result.src_gap_count.toLocaleString()}
+                    />
+                    <Stat
+                      label="Tgt gaps"
+                      value={result.tgt_gap_count.toLocaleString()}
+                    />
+                    <Stat
+                      label="Total pairs"
+                      value={result.pairs.length.toLocaleString()}
+                    />
+                    <Stat
+                      label="Src sentences"
+                      value={result.total_src_sentences.toLocaleString()}
+                    />
+                    <Stat
+                      label="Tgt sentences"
+                      value={result.total_tgt_sentences.toLocaleString()}
+                    />
+                    {!!result.excluded_count && (
+                      <Stat
+                        label="Excluded"
+                        value={result.excluded_count.toLocaleString()}
+                      />
+                    )}
                   </div>
-                  {savedAt && (
+                </div>
+
+                {/* Origin / model metadata */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Origin
+                  </p>
+                  {record.importedFrom === "tsv" ? (
+                    <div className="flex items-center gap-2">
+                      <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium">
+                        TSV import
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Imported from an external TSV file
+                      </span>
+                    </div>
+                  ) : record.meta ? (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground">Model</p>
+                        <p className="text-sm font-medium">
+                          {metaModelLabel(record.meta)}
+                        </p>
+                      </div>
+                      <Stat
+                        label="Device"
+                        value={record.meta.device.toUpperCase()}
+                      />
+                      <Stat label="Precision" value={record.meta.dtype} />
+                      <Stat
+                        label="Duration"
+                        value={formatDuration(record.meta.durationMs)}
+                      />
+                    </div>
+                  ) : (
                     <p className="text-xs text-muted-foreground">
-                      {formatSavedAt(savedAt)}
+                      Generated by alignment pipeline
                     </p>
                   )}
                 </div>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
-                  onClick={() =>
-                    navigate({
-                      replace: true,
-                      search: (prev) => ({
-                        ...prev,
-                        charCount: 0,
-                        totalChars: 0,
-                      }),
-                    })
-                  }
-                >
-                  Clear progress
-                </button>
-              </div>
-            )}
 
-            {/* Export */}
-            <div className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Export
-              </p>
-              <div className="flex flex-col gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  disabled={exporting !== null}
-                  onClick={async () => {
-                    setExporting("tsv")
-                    await Promise.resolve()
-                    try {
-                      downloadAlignmentTsv(displayRecord)
-                    } finally {
-                      setExporting(null)
-                    }
-                  }}
-                >
-                  {exporting === "tsv" ? (
-                    <>
-                      <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                      Preparing TSV…
-                    </>
-                  ) : (
-                    "Export TSV"
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  disabled={exporting !== null}
-                  onClick={async () => {
-                    setExporting("popover-epub")
-                    try {
-                      await downloadAlignmentEpub(displayRecord, imageMode)
-                    } finally {
-                      setExporting(null)
-                    }
-                  }}
-                >
-                  {exporting === "popover-epub" ? (
-                    <>
-                      <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                      Preparing Popover EPUB…
-                    </>
-                  ) : (
-                    "Popover EPUB"
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  disabled={exporting !== null}
-                  onClick={async () => {
-                    setExporting("side-by-side-epub")
-                    try {
-                      await downloadSideBySideAlignmentEpub(
-                        displayRecord,
-                        imageMode
-                      )
-                    } finally {
-                      setExporting(null)
-                    }
-                  }}
-                >
-                  {exporting === "side-by-side-epub" ? (
-                    <>
-                      <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                      Preparing Side-by-side EPUB…
-                    </>
-                  ) : (
-                    "Side-by-side EPUB"
-                  )}
-                </Button>
+                {/* View mode */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    View
+                  </p>
+                  <div className="flex gap-1 rounded-lg bg-muted p-1">
+                    {(["side-by-side", "popover"] as Tab[]).map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setView(t)}
+                        className={`flex-1 rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                          effectiveView === t
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t === "side-by-side" ? "Side by side" : "Popover"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Direction swap */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Direction
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setSwapped((s) => !s)}
+                    className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-sm transition-colors ${
+                      swapped
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span>
+                      {swapped
+                        ? `${result.tgt_lang.toUpperCase()} → ${result.src_lang.toUpperCase()}`
+                        : `${result.src_lang.toUpperCase()} → ${result.tgt_lang.toUpperCase()}`}
+                    </span>
+                    <ArrowsLeftRightIcon className="size-4" />
+                  </button>
+                </div>
+
+                {/* Display */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Display
+                  </p>
+                  <ToggleSwitch
+                    checked={!effectivePageNumHidden}
+                    onChange={togglePageNum}
+                    label="Page number"
+                  />
+                </div>
+
+                {/* Side-by-side only */}
+                {effectiveView === "side-by-side" && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      Side-by-side
+                    </p>
+                    <ToggleSwitch
+                      checked={showLineNumbers}
+                      onChange={toggleLineNumbers}
+                      label="Line numbers"
+                    />
+                    <ToggleSwitch
+                      checked={showEquivalence}
+                      onChange={toggleEquivalence}
+                      label="Show equivalence"
+                    />
+                  </div>
+                )}
+
+                {/* Images */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Images
+                  </p>
+                  <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
+                    {(
+                      [
+                        ["source", "Source"],
+                        ["target", "Target"],
+                        ["both", "Both"],
+                        ["none", "None"],
+                      ] as [ImageMode, string][]
+                    ).map(([m, label]) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => {
+                          setImageMode(m)
+                          setStoredImageMode(m)
+                        }}
+                        className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+                          imageMode === m
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Reading progress */}
+                {totalChars > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                      Reading progress
+                    </p>
+                    <div className="space-y-1.5 text-sm">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {charCount.toLocaleString()} /{" "}
+                          {totalChars.toLocaleString()} chars
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {Math.round((charCount / totalChars) * 100)}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-300"
+                          style={{
+                            width: `${Math.round((charCount / totalChars) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      {savedAt && (
+                        <p className="text-xs text-muted-foreground">
+                          {formatSavedAt(savedAt)}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="text-xs text-muted-foreground underline-offset-2 hover:text-destructive hover:underline"
+                      onClick={() =>
+                        navigate({
+                          replace: true,
+                          search: (prev) => ({
+                            ...prev,
+                            charCount: 0,
+                            totalChars: 0,
+                          }),
+                        })
+                      }
+                    >
+                      Clear progress
+                    </button>
+                  </div>
+                )}
+
+                {/* Export */}
+                <div className="space-y-2">
+                  <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                    Export
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={exporting !== null}
+                      onClick={async () => {
+                        setExporting("tsv")
+                        await Promise.resolve()
+                        try {
+                          downloadAlignmentTsv(displayRecord)
+                        } finally {
+                          setExporting(null)
+                        }
+                      }}
+                    >
+                      {exporting === "tsv" ? (
+                        <>
+                          <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
+                          Preparing TSV…
+                        </>
+                      ) : (
+                        "Export TSV"
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={exporting !== null}
+                      onClick={async () => {
+                        setExporting("popover-epub")
+                        try {
+                          await downloadAlignmentEpub(displayRecord, imageMode)
+                        } finally {
+                          setExporting(null)
+                        }
+                      }}
+                    >
+                      {exporting === "popover-epub" ? (
+                        <>
+                          <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
+                          Preparing Popover EPUB…
+                        </>
+                      ) : (
+                        "Popover EPUB"
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      disabled={exporting !== null}
+                      onClick={async () => {
+                        setExporting("side-by-side-epub")
+                        try {
+                          await downloadSideBySideAlignmentEpub(
+                            displayRecord,
+                            imageMode
+                          )
+                        } finally {
+                          setExporting(null)
+                        }
+                      }}
+                    >
+                      {exporting === "side-by-side-epub" ? (
+                        <>
+                          <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
+                          Preparing Side-by-side EPUB…
+                        </>
+                      ) : (
+                        "Side-by-side EPUB"
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <AlignmentHighlightsTab
+                controller={highlightController}
+                onOpen={(selection) => {
+                  highlightController?.openSelection(selection)
+                  setDrawerOpen(false)
+                }}
+              />
+            )}
           </div>
         </DrawerContent>
       </Drawer>
+    </div>
+  )
+}
+
+const HIGHLIGHTS_PAGE_SIZE = 25
+
+function AlignmentHighlightsTab({
+  controller,
+  onOpen,
+}: {
+  controller: AlignmentHighlightController | null
+  onOpen: (selection: AlignmentSavedSelection) => void
+}) {
+  const [page, setPage] = useState(0)
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const selections = useMemo(
+    () =>
+      [...(controller?.selections ?? [])].sort(
+        (a, b) =>
+          a.segments[0]?.pairIdx - b.segments[0]?.pairIdx ||
+          a.segments[0]?.startOffset - b.segments[0]?.startOffset
+      ),
+    [controller?.selections]
+  )
+  const pageCount = Math.max(
+    1,
+    Math.ceil(selections.length / HIGHLIGHTS_PAGE_SIZE)
+  )
+  const pageItems = selections.slice(
+    page * HIGHLIGHTS_PAGE_SIZE,
+    (page + 1) * HIGHLIGHTS_PAGE_SIZE
+  )
+
+  async function removeSelection(id: string) {
+    if (confirmingId !== id) {
+      setConfirmingId(id)
+      return
+    }
+    await controller?.deleteSelection(id)
+    setConfirmingId(null)
+    if (pageItems.length === 1 && page > 0) setPage((current) => current - 1)
+  }
+
+  if (!controller) {
+    return <p className="text-sm text-muted-foreground">Loading highlights…</p>
+  }
+  if (selections.length === 0) {
+    return (
+      <p className="py-8 text-center text-sm text-muted-foreground">
+        No saved highlights for this alignment.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Ordered as they appear in the alignment.
+      </p>
+      <div className="space-y-2">
+        {pageItems.map((selection) => (
+          <div key={selection.id} className="rounded-lg border bg-card">
+            <button
+              type="button"
+              onClick={() => onOpen(selection)}
+              className="w-full px-3 pt-3 text-left hover:bg-muted/50"
+            >
+              <span className="line-clamp-2 text-sm leading-6">
+                “{selection.selectedText}”
+              </span>
+              <span className="mt-1 block text-xs text-muted-foreground capitalize">
+                {selection.segments[0]?.side} text
+              </span>
+            </button>
+            <div className="flex justify-end px-2 pb-2">
+              {confirmingId === selection.id ? (
+                <div className="flex gap-1">
+                  <button
+                    type="button"
+                    onClick={() => void removeSelection(selection.id)}
+                    className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingId(null)}
+                    className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void removeSelection(selection.id)}
+                  className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
+                >
+                  Delete
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      {selections.length > HIGHLIGHTS_PAGE_SIZE && (
+        <div className="flex items-center justify-between pt-2">
+          <span className="text-xs text-muted-foreground">
+            Page {page + 1} of {pageCount}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page === 0}
+              onClick={() => setPage((current) => current - 1)}
+            >
+              Previous
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={page + 1 >= pageCount}
+              onClick={() => setPage((current) => current + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1095,7 +1261,7 @@ function SideBySideView({
   record,
   canonicalResult,
   swapped,
-  selectionId,
+  onHighlightControllerChange,
   fontSize,
   pageNumHidden,
   onTogglePageNum,
@@ -1106,7 +1272,9 @@ function SideBySideView({
   record: AlignmentRecord
   canonicalResult: AlignmentResult
   swapped: boolean
-  selectionId?: string
+  onHighlightControllerChange: (
+    controller: AlignmentHighlightController | null
+  ) => void
   fontSize: number
   pageNumHidden: boolean
   onTogglePageNum: () => void
@@ -1125,6 +1293,10 @@ function SideBySideView({
   const [savedSelections, setSavedSelections] = useState<
     AlignmentSavedSelection[]
   >([])
+  const [focusedSelectionId, setFocusedSelectionId] = useState<string | null>(
+    null
+  )
+  const focusTimerRef = useRef<number | null>(null)
 
   const paragraphs = useMemo(
     () => buildAlignmentParagraphs(record.result, imageMode),
@@ -1148,20 +1320,57 @@ function SideBySideView({
   )
 
   const savedHighlights = useMemo(
-    () => highlightsForAlignment(savedSelections, canonicalResult, selectionId),
-    [canonicalResult, savedSelections, selectionId]
+    () =>
+      highlightsForAlignment(
+        savedSelections,
+        canonicalResult,
+        focusedSelectionId ?? undefined
+      ),
+    [canonicalResult, focusedSelectionId, savedSelections]
   )
 
+  const openSavedSelection = useCallback(
+    (selection: AlignmentSavedSelection) => {
+      const paragraphIndex = displayParagraphIndexForSelection(
+        paragraphs,
+        selection
+      )
+      if (paragraphIndex != null)
+        readerRef.current?.jumpToParaIdx(paragraphIndex)
+      setFocusedSelectionId(selection.id)
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+      focusTimerRef.current = window.setTimeout(() => {
+        setFocusedSelectionId(null)
+        focusTimerRef.current = null
+      }, 1600)
+    },
+    [paragraphs]
+  )
+
+  const removeSavedSelection = useCallback(async (id: string) => {
+    await deleteSavedSelection(id)
+    setSavedSelections((current) => current.filter((item) => item.id !== id))
+  }, [])
+
   useEffect(() => {
-    if (!selectionId) return
-    const selection = savedSelections.find((item) => item.id === selectionId)
-    if (!selection) return
-    const paragraphIndex = displayParagraphIndexForSelection(
-      paragraphs,
-      selection
-    )
-    if (paragraphIndex != null) readerRef.current?.jumpToParaIdx(paragraphIndex)
-  }, [paragraphs, savedSelections, selectionId])
+    onHighlightControllerChange({
+      selections: savedSelections,
+      openSelection: openSavedSelection,
+      deleteSelection: removeSavedSelection,
+    })
+    return () => onHighlightControllerChange(null)
+  }, [
+    onHighlightControllerChange,
+    openSavedSelection,
+    removeSavedSelection,
+    savedSelections,
+  ])
+
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+    }
+  }, [])
 
   useEffect(() => {
     setSearchIdx(-1)
@@ -1682,7 +1891,7 @@ function PopoverView({
   record,
   canonicalResult,
   swapped,
-  selectionId,
+  onHighlightControllerChange,
   fontSize,
   pageNumHidden,
   onTogglePageNum,
@@ -1691,7 +1900,9 @@ function PopoverView({
   record: AlignmentRecord
   canonicalResult: AlignmentResult
   swapped: boolean
-  selectionId?: string
+  onHighlightControllerChange: (
+    controller: AlignmentHighlightController | null
+  ) => void
   fontSize: number
   pageNumHidden: boolean
   onTogglePageNum: () => void
@@ -1710,6 +1921,10 @@ function PopoverView({
   const [savedSelections, setSavedSelections] = useState<
     AlignmentSavedSelection[]
   >([])
+  const [focusedSelectionId, setFocusedSelectionId] = useState<string | null>(
+    null
+  )
+  const focusTimerRef = useRef<number | null>(null)
 
   const paragraphs = useMemo(
     () => buildAlignmentParagraphs(record.result, imageMode),
@@ -1722,31 +1937,67 @@ function PopoverView({
   )
 
   const renderedHighlights = useMemo(
-    () => highlightsForAlignment(savedSelections, canonicalResult, selectionId),
-    [canonicalResult, savedSelections, selectionId]
+    () =>
+      highlightsForAlignment(
+        savedSelections,
+        canonicalResult,
+        focusedSelectionId ?? undefined
+      ),
+    [canonicalResult, focusedSelectionId, savedSelections]
   )
 
-  useEffect(() => {
-    if (!selectionId) return
-    const selection = savedSelections.find((item) => item.id === selectionId)
-    if (!selection) return
-    const paragraphIndex = displayParagraphIndexForSelection(
-      paragraphs,
-      selection
-    )
-    if (paragraphIndex == null) return
+  const openSavedSelection = useCallback(
+    (selection: AlignmentSavedSelection) => {
+      const paragraphIndex = displayParagraphIndexForSelection(
+        paragraphs,
+        selection
+      )
+      if (paragraphIndex == null) return
 
-    readerRef.current?.jumpToParaIdx(paragraphIndex)
-    const pairIndex = paragraphs[paragraphIndex].pairs.findIndex(
-      (pair) => recordPairIdx(pair) === selection.segments[0]?.pairIdx
-    )
-    if (pairIndex >= 0) {
-      const timeout = window.setTimeout(() => {
-        paragraphListRef.current?.setOpenKey(`${paragraphIndex}-${pairIndex}`)
-      }, 50)
-      return () => window.clearTimeout(timeout)
+      readerRef.current?.jumpToParaIdx(paragraphIndex)
+      setFocusedSelectionId(selection.id)
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+      focusTimerRef.current = window.setTimeout(() => {
+        setFocusedSelectionId(null)
+        focusTimerRef.current = null
+      }, 1600)
+
+      const pairIndex = paragraphs[paragraphIndex].pairs.findIndex(
+        (pair) => recordPairIdx(pair) === selection.segments[0]?.pairIdx
+      )
+      if (pairIndex >= 0) {
+        window.setTimeout(() => {
+          paragraphListRef.current?.setOpenKey(`${paragraphIndex}-${pairIndex}`)
+        }, 50)
+      }
+    },
+    [paragraphs]
+  )
+
+  const removeSavedSelection = useCallback(async (id: string) => {
+    await deleteSavedSelection(id)
+    setSavedSelections((current) => current.filter((item) => item.id !== id))
+  }, [])
+
+  useEffect(() => {
+    onHighlightControllerChange({
+      selections: savedSelections,
+      openSelection: openSavedSelection,
+      deleteSelection: removeSavedSelection,
+    })
+    return () => onHighlightControllerChange(null)
+  }, [
+    onHighlightControllerChange,
+    openSavedSelection,
+    removeSavedSelection,
+    savedSelections,
+  ])
+
+  useEffect(() => {
+    return () => {
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
     }
-  }, [paragraphs, savedSelections, selectionId])
+  }, [])
 
   useEffect(() => {
     let cancelled = false

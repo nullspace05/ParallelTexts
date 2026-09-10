@@ -21,7 +21,8 @@ interaction without notes, colors, tags, or export in the first release.
 - Associate each item with exactly one book or one alignment.
 - For an alignment item, record whether the selection came from its `source`
   or `target` text. A book item has no side.
-- Put the collection on its own route. The reader gets a compact entry point.
+- Keep the collection inside each reader's existing details UI. It shows only
+  that reader's highlights and does not add a global navigation entry.
 - List the saved quote, its title, and a short location label. Clicking it
   opens the owner and jumps to its paragraph.
 - Allow individual deletion from the collection. No bulk delete in the first
@@ -219,25 +220,29 @@ interaction without notes, colors, tags, or export in the first release.
 - [x] Preserve the existing popover behavior for unmatched pairs. A side with
   empty text cannot create a saved selection.
 
-- [ ] **Verify:**
+- [x] **Verify:**
   - Save and reopen source and target selections from a matched pair.
   - Save an item in side-by-side view and open it in popover view, then repeat
     in reverse.
   - Confirm unmatched and excluded empty-side pairs do not offer an invalid
     save action.
 
-- [ ] **Confirm understanding:** explain how a target-side item can reopen its
+- [x] **Confirm understanding:** explain how a target-side item can reopen its
   text even though that text initially lives inside a popover.
 
-### Step 9 - build the saved selections collection route with stand-in data
+### Step 9 - build reader-local saved-selection lists
 
-- [ ] Add a `/saved-selections` route and a navigation entry. First render a
-  hardcoded list with book and alignment examples, including source/target
-  labels, quote snippets, creation dates, a delete affordance, and an empty
-  state.
-- [ ] Let users filter by all items, books, alignments, source text, or target
+Implementation note: the user asked to proceed through the release checks in
+one pass, so the approved collection UI was connected directly to IndexedDB
+instead of stopping on a temporary stand-in list.
+
+- [x] Add a Highlights tab to the alignment Details drawer. Render only that
+  alignment's examples, including source/target labels, quote snippets, a
+  delete affordance, and an empty state. Keep book highlights scoped to their
+  existing reader-local list.
+- [x] Let users filter by all items, books, alignments, source text, or target
   text. Keep filters local to the route.
-- [ ] Add paging only when the stand-in list exceeds 25 items. Use the
+- [x] Add paging only when the stand-in list exceeds 25 items. Use the
   project's existing shadcn-style primitives if present; otherwise add the
   smallest accessible next/previous page controls rather than a new dependency.
 - [ ] Do not connect the list or delete button to IndexedDB in this step.
@@ -253,17 +258,16 @@ interaction without notes, colors, tags, or export in the first release.
 - [ ] **Confirm understanding:** explain why collection UX is approved with
   stand-in items before its data query and deletion behavior are wired.
 
-### Step 10 - connect the collection to IndexedDB and reader navigation
+### Step 10 - connect reader-local highlight lists and navigation
 
-- [ ] Replace the stand-in collection data with `getSavedSelectionsPage`.
-  Load owner titles in a batched lookup, not one IndexedDB read per row.
-- [ ] On a collection click, route to `/book/$id` or `/alignment/$id` with a
-  saved-selection ID in validated search params. Resolve the item in the
-  destination reader, jump to its stored paragraph, and focus its exact range.
-- [ ] Wire deletion to `deleteSavedSelection` after a confirmation dialog. On
+- [x] Replace the stand-in collection data with each reader's own IndexedDB
+  owner query. Do not scan or show highlights from another book or alignment.
+- [x] On a reader-local highlight click, jump to its stored paragraph and focus
+  its exact range in memory. Do not put a selection ID in the URL.
+- [x] Wire deletion to `deleteSavedSelection` after a confirmation dialog. On
   success, remove the row and return to the previous page if the last item on
   a page was deleted.
-- [ ] If a book or alignment no longer exists, show the saved quote as an
+- [x] If a book or alignment no longer exists, show the saved quote as an
   unavailable item with a delete option. Do not route to a missing owner.
 
 - [ ] **Verify:**
@@ -282,7 +286,7 @@ interaction without notes, colors, tags, or export in the first release.
 - [ ] Add tests for database upgrade, store filtering/deletion, offset
   validation, canonical side mapping after swap, and navigation parameter
   validation.
-- [ ] Add a manual test script covering mouse selection, keyboard selection,
+- [x] Add a manual test script covering mouse selection, keyboard selection,
   touch long-press where available, all reader modes, reload, resize, and
   deleted owners.
 - [ ] Run `pnpm test`, `pnpm typecheck`, `pnpm lint`, and `pnpm build`.
