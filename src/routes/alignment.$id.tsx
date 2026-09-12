@@ -92,7 +92,10 @@ import {
   useRef,
   useState,
 } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
+
+type TranslateFn = ReturnType<typeof useTranslation>["t"]
 
 type Tab = "side-by-side" | "popover"
 type DetailsTab = "details" | "highlights"
@@ -316,16 +319,20 @@ function metaModelLabel(meta: AlignmentMeta): string {
   )
 }
 
-function formatSavedAt(savedAt: number): string {
+function formatSavedAt(savedAt: number, t: TranslateFn): string {
   const diffMs = Date.now() - savedAt
   const diffS = Math.floor(diffMs / 1000)
-  if (diffS < 60) return "Last saved: just now"
+  if (diffS < 60) return t("alignmentViewer.lastSavedJustNow")
   const diffMin = Math.floor(diffS / 60)
-  if (diffMin < 60) return `Last saved: ${diffMin} min ago`
-  return `Last saved: ${new Date(savedAt).toLocaleTimeString()}`
+  if (diffMin < 60)
+    return t("alignmentViewer.lastSavedMinAgo", { min: diffMin })
+  return t("alignmentViewer.lastSavedAt", {
+    time: new Date(savedAt).toLocaleTimeString(),
+  })
 }
 
 function AlignmentPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const { view, pageNumHidden, charCount, totalChars } = Route.useSearch()
   const navigate = useNavigate({ from: "/alignment/$id" })
@@ -406,7 +413,7 @@ function AlignmentPage() {
       <div className="flex min-h-[calc(100svh-56px)] flex-col items-center justify-center gap-3 px-4 text-center">
         <p className="max-w-md text-sm text-destructive">{loadError}</p>
         <Button variant="outline" onClick={() => void loadRecord()}>
-          Try again
+          {t("alignmentViewer.tryAgain")}
         </Button>
       </div>
     )
@@ -420,7 +427,7 @@ function AlignmentPage() {
       >
         <div className="mx-auto max-w-3xl">
           <p className="mb-4 text-center text-sm text-muted-foreground">
-            Opening alignment… This can take a while for large books.
+            {t("alignmentViewer.openingAlignment")}
           </p>
           <ReaderSkeleton fontSize={fontSize} />
         </div>
@@ -431,7 +438,7 @@ function AlignmentPage() {
   if (record === null) {
     return (
       <div className="flex min-h-[calc(100svh-56px)] items-center justify-center">
-        <p className="text-muted-foreground">Alignment not found.</p>
+        <p className="text-muted-foreground">{t("alignmentViewer.notFound")}</p>
       </div>
     )
   }
@@ -513,7 +520,7 @@ function AlignmentPage() {
         type="button"
         onClick={() => setDrawerOpen(true)}
         className="absolute right-4 bottom-4 z-20 flex size-10 items-center justify-center rounded-full bg-background shadow-md ring-1 ring-border hover:bg-muted"
-        aria-label="Open details"
+        aria-label={t("alignmentViewer.openDetails")}
       >
         <InfoIcon className="size-4 text-muted-foreground" />
       </button>
@@ -523,9 +530,9 @@ function AlignmentPage() {
         <DrawerContent className="flex flex-col">
           <DrawerHeader className="relative flex-row items-center justify-between border-b">
             <div>
-              <DrawerTitle>Details</DrawerTitle>
+              <DrawerTitle>{t("alignmentViewer.details")}</DrawerTitle>
               <DrawerDescription className="sr-only">
-                Alignment details and export options
+                {t("alignmentViewer.detailsDescription")}
               </DrawerDescription>
             </div>
             <DrawerClose className="absolute top-1/2 right-4 -translate-y-1/2 rounded-md p-1 text-muted-foreground hover:bg-muted">
@@ -545,7 +552,9 @@ function AlignmentPage() {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                {tab === "details" ? "Details" : "Highlights"}
+                {tab === "details"
+                  ? t("alignmentViewer.details")
+                  : t("alignmentViewer.highlightsTab")}
               </button>
             ))}
           </div>
@@ -565,44 +574,45 @@ function AlignmentPage() {
                   <p className="pt-1 text-xs text-muted-foreground">
                     {result.src_lang.toUpperCase()} →{" "}
                     {result.tgt_lang.toUpperCase()}
-                    &ensp;·&ensp;{date}
+                    {" · "}
+                    {date}
                   </p>
                 </div>
 
                 {/* Stats */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Stats
+                    {t("alignmentViewer.stats")}
                   </p>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                     <Stat
-                      label="Matched"
+                      label={t("alignmentViewer.statMatched")}
                       value={`${result.aligned_count.toLocaleString()} (${matchPct}%)`}
                       accent="text-primary"
                     />
                     <Stat
-                      label="Src gaps"
+                      label={t("alignmentViewer.statSrcGaps")}
                       value={result.src_gap_count.toLocaleString()}
                     />
                     <Stat
-                      label="Tgt gaps"
+                      label={t("alignmentViewer.statTgtGaps")}
                       value={result.tgt_gap_count.toLocaleString()}
                     />
                     <Stat
-                      label="Total pairs"
+                      label={t("alignmentViewer.statTotalPairs")}
                       value={result.pairs.length.toLocaleString()}
                     />
                     <Stat
-                      label="Src sentences"
+                      label={t("alignmentViewer.statSrcSentences")}
                       value={result.total_src_sentences.toLocaleString()}
                     />
                     <Stat
-                      label="Tgt sentences"
+                      label={t("alignmentViewer.statTgtSentences")}
                       value={result.total_tgt_sentences.toLocaleString()}
                     />
                     {!!result.excluded_count && (
                       <Stat
-                        label="Excluded"
+                        label={t("alignmentViewer.statExcluded")}
                         value={result.excluded_count.toLocaleString()}
                       />
                     )}
@@ -612,38 +622,43 @@ function AlignmentPage() {
                 {/* Origin / model metadata */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Origin
+                    {t("alignmentViewer.origin")}
                   </p>
                   {record.importedFrom === "tsv" ? (
                     <div className="flex items-center gap-2">
                       <span className="rounded bg-muted px-2 py-0.5 text-xs font-medium">
-                        TSV import
+                        {t("alignmentViewer.tsvImportBadge")}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        Imported from an external TSV file
+                        {t("alignmentViewer.importedFromTsv")}
                       </span>
                     </div>
                   ) : record.meta ? (
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       <div className="col-span-2">
-                        <p className="text-xs text-muted-foreground">Model</p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("alignmentViewer.model")}
+                        </p>
                         <p className="text-sm font-medium">
                           {metaModelLabel(record.meta)}
                         </p>
                       </div>
                       <Stat
-                        label="Device"
+                        label={t("alignmentViewer.statDevice")}
                         value={record.meta.device.toUpperCase()}
                       />
-                      <Stat label="Precision" value={record.meta.dtype} />
                       <Stat
-                        label="Duration"
+                        label={t("alignmentViewer.statPrecision")}
+                        value={record.meta.dtype}
+                      />
+                      <Stat
+                        label={t("alignmentViewer.statDuration")}
                         value={formatDuration(record.meta.durationMs)}
                       />
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">
-                      Generated by alignment pipeline
+                      {t("alignmentViewer.generatedByPipeline")}
                     </p>
                   )}
                 </div>
@@ -651,21 +666,23 @@ function AlignmentPage() {
                 {/* View mode */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    View
+                    {t("alignmentViewer.view")}
                   </p>
                   <div className="flex gap-1 rounded-lg bg-muted p-1">
-                    {(["side-by-side", "popover"] as Tab[]).map((t) => (
+                    {(["side-by-side", "popover"] as Tab[]).map((tabValue) => (
                       <button
-                        key={t}
+                        key={tabValue}
                         type="button"
-                        onClick={() => setView(t)}
+                        onClick={() => setView(tabValue)}
                         className={`flex-1 rounded-md px-3 py-1 text-sm font-medium transition-colors ${
-                          effectiveView === t
+                          effectiveView === tabValue
                             ? "bg-background text-foreground shadow-sm"
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {t === "side-by-side" ? "Side by side" : "Popover"}
+                        {tabValue === "side-by-side"
+                          ? t("alignmentViewer.viewSideBySide")
+                          : t("alignmentViewer.viewPopover")}
                       </button>
                     ))}
                   </div>
@@ -674,7 +691,7 @@ function AlignmentPage() {
                 {/* Direction swap */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Direction
+                    {t("alignmentViewer.direction")}
                   </p>
                   <button
                     type="button"
@@ -697,12 +714,12 @@ function AlignmentPage() {
                 {/* Display */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Display
+                    {t("alignmentViewer.display")}
                   </p>
                   <ToggleSwitch
                     checked={!effectivePageNumHidden}
                     onChange={togglePageNum}
-                    label="Page number"
+                    label={t("alignmentViewer.pageNumberToggle")}
                   />
                 </div>
 
@@ -710,17 +727,17 @@ function AlignmentPage() {
                 {effectiveView === "side-by-side" && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      Side-by-side
+                      {t("alignmentViewer.sideBySideSectionHeading")}
                     </p>
                     <ToggleSwitch
                       checked={showLineNumbers}
                       onChange={toggleLineNumbers}
-                      label="Line numbers"
+                      label={t("alignmentViewer.lineNumbersToggle")}
                     />
                     <ToggleSwitch
                       checked={showEquivalence}
                       onChange={toggleEquivalence}
-                      label="Show equivalence"
+                      label={t("alignmentViewer.showEquivalenceToggle")}
                     />
                   </div>
                 )}
@@ -728,15 +745,15 @@ function AlignmentPage() {
                 {/* Images */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Images
+                    {t("alignmentViewer.images")}
                   </p>
                   <div className="grid grid-cols-4 gap-1 rounded-lg bg-muted p-1">
                     {(
                       [
-                        ["source", "Source"],
-                        ["target", "Target"],
-                        ["both", "Both"],
-                        ["none", "None"],
+                        ["source", t("align.source")],
+                        ["target", t("align.target")],
+                        ["both", t("alignmentViewer.imageModeBoth")],
+                        ["none", t("alignmentViewer.imageModeNone")],
                       ] as [ImageMode, string][]
                     ).map(([m, label]) => (
                       <button
@@ -762,13 +779,15 @@ function AlignmentPage() {
                 {totalChars > 0 && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                      Reading progress
+                      {t("alignmentViewer.readingProgress")}
                     </p>
                     <div className="space-y-1.5 text-sm">
                       <div className="flex items-baseline justify-between">
                         <span className="text-xs text-muted-foreground">
-                          {charCount.toLocaleString()} /{" "}
-                          {totalChars.toLocaleString()} chars
+                          {t("alignmentViewer.charsProgress", {
+                            current: charCount.toLocaleString(),
+                            total: totalChars.toLocaleString(),
+                          })}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {Math.round((charCount / totalChars) * 100)}%
@@ -784,7 +803,7 @@ function AlignmentPage() {
                       </div>
                       {savedAt && (
                         <p className="text-xs text-muted-foreground">
-                          {formatSavedAt(savedAt)}
+                          {formatSavedAt(savedAt, t)}
                         </p>
                       )}
                     </div>
@@ -802,7 +821,7 @@ function AlignmentPage() {
                         })
                       }
                     >
-                      Clear progress
+                      {t("alignmentViewer.clearProgress")}
                     </button>
                   </div>
                 )}
@@ -810,7 +829,7 @@ function AlignmentPage() {
                 {/* Export */}
                 <div className="space-y-2">
                   <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                    Export
+                    {t("alignmentViewer.export")}
                   </p>
                   <div className="flex flex-col gap-2">
                     <Button
@@ -831,10 +850,10 @@ function AlignmentPage() {
                       {exporting === "tsv" ? (
                         <>
                           <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                          Preparing TSV…
+                          {t("alignmentViewer.preparingTsv")}
                         </>
                       ) : (
-                        "Export TSV"
+                        t("alignmentViewer.exportTsv")
                       )}
                     </Button>
                     <Button
@@ -854,10 +873,10 @@ function AlignmentPage() {
                       {exporting === "popover-epub" ? (
                         <>
                           <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                          Preparing Popover EPUB…
+                          {t("alignmentViewer.preparingPopoverEpub")}
                         </>
                       ) : (
-                        "Popover EPUB"
+                        t("alignmentViewer.popoverEpub")
                       )}
                     </Button>
                     <Button
@@ -880,10 +899,10 @@ function AlignmentPage() {
                       {exporting === "side-by-side-epub" ? (
                         <>
                           <CircleNotchIcon className="mr-1.5 size-3.5 animate-spin" />
-                          Preparing Side-by-side EPUB…
+                          {t("alignmentViewer.preparingSideBySideEpub")}
                         </>
                       ) : (
-                        "Side-by-side EPUB"
+                        t("alignmentViewer.sideBySideEpub")
                       )}
                     </Button>
                   </div>
@@ -914,6 +933,7 @@ function AlignmentHighlightsTab({
   controller: AlignmentHighlightController | null
   onOpen: (selection: AlignmentSavedSelection) => void
 }) {
+  const { t } = useTranslation()
   const [page, setPage] = useState(0)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const selections = useMemo(
@@ -945,12 +965,16 @@ function AlignmentHighlightsTab({
   }
 
   if (!controller) {
-    return <p className="text-sm text-muted-foreground">Loading highlights…</p>
+    return (
+      <p className="text-sm text-muted-foreground">
+        {t("alignmentViewer.loadingHighlights")}
+      </p>
+    )
   }
   if (selections.length === 0) {
     return (
       <p className="py-8 text-center text-sm text-muted-foreground">
-        No saved highlights for this alignment.
+        {t("alignmentViewer.noSavedHighlights")}
       </p>
     )
   }
@@ -958,7 +982,7 @@ function AlignmentHighlightsTab({
   return (
     <div className="space-y-3">
       <p className="text-xs text-muted-foreground">
-        Ordered as they appear in the alignment.
+        {t("alignmentViewer.orderedHint")}
       </p>
       <div className="space-y-2">
         {pageItems.map((selection) => (
@@ -972,7 +996,12 @@ function AlignmentHighlightsTab({
                 “{selection.selectedText}”
               </span>
               <span className="mt-1 block text-xs text-muted-foreground capitalize">
-                {selection.segments[0]?.side} text
+                {t("alignmentViewer.sideTextLabel", {
+                  side:
+                    selection.segments[0]?.side === "target"
+                      ? t("alignmentViewer.sideTarget")
+                      : t("alignmentViewer.sideSource"),
+                })}
               </span>
             </button>
             <div className="flex justify-end px-2 pb-2">
@@ -983,14 +1012,14 @@ function AlignmentHighlightsTab({
                     onClick={() => void removeSelection(selection.id)}
                     className="rounded px-2 py-1 text-xs text-destructive hover:bg-destructive/10"
                   >
-                    Delete
+                    {t("alignmentViewer.delete")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setConfirmingId(null)}
                     className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
                   >
-                    Cancel
+                    {t("alignmentViewer.cancel")}
                   </button>
                 </div>
               ) : (
@@ -999,7 +1028,7 @@ function AlignmentHighlightsTab({
                   onClick={() => void removeSelection(selection.id)}
                   className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-destructive"
                 >
-                  Delete
+                  {t("alignmentViewer.delete")}
                 </button>
               )}
             </div>
@@ -1009,7 +1038,7 @@ function AlignmentHighlightsTab({
       {selections.length > HIGHLIGHTS_PAGE_SIZE && (
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-muted-foreground">
-            Page {page + 1} of {pageCount}
+            {t("alignmentViewer.pageOf", { page: page + 1, total: pageCount })}
           </span>
           <div className="flex gap-2">
             <Button
@@ -1018,7 +1047,7 @@ function AlignmentHighlightsTab({
               disabled={page === 0}
               onClick={() => setPage((current) => current - 1)}
             >
-              Previous
+              {t("alignmentViewer.previous")}
             </Button>
             <Button
               size="sm"
@@ -1026,7 +1055,7 @@ function AlignmentHighlightsTab({
               disabled={page + 1 >= pageCount}
               onClick={() => setPage((current) => current + 1)}
             >
-              Next
+              {t("alignmentViewer.next")}
             </Button>
           </div>
         </div>
@@ -1095,6 +1124,7 @@ function SideBySideSentence({
   selectionKey?: string
   temporaryHighlights: TemporaryHighlight[]
 }) {
+  const { t } = useTranslation()
   const hasText = text.trim().length > 0
   const colorable = showEquivalence && hasMatch
   const palette = EQUIVALENCE_PALETTE[colorIdx % EQUIVALENCE_PALETTE.length]
@@ -1104,7 +1134,9 @@ function SideBySideSentence({
       <span
         onMouseEnter={colorable ? onHoverStart : undefined}
         onMouseLeave={colorable ? onHoverEnd : undefined}
-        title={excluded ? "Excluded from alignment" : undefined}
+        title={
+          excluded ? t("alignmentViewer.excludedFromAlignment") : undefined
+        }
         className={
           colorable
             ? `rounded-sm px-0.5 transition-colors ${isHovered ? palette.hover : palette.base}`
@@ -1282,6 +1314,7 @@ function SideBySideView({
   showLineNumbers: boolean
   showEquivalence: boolean
 }) {
+  const { t } = useTranslation()
   const navigate = useNavigate({ from: "/alignment/$id" })
   const { charCount: urlCharCount } = Route.useSearch()
 
@@ -1432,8 +1465,8 @@ function SideBySideView({
   ): Promise<boolean> {
     const segments = alignmentSegmentsFromHighlight(highlight)
     if (!segments) {
-      toast.error("Could not save highlight", {
-        description: "The selected text no longer belongs to this alignment.",
+      toast.error(t("alignmentViewer.highlightSaveError"), {
+        description: t("alignmentViewer.highlightTextGone"),
       })
       return false
     }
@@ -1451,7 +1484,7 @@ function SideBySideView({
       setSavedSelections((current) => [selection, ...current])
       return true
     } catch (error) {
-      toast.error("Could not save highlight", {
+      toast.error(t("alignmentViewer.highlightSaveError"), {
         description: getOperationErrorMessage(error, "Please try again."),
       })
       return false
@@ -1467,7 +1500,7 @@ function SideBySideView({
       })
       .catch((error) => {
         if (!cancelled) {
-          toast.error("Could not load highlights", {
+          toast.error(t("alignmentViewer.highlightsLoadError"), {
             description: getOperationErrorMessage(error, "Please try again."),
           })
         }
@@ -1487,7 +1520,7 @@ function SideBySideView({
         pageNumHidden={pageNumHidden}
         onTogglePageNum={onTogglePageNum}
         onSaveProgress={handleSaveProgress}
-        emptyMessage="No source text in this alignment."
+        emptyMessage={t("alignmentViewer.emptyAlignment")}
         searchSlot={
           <ReaderSearch
             query={searchQuery}
@@ -1547,6 +1580,7 @@ function PairPopoverContent({
   targetSelectionKey: string
   temporaryHighlights: TemporaryHighlight[]
 }) {
+  const { t } = useTranslation()
   const [showDetails, setShowDetails] = useState(false)
   const [prevExpanded, setPrevExpanded] = useState(false)
   const [nextExpanded, setNextExpanded] = useState(false)
@@ -1560,7 +1594,11 @@ function PairPopoverContent({
         type="button"
         onClick={() => setShowDetails((v) => !v)}
         className="absolute top-0 right-0 text-muted-foreground hover:text-foreground"
-        aria-label={showDetails ? "Hide details" : "Show details"}
+        aria-label={
+          showDetails
+            ? t("alignmentViewer.hideDetails")
+            : t("alignmentViewer.showDetails")
+        }
       >
         {showDetails ? (
           <XIcon className="size-3.5" />
@@ -1575,9 +1613,9 @@ function PairPopoverContent({
             {prevPair.tgt_excluded && (
               <span
                 className="mr-1 rounded border border-dotted border-amber-500 px-1 text-[0.65em] tracking-wide uppercase not-italic opacity-80"
-                title="Excluded from alignment"
+                title={t("alignmentViewer.excludedFromAlignment")}
               >
-                Excluded
+                {t("alignmentViewer.excludedBadge")}
               </span>
             )}
             <span className="italic">
@@ -1614,9 +1652,9 @@ function PairPopoverContent({
             {nextPair.tgt_excluded && (
               <span
                 className="mr-1 rounded border border-dotted border-amber-500 px-1 text-[0.65em] tracking-wide uppercase not-italic opacity-80"
-                title="Excluded from alignment"
+                title={t("alignmentViewer.excludedFromAlignment")}
               >
-                Excluded
+                {t("alignmentViewer.excludedBadge")}
               </span>
             )}
             <span className="italic">
@@ -1640,18 +1678,26 @@ function PairPopoverContent({
       {showDetails && (
         <div className="space-y-1 text-xs text-muted-foreground">
           <p>
-            Confidence:{" "}
-            {pair.confidence != null
-              ? (pair.confidence * 100).toFixed(1) + "%"
-              : "N/A"}
+            {t("alignmentViewer.confidenceLabel", {
+              value:
+                pair.confidence != null
+                  ? (pair.confidence * 100).toFixed(1) + "%"
+                  : t("alignmentViewer.notAvailable"),
+            })}
           </p>
           <p>
-            Source: para {pair.src_para_idx}, sent {pair.src_sent_idx} (global:{" "}
-            {pair.src_global_idx})
+            {t("alignmentViewer.sourceParaInfo", {
+              para: pair.src_para_idx,
+              sent: pair.src_sent_idx,
+              global: pair.src_global_idx,
+            })}
           </p>
           <p>
-            Target: para {pair.tgt_para_idx}, sent {pair.tgt_sent_idx} (global:{" "}
-            {pair.tgt_global_idx})
+            {t("alignmentViewer.targetParaInfo", {
+              para: pair.tgt_para_idx,
+              sent: pair.tgt_sent_idx,
+              global: pair.tgt_global_idx,
+            })}
           </p>
         </div>
       )}
@@ -1685,6 +1731,7 @@ const PairSpan = memo(function PairSpan({
   temporaryHighlights: TemporaryHighlight[]
   swapped: boolean
 }) {
+  const { t } = useTranslation()
   const handleChange = useCallback(
     (open: boolean) => {
       setOpenKey(open ? `${pIdx}-${pairIdx}` : null)
@@ -1704,7 +1751,11 @@ const PairSpan = memo(function PairSpan({
             ? "border-b-2 border-dotted border-amber-500 opacity-70"
             : undefined
         }
-        title={pair.src_excluded ? "Excluded from alignment" : undefined}
+        title={
+          pair.src_excluded
+            ? t("alignmentViewer.excludedFromAlignment")
+            : undefined
+        }
       >
         <TemporaryHighlightText
           text={pair.src_text}
@@ -1908,6 +1959,7 @@ function PopoverView({
   onTogglePageNum: () => void
   imageMode: ImageMode
 }) {
+  const { t } = useTranslation()
   const navigate = useNavigate({ from: "/alignment/$id" })
   const { charCount: urlCharCount } = Route.useSearch()
 
@@ -2007,7 +2059,7 @@ function PopoverView({
       })
       .catch((error) => {
         if (!cancelled) {
-          toast.error("Could not load highlights", {
+          toast.error(t("alignmentViewer.highlightsLoadError"), {
             description: getOperationErrorMessage(error, "Please try again."),
           })
         }
@@ -2101,8 +2153,8 @@ function PopoverView({
   ): Promise<boolean> {
     const segments = alignmentSegmentsFromHighlight(highlight)
     if (!segments) {
-      toast.error("Could not save highlight", {
-        description: "The selected text no longer belongs to this alignment.",
+      toast.error(t("alignmentViewer.highlightSaveError"), {
+        description: t("alignmentViewer.highlightTextGone"),
       })
       return false
     }
@@ -2120,7 +2172,7 @@ function PopoverView({
       setSavedSelections((current) => [selection, ...current])
       return true
     } catch (error) {
-      toast.error("Could not save highlight", {
+      toast.error(t("alignmentViewer.highlightSaveError"), {
         description: getOperationErrorMessage(error, "Please try again."),
       })
       return false
@@ -2138,7 +2190,7 @@ function PopoverView({
         onTogglePageNum={onTogglePageNum}
         onSaveProgress={handleSaveProgress}
         onPageChange={handlePageChange}
-        emptyMessage="No source text in this alignment."
+        emptyMessage={t("alignmentViewer.emptyAlignment")}
         searchSlot={
           <ReaderSearch
             query={searchQuery}

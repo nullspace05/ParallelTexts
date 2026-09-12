@@ -1,25 +1,10 @@
 import {
-  decodeFloat32Array,
   decodePrecomputedFixture,
   encodeFloat32Array,
   validatePrecomputedFixture,
   type PrecomputedEmbeddingFixture,
 } from "@/lib/dev-precomputed-embeddings"
 
-// const original = new Float32Array([1, 0, 0, 0, 0, 1, 0, 0]) // 2 sentences × dim 4
-const original = new Float32Array([1, 1.0001001, 0, 0, 0, 1, 0, 0]) // 2 sentences × dim 4
-const b64 = encodeFloat32Array(original)
-const back = decodeFloat32Array(b64)
-// console.log("original:", [...original])
-// console.log("b64:", b64)
-// console.log("decoded:", [...back])
-// console.log(
-//   "roundtrip ok:",
-//   back.length === original.length && back.every((v, i) => v === original[i])
-// )
-
-// ---------
-// second test
 const DIM = 4
 const src = new Float32Array([
   1,

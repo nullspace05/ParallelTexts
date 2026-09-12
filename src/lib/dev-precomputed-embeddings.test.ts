@@ -1,3 +1,17 @@
+import { describe, expect, it } from "vitest"
+import {
+  decodeFloat32Array,
+  encodeFloat32Array,
+} from "./dev-precomputed-embeddings"
+
+describe("precomputed embedding byte encoding", () => {
+  it("round-trips a Float32Array", () => {
+    const original = new Float32Array([1, 1, 0, 0, 0, 1, 0, 0])
+
+    expect(decodeFloat32Array(encodeFloat32Array(original))).toEqual(original)
+  })
+})
+
 // import { describe, expect, it } from "vitest"
 // import {
 //   decodeFloat32Array,

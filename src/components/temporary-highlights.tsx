@@ -1,6 +1,7 @@
 import { BookmarkSimpleIcon } from "@phosphor-icons/react"
 import type { ReactNode } from "react"
 import { useCallback, useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export interface TemporaryHighlightSegment {
   key: string
@@ -171,6 +172,7 @@ export function TemporaryHighlightController({
     highlight: TemporaryHighlight & { text: string }
   ) => boolean | void | Promise<boolean | void>
 }) {
+  const { t } = useTranslation()
   const [pending, setPending] = useState<PendingTemporaryHighlight | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
@@ -217,7 +219,7 @@ export function TemporaryHighlightController({
           style={{ top: pending.top, left: pending.left }}
         >
           <BookmarkSimpleIcon className="size-3.5" />
-          {isSaving ? "Saving…" : "Save highlight"}
+          {isSaving ? t("highlights.saving") : t("highlights.save")}
         </button>
       )}
     </div>

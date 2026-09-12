@@ -2,11 +2,14 @@ import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
 import { BrowserStorageNotice } from "@/components/browser-storage-notice"
 import { Header } from "@/components/header"
+import { LanguageProvider } from "@/components/language-provider"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
 import { OG_IMAGE_URL, SITE_URL } from "@/lib/site-links"
 import { THEME_INIT_SCRIPT } from "@/lib/theme"
+import { UI_LANGUAGE_INIT_SCRIPT } from "@/lib/user-settings"
 import { PostHogProvider } from "@posthog/react"
+import { useTranslation } from "react-i18next"
 import appCss from "../styles.css?url"
 
 export const Route = createRootRoute({
@@ -105,14 +108,20 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  notFoundComponent: () => (
-    <main className="container mx-auto p-4 pt-16">
-      <h1>404</h1>
-      <p>The requested page could not be found.</p>
-    </main>
-  ),
+  notFoundComponent: NotFound,
   shellComponent: RootDocument,
 })
+
+function NotFound() {
+  const { t } = useTranslation()
+
+  return (
+    <main className="container mx-auto p-4 pt-16">
+      <h1>{t("notFound.heading")}</h1>
+      <p>{t("notFound.message")}</p>
+    </main>
+  )
+}
 
 const options = {
   api_host: import.meta.env.VITE_POSTHOG_HOST,
@@ -132,14 +141,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           {/* Runs before hydration so the correct theme class is present
               for first paint — avoids a light/dark flash. */}
           <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+          <script
+            dangerouslySetInnerHTML={{ __html: UI_LANGUAGE_INIT_SCRIPT }}
+          />
         </head>
         <body>
-          <ThemeProvider>
-            <BrowserStorageNotice />
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Toaster />
-            {/* <TanStackDevtools
+          <LanguageProvider>
+            <ThemeProvider>
+              <BrowserStorageNotice />
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Toaster />
+              {/* <TanStackDevtools
             config={{
               position: "bottom-right",
             }}
@@ -150,7 +163,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               },
             ]}
           /> */}
-          </ThemeProvider>
+            </ThemeProvider>
+          </LanguageProvider>
           <Scripts />
         </body>
       </html>

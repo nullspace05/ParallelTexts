@@ -9,6 +9,7 @@ import {
 import { DevicesIcon, XIcon } from "@phosphor-icons/react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/")({ component: App })
 
@@ -30,6 +31,8 @@ function AppBrand() {
 }
 
 function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
+  const { t } = useTranslation()
+
   return (
     <div className="relative overflow-hidden rounded-xl border bg-card">
       <button
@@ -39,7 +42,7 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
           onDismiss()
         }}
         className="absolute top-4 right-4 z-10 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        aria-label="Dismiss"
+        aria-label={t("home.dismiss")}
       >
         <XIcon className="size-4" />
       </button>
@@ -54,7 +57,7 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
           <div className="aspect-video w-full">
             <iframe
               src="https://www.youtube.com/embed/6cR_r8cOaN8"
-              title="ParallelTexts demo"
+              title={t("home.demoTitle")}
               className="h-full w-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -63,17 +66,16 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
         </div>
         <div className="flex min-w-0 flex-col gap-3">
           <h1 className="text-xl leading-snug font-medium tracking-tight text-foreground sm:text-2xl">
-            Align two books sentence-by-sentence.
+            {t("home.heading")}
           </h1>
           <p className="text-sm leading-relaxed text-muted-foreground sm:pr-12">
-            To begin, upload two files below — a book and its translation, or
-            try one of the examples below.
+            {t("home.description")}
           </p>
           <Link
             to="/about"
             className="w-fit text-sm font-medium text-primary underline-offset-4 hover:underline"
           >
-            Read more →
+            {t("home.readMore")} →
           </Link>
         </div>
       </div>
@@ -87,6 +89,7 @@ function IntroBanner({ onDismiss }: { onDismiss: () => void }) {
 }
 
 function App() {
+  const { t } = useTranslation()
   const [introDismissed, setIntroDismissed] = useState(() => {
     if (typeof window === "undefined") return false
     return getStoredIntroDismissed()
@@ -98,10 +101,7 @@ function App() {
         {/* Mobile notice — hidden on sm+ */}
         <div className="flex items-start gap-2 rounded-lg border border-amber-300/50 bg-amber-50/80 px-3 py-2.5 text-xs text-amber-800 md:hidden dark:border-amber-700/40 dark:bg-amber-950/30 dark:text-amber-300">
           <DevicesIcon className="mt-0.5 size-4 shrink-0" />
-          <span>
-            Best on desktop — alignment is compute-intensive and works best with
-            a full keyboard and more RAM.
-          </span>
+          <span>{t("home.mobileNotice")}</span>
         </div>
 
         {!introDismissed && (

@@ -1,9 +1,12 @@
 import { checkBrowserStorage } from "@/lib/browser-storage"
 import { captureStorageCheck } from "@/lib/operation-diagnostics"
 import { useEffect } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 export function BrowserStorageNotice() {
+  const { t } = useTranslation()
+
   useEffect(() => {
     let cancelled = false
     void checkBrowserStorage().then((result) => {
@@ -12,21 +15,21 @@ export function BrowserStorageNotice() {
       if (result.indexedDb && result.cacheStorage) return
 
       const unavailable = [
-        !result.indexedDb && "IndexedDB (books and alignments)",
-        !result.cacheStorage && "Cache storage (embedding models)",
+        !result.indexedDb && t("storage.indexedDb"),
+        !result.cacheStorage && t("storage.cacheStorage"),
       ]
         .filter(Boolean)
         .join(" and ")
-      toast.error("Browser storage is unavailable", {
+      toast.error(t("storage.heading"), {
         id: "browser-storage-unavailable",
-        description: `${unavailable} cannot be used. Private browsing or privacy settings may be blocking it. Open ParallelTexts in a regular window and try again.`,
+        description: t("storage.description", { unavailable }),
       })
     })
 
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [t])
 
   return null
 }

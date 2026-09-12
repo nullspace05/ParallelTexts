@@ -5,6 +5,7 @@ import {
   XIcon,
 } from "@phosphor-icons/react"
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export interface SearchResult {
   id: string
@@ -50,6 +51,7 @@ export function ReaderSearch({
   onJumpToPage,
   getTotal,
 }: ReaderSearchProps) {
+  const { t } = useTranslation()
   const textInputRef = useRef<HTMLInputElement>(null)
   const pageInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -146,7 +148,7 @@ export function ReaderSearch({
           switchMode("text")
         }}
         className="absolute top-3 right-4 z-20 flex size-10 items-center justify-center rounded-full bg-background shadow-md ring-1 ring-border hover:bg-muted"
-        aria-label="Search"
+        aria-label={t("reader.search")}
       >
         <MagnifyingGlassIcon className="size-4 text-muted-foreground" />
       </button>
@@ -161,10 +163,10 @@ export function ReaderSearch({
   const resultLabel = !query.trim()
     ? null
     : results.length === 0
-      ? "No results"
+      ? t("reader.noResults")
       : hasMore
-        ? `${results.length}+ matches`
-        : `${results.length} match${results.length !== 1 ? "es" : ""}`
+        ? t("reader.matchesMore", { count: results.length })
+        : t("reader.matches", { count: results.length })
 
   return (
     <div className="absolute top-3 right-4 z-20 flex w-[min(calc(100vw-2rem),22rem)] flex-col overflow-hidden rounded-lg border bg-card shadow-lg">
@@ -179,7 +181,7 @@ export function ReaderSearch({
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Search text
+          {t("reader.searchText")}
         </button>
         <button
           type="button"
@@ -190,14 +192,14 @@ export function ReaderSearch({
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
-          Go to page
+          {t("reader.goToPage")}
         </button>
         <div className="flex-1" />
         <button
           type="button"
           onClick={onClose}
           className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-          aria-label="Close"
+          aria-label={t("reader.close")}
         >
           <XIcon className="size-3.5" />
         </button>
@@ -212,7 +214,7 @@ export function ReaderSearch({
               ref={textInputRef}
               value={query}
               onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search…"
+              placeholder={t("reader.searchPlaceholder")}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
             />
           </div>
@@ -233,7 +235,7 @@ export function ReaderSearch({
                     type="button"
                     onClick={onPrev}
                     className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label="Previous result"
+                    aria-label={t("reader.previousResult")}
                   >
                     <CaretUpIcon className="size-3.5" />
                   </button>
@@ -241,7 +243,7 @@ export function ReaderSearch({
                     type="button"
                     onClick={onNext}
                     className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
-                    aria-label="Next result"
+                    aria-label={t("reader.nextResult")}
                   >
                     <CaretDownIcon className="size-3.5" />
                   </button>
@@ -275,7 +277,7 @@ export function ReaderSearch({
                       {result.snippet}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Page {page}
+                      {t("reader.page")} {page}
                     </p>
                   </button>
                 )
@@ -288,7 +290,9 @@ export function ReaderSearch({
       {/* ── Go to page mode ─────────────────────────────────────────────────── */}
       {mode === "page" && (
         <div className="flex items-center gap-2 px-3 py-3">
-          <span className="shrink-0 text-sm text-muted-foreground">Page</span>
+          <span className="shrink-0 text-sm text-muted-foreground">
+            {t("reader.page")}
+          </span>
           <input
             ref={pageInputRef}
             type="number"
@@ -304,7 +308,7 @@ export function ReaderSearch({
             }`}
           />
           <span className="shrink-0 text-sm text-muted-foreground">
-            of {total}
+            {t("reader.of", { total })}
           </span>
           <button
             type="button"
@@ -312,7 +316,7 @@ export function ReaderSearch({
             disabled={!pageIsValid}
             className="ml-auto shrink-0 rounded bg-primary px-3 py-1 text-xs font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
           >
-            Go
+            {t("reader.go")}
           </button>
         </div>
       )}

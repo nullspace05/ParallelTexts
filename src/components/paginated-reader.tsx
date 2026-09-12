@@ -28,6 +28,7 @@ import {
   useRef,
   useState,
 } from "react"
+import { useTranslation } from "react-i18next"
 import { Skeleton } from "./ui/skeleton"
 
 // ── Constants (exported so callers can reference them for layout math) ────────
@@ -136,6 +137,7 @@ export const PaginatedReader = forwardRef<
   }: PaginatedReaderProps,
   ref
 ) {
+  const { t } = useTranslation()
   const scrollRef = useRef<HTMLDivElement>(null)
   const innerRef = useRef<HTMLDivElement>(null)
 
@@ -563,14 +565,14 @@ export const PaginatedReader = forwardRef<
             type="button"
             onClick={onTogglePageNum}
             className="h-1 w-8 rounded-full bg-muted-foreground/25 opacity-0 transition-opacity hover:opacity-100"
-            aria-label="Show page number"
+            aria-label={t("reader.showPage")}
           />
         ) : (
           <button
             type="button"
             onClick={onTogglePageNum}
             className="rounded px-2 py-0.5 text-xs text-muted-foreground/60 transition-colors hover:bg-muted/50 hover:text-muted-foreground"
-            aria-label="Hide page number"
+            aria-label={t("reader.hidePage")}
           >
             {page + 1} / {totalPages}
           </button>
