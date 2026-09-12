@@ -17,6 +17,7 @@ import type { LanguageOption } from "@/lib/model-languages"
 import { cn } from "@/lib/utils"
 import { CaretUpDownIcon, PlusCircleIcon } from "@phosphor-icons/react"
 import { useMemo } from "react"
+import { useTranslation } from "react-i18next"
 
 export type { LanguageOption }
 
@@ -57,7 +58,7 @@ export function groupLanguageOptions(
   if (popular.length) {
     out.push({
       value: "Popular",
-      label: "Popular",
+      label: "language.popular",
       items: popular.map((o) => o.code),
     })
   }
@@ -66,7 +67,7 @@ export function groupLanguageOptions(
     .sort((a, b) => a.label.localeCompare(b.label))
   out.push({
     value: "All languages",
-    label: "All languages",
+    label: "language.allLanguages",
     items: rest.map((o) => o.code),
   })
   return out
@@ -79,6 +80,7 @@ export function LanguageCombobox({
   label,
   id,
 }: LanguageComboboxProps) {
+  const { t } = useTranslation()
   const nameOf = useMemo(() => {
     const map = new Map(options.map((o) => [o.code, o.label]))
     return (code: string) => map.get(code) ?? code
@@ -122,14 +124,14 @@ export function LanguageCombobox({
         align="start"
         className="w-(--anchor-width) min-w-[240px]"
       >
-        <ComboboxInput placeholder="Search language…" />
-        <ComboboxEmpty>No language found.</ComboboxEmpty>
+        <ComboboxInput placeholder={t("language.search")} />
+        <ComboboxEmpty>{t("language.empty")}</ComboboxEmpty>
         <ComboboxList>
           {(group: LanguageGroup, index: number) => (
             <ComboboxGroup key={group.value} items={group.items}>
               {index > 0 && <ComboboxSeparator />}
               {group.label && (
-                <ComboboxGroupLabel>{group.label}</ComboboxGroupLabel>
+                <ComboboxGroupLabel>{t(group.label)}</ComboboxGroupLabel>
               )}
               <ComboboxCollection>
                 {(code: string) => (

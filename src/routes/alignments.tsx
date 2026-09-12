@@ -34,6 +34,7 @@ import {
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { Trans, useTranslation } from "react-i18next"
 
 function formatDuration(ms: number): string {
   const s = Math.round(ms / 1000)
@@ -52,6 +53,7 @@ export const Route = createFileRoute("/alignments")({
 })
 
 function AlignmentsPage() {
+  const { t } = useTranslation()
   const records = useLiveQuery(() => getAllAlignments(), []) ?? []
   const [showImport, setShowImport] = useState(false)
 
@@ -64,7 +66,7 @@ function AlignmentsPage() {
         <div className="flex items-center gap-2">
           <SampleDot colorClass={SAMPLE_CARD_DOT_COLORS[1]} loading={false} />
           <h1 className="text-xl font-light tracking-tight">
-            Alignment history
+            {t("alignments.history")}
           </h1>
         </div>
         <Button
@@ -74,14 +76,14 @@ function AlignmentsPage() {
           className="gap-1.5"
         >
           <UploadIcon className="size-4" />
-          Import
+          {t("alignments.import")}
         </Button>
       </div>
 
       {records.length === 0 ? (
         <div className="flex min-h-[20vh] flex-col items-center justify-center gap-3 text-center">
           <ArrowsLeftRightIcon className="size-10 text-muted-foreground/40" />
-          <p className="text-muted-foreground">No alignments yet.</p>
+          <p className="text-muted-foreground">{t("alignments.empty")}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -99,6 +101,7 @@ function AlignmentsPage() {
 // ── Alignment card ────────────────────────────────────────────────────────────
 
 function AlignmentCard({ record }: { record: AlignmentRecord }) {
+  const { t } = useTranslation()
   const [confirming, setConfirming] = useState(false)
 
   const date = new Date(record.createdAt).toLocaleDateString(undefined, {
@@ -152,12 +155,19 @@ function AlignmentCard({ record }: { record: AlignmentRecord }) {
             {result.src_lang} → {result.tgt_lang}
           </span>
           <span>
-            {result.aligned_count.toLocaleString()} matched ({matchPct}%)
+            {t("alignments.matched", {
+              count: result.aligned_count,
+              pct: matchPct,
+            })}
           </span>
-          <span>{result.pairs.length.toLocaleString()} pairs total</span>
+          <span>
+            {t("alignments.pairsTotal", { count: result.pairs.length })}
+          </span>
           {record.importedFrom === "tsv" || record.importedFrom === "epub" ? (
             <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
-              {record.importedFrom === "epub" ? "EPUB import" : "TSV import"}
+              {record.importedFrom === "epub"
+                ? t("alignments.epubImport")
+                : t("alignments.tsvImport")}
             </span>
           ) : record.meta ? (
             <>
@@ -176,20 +186,22 @@ function AlignmentCard({ record }: { record: AlignmentRecord }) {
 
       {confirming ? (
         <div className="flex shrink-0 items-center gap-2">
-          <span className="text-xs text-destructive">Delete?</span>
+          <span className="text-xs text-destructive">
+            {t("alignments.delete")}
+          </span>
           <button
             type="button"
             onClick={handleDelete}
             className="rounded px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/10"
           >
-            Yes
+            {t("alignments.yes")}
           </button>
           <button
             type="button"
             onClick={() => setConfirming(false)}
             className="rounded px-2 py-1 text-xs text-muted-foreground hover:bg-muted"
           >
-            No
+            {t("alignments.no")}
           </button>
         </div>
       ) : (
@@ -197,7 +209,7 @@ function AlignmentCard({ record }: { record: AlignmentRecord }) {
           type="button"
           onClick={handleDelete}
           className="shrink-0 rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-destructive"
-          aria-label="Delete alignment"
+          aria-label={t("alignments.deleteLabel")}
         >
           <TrashIcon className="size-4" />
         </button>
@@ -214,6 +226,7 @@ type FileState =
   | { kind: "bad-epub" }
 
 function ImportModal({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -405,7 +418,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
     >
       <div className="relative w-full max-w-lg rounded-xl border bg-card shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
-          <h2 className="font-semibold">Import alignment</h2>
+          <h2 className="font-semibold">{t("alignments.importTitle")}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -420,17 +433,22 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           <div className="flex gap-2.5 rounded-lg border bg-muted/30 p-3 text-sm">
             <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <div className="space-y-1 text-muted-foreground">
-              <p className="font-medium">Accepted formats</p>
+              <p className="font-medium">{t("alignments.acceptedFormats")}</p>
               <ul className="list-inside list-disc space-y-0.5 text-xs">
                 <li>
-                  <strong>.epub</strong> exported by ParallelTexts — restores
-                  the alignment exactly as it was
+                  <Trans
+                    i18nKey="alignments.epubFormatDesc"
+                    components={{ mono: <strong /> }}
+                  />
                 </li>
                 <li>
-                  <strong>.tsv / .txt</strong> —{" "}
-                  <span className="font-mono">
-                    source_text[TAB]target_text[TAB]confidence
-                  </span>
+                  <Trans
+                    i18nKey="alignments.tsvFormatDesc"
+                    components={{
+                      mono: <strong />,
+                      code: <span className="font-mono" />,
+                    }}
+                  />
                 </li>
               </ul>
             </div>
@@ -453,13 +471,15 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           >
             <UploadIcon className="size-6 text-muted-foreground" />
             {loading ? (
-              <p className="text-sm text-muted-foreground">Reading file…</p>
+              <p className="text-sm text-muted-foreground">
+                {t("alignments.reading")}
+              </p>
             ) : fileName ? (
               <p className="text-sm font-medium">{fileName}</p>
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">
-                  Drop a file here, or click to browse
+                  {t("alignments.drop")}
                 </p>
                 <p className="text-xs text-muted-foreground/60">
                   .epub (ParallelTexts) · .tsv · .txt
@@ -480,12 +500,14 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
               <p className="flex items-center gap-1.5 font-medium text-primary">
                 <CheckCircleIcon className="size-4 shrink-0" />
-                ParallelTexts EPUB detected
+                {t("alignments.epubDetected")}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 {fileState.record.sourceBookTitle} ↔{" "}
                 {fileState.record.targetBookTitle} ·{" "}
-                {fileState.record.result.pairs.length.toLocaleString()} pairs
+                {t("alignments.pairsCount", {
+                  count: fileState.record.result.pairs.length,
+                })}
               </p>
             </div>
           )}
@@ -495,8 +517,7 @@ function ImportModal({ onClose }: { onClose: () => void }) {
             <div className="flex gap-2.5 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
               <WarningCircleIcon className="mt-0.5 size-4 shrink-0 text-destructive" />
               <p className="text-sm text-destructive">
-                This EPUB was not exported by ParallelTexts and cannot be
-                imported as an alignment.
+                {t("alignments.badEpub")}
               </p>
             </div>
           )}
@@ -523,17 +544,19 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="flex items-center gap-1.5 font-medium text-primary">
                     <CheckCircleIcon className="size-4 shrink-0" />
-                    {tsvParsed.rows.length.toLocaleString()} pairs detected
+                    {t("alignments.pairsDetected", {
+                      count: tsvParsed.rows.length,
+                    })}
                   </span>
                   <span className="text-muted-foreground">
                     ·{" "}
                     {tsvParsed.hasConfidence
-                      ? "3 columns (with confidence)"
-                      : "2 columns"}
+                      ? t("alignments.columnsWithConfidence")
+                      : t("alignments.columnsPlain")}
                   </span>
                   {tsvParsed.fromParallelTexts && (
                     <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
-                      ParallelTexts export
+                      {t("alignments.exportBadge")}
                     </span>
                   )}
                 </div>
@@ -541,8 +564,9 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                 {tsvParsed.warnings.length > 0 && (
                   <details className="rounded-lg border bg-amber-50 dark:bg-amber-950/20">
                     <summary className="cursor-pointer px-3 py-2 text-xs font-medium text-amber-700 dark:text-amber-400">
-                      {tsvParsed.warnings.length} warning
-                      {tsvParsed.warnings.length !== 1 ? "s" : ""}
+                      {t("alignments.warning", {
+                        count: tsvParsed.warnings.length,
+                      })}
                     </summary>
                     <ul className="space-y-1 px-3 pb-3">
                       {tsvParsed.warnings.map((w, i) => (
@@ -559,8 +583,8 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
                 <div className="overflow-hidden rounded-md border text-xs">
                   <div className="grid grid-cols-2 gap-px border-b bg-muted/50 px-3 py-1.5 text-[10px] font-semibold tracking-wide text-muted-foreground uppercase">
-                    <span>Source</span>
-                    <span>Target</span>
+                    <span>{t("alignments.previewSource")}</span>
+                    <span>{t("alignments.previewTarget")}</span>
                   </div>
                   {tsvParsed.rows.slice(0, 4).map((row, i) => (
                     <div
@@ -577,7 +601,9 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                   ))}
                   {tsvParsed.rows.length > 4 && (
                     <p className="px-3 py-1.5 text-muted-foreground/60">
-                      … and {(tsvParsed.rows.length - 4).toLocaleString()} more
+                      {t("alignments.andMore", {
+                        count: tsvParsed.rows.length - 4,
+                      })}
                     </p>
                   )}
                 </div>
@@ -588,30 +614,30 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {tsvParsed && tsvParsed.errors.length === 0 && (
             <div className="space-y-3">
               <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                Alignment details
+                {t("alignments.alignmentDetails")}
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
-                    Source title
+                    {t("alignments.sourceTitle")}
                   </label>
                   <input
                     type="text"
                     value={srcTitle}
                     onChange={(e) => setSrcTitle(e.target.value)}
-                    placeholder="e.g. Norwegian Wood"
+                    placeholder={t("alignments.sourceTitlePlaceholder")}
                     className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">
-                    Target title
+                    {t("alignments.targetTitle")}
                   </label>
                   <input
                     type="text"
                     value={tgtTitle}
                     onChange={(e) => setTgtTitle(e.target.value)}
-                    placeholder="e.g. ノルウェイの森"
+                    placeholder={t("alignments.targetTitlePlaceholder")}
                     className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
                   />
                 </div>
@@ -622,11 +648,11 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                     htmlFor="import-src-lang"
                     className="text-xs text-muted-foreground"
                   >
-                    Source language
+                    {t("alignments.sourceLanguage")}
                   </label>
                   <LanguageCombobox
                     id="import-src-lang"
-                    label="Source language"
+                    label={t("alignments.sourceLanguage")}
                     value={srcLang}
                     onChange={setSrcLang}
                     options={srcLangOptions}
@@ -637,11 +663,11 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                     htmlFor="import-tgt-lang"
                     className="text-xs text-muted-foreground"
                   >
-                    Target language
+                    {t("alignments.targetLanguage")}
                   </label>
                   <LanguageCombobox
                     id="import-tgt-lang"
-                    label="Target language"
+                    label={t("alignments.targetLanguage")}
                     value={tgtLang}
                     onChange={setTgtLang}
                     options={tgtLangOptions}
@@ -651,18 +677,19 @@ function ImportModal({ onClose }: { onClose: () => void }) {
 
               {!modelCached && (
                 <p className="text-xs text-muted-foreground">
-                  Language list is based on{" "}
-                  <span className="font-medium text-foreground">
-                    {activeModelLabel}
-                  </span>
-                  .{" "}
-                  <Link
-                    to="/settings"
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    Download a model in Settings
-                  </Link>{" "}
-                  to align.
+                  <Trans
+                    i18nKey="alignments.languageBasedOn"
+                    values={{ model: activeModelLabel }}
+                    components={{
+                      bold: <span className="font-medium text-foreground" />,
+                      settingsLink: (
+                        <Link
+                          to="/settings"
+                          className="underline underline-offset-2 hover:text-foreground"
+                        />
+                      ),
+                    }}
+                  />
                 </p>
               )}
             </div>
@@ -671,16 +698,20 @@ function ImportModal({ onClose }: { onClose: () => void }) {
           {/* Actions */}
           <div className="flex justify-end gap-2 border-t pt-4">
             <Button variant="outline" onClick={onClose} disabled={importing}>
-              Cancel
+              {t("alignments.cancelImport")}
             </Button>
             <Button disabled={!canImport || importing} onClick={handleImport}>
               {importing
-                ? "Importing…"
+                ? t("alignments.importing")
                 : fileState?.kind === "pt-epub"
-                  ? `Import ${fileState.record.result.pairs.length.toLocaleString()} pairs`
+                  ? t("alignments.importNPairs", {
+                      count: fileState.record.result.pairs.length,
+                    })
                   : tsvParsed && tsvParsed.rows.length > 0
-                    ? `Import ${tsvParsed.rows.length.toLocaleString()} pairs`
-                    : "Import"}
+                    ? t("alignments.importNPairs", {
+                        count: tsvParsed.rows.length,
+                      })
+                    : t("alignments.import")}
             </Button>
           </div>
         </div>

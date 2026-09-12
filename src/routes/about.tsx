@@ -10,6 +10,7 @@ import {
   UsersIcon,
 } from "@phosphor-icons/react"
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { Trans, useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/about")({ component: AboutPage })
 
@@ -40,6 +41,8 @@ function Section({
 }
 
 function AboutPage() {
+  const { t } = useTranslation()
+
   return (
     <div className="mx-auto max-w-2xl space-y-10 px-4 py-10">
       {/* Hero */}
@@ -53,212 +56,198 @@ function AboutPage() {
           <h1 className="text-2xl font-bold tracking-tight">ParallelTexts</h1>
         </div>
         <p className="leading-relaxed text-muted-foreground">
-          A free and open-source, fully in-browser tool for creating parallel
-          texts from two books in different languages — no accounts, no uploads,
-          no Python.
+          {t("about.hero.description")}
         </p>
         <ClickableSampleImage
           src="/samples/aiw-01.png"
-          alt="ParallelTexts side-by-side view of Alice in Wonderland in Japanese and English"
+          alt={t("about.hero.imageAlt")}
           imgClassName="w-full rounded-lg"
         />
       </div>
 
       <div className="space-y-8">
-        <Section icon={BookOpenIcon} title="What is it?">
+        <Section icon={BookOpenIcon} title={t("about.whatIsIt.title")}>
+          <p>{t("about.whatIsIt.p1")}</p>
           <p>
-            ParallelTexts takes two versions of the same book — one in your
-            native language, one in the language you are learning — and
-            automatically aligns their sentences so you can read them side by
-            side, sentence by sentence.
-          </p>
-          <p>
-            The output is a{" "}
-            <strong className="text-foreground">parallel corpus</strong>: a
-            structured list of sentence pairs where each source sentence is
-            matched to its translation. You can read it directly in the browser
-            as a paginated ebook-style view, or export it for use in other
-            tools.
+            <Trans
+              i18nKey="about.whatIsIt.p2"
+              components={{ bold: <strong className="text-foreground" /> }}
+            />
           </p>
         </Section>
 
-        <Section icon={UsersIcon} title="Who is it for?">
+        <Section icon={UsersIcon} title={t("about.whoIsItFor.title")}>
           <ul className="list-none space-y-1.5">
             <li>
-              <span className="font-medium text-foreground">
-                Language learners
-              </span>{" "}
-              who want to read a novel in a foreign language with a trusted
-              translation always one tap away.
+              <Trans
+                i18nKey="about.whoIsItFor.learners"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">
-                Linguists and translators
-              </span>{" "}
-              who need to build small parallel corpora quickly, without setting
-              up a pipeline.
+              <Trans
+                i18nKey="about.whoIsItFor.linguists"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">Researchers</span>{" "}
-              looking for a lightweight, reproducible alignment tool that runs
-              entirely on their own machine.
+              <Trans
+                i18nKey="about.whoIsItFor.researchers"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
           </ul>
-          <p className="mt-2">
-            The tool is designed to be approachable to anyone — no command-line
-            knowledge required.
-          </p>
+          <p className="mt-2">{t("about.whoIsItFor.footer")}</p>
         </Section>
 
-        <Section icon={BrainIcon} title="How does the alignment work?">
-          <p>
-            Under the hood, ParallelTexts runs a three-stage ML pipeline —
-            entirely inside your browser using WebAssembly:
-          </p>
+        <Section icon={BrainIcon} title={t("about.howItWorks.title")}>
+          <p>{t("about.howItWorks.intro")}</p>
           <ol className="mt-2 list-none space-y-2">
             <li>
-              <span className="font-medium text-foreground">
-                1. Sentence splitting
-              </span>{" "}
-              — Each book is split into individual sentences.
+              <Trans
+                i18nKey="about.howItWorks.step1"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">
-                2. Multilingual embedding
-              </span>{" "}
-              — Every sentence is converted to a vector (a list of numbers that
-              captures its meaning) using a multilingual AI model. Because the
-              model understands 50+ languages at once, semantically equivalent
-              sentences in different languages end up with similar vectors.
+              <Trans
+                i18nKey="about.howItWorks.step2"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">
-                3. Needleman–Wunsch alignment
-              </span>{" "}
-              — A dynamic-programming algorithm (the same family used in DNA
-              sequence alignment) finds the globally optimal pairing of source
-              and target sentences based on their vector similarity.
+              <Trans
+                i18nKey="about.howItWorks.step3"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
           </ol>
-          <p className="mt-2">
-            The result is a list of aligned pairs tagged as 1:1 matches, or
-            source/target gaps where no counterpart was found.
+          <p className="mt-2">{t("about.howItWorks.outro")}</p>
+        </Section>
+
+        <Section icon={DownloadIcon} title={t("about.modelDownload.title")}>
+          <p>{t("about.modelDownload.p1")}</p>
+          <p>{t("about.modelDownload.p2")}</p>
+          <p>
+            <Trans
+              i18nKey="about.modelDownload.p3"
+              components={{
+                settingsLink: (
+                  <Link
+                    to="/settings"
+                    className="text-primary underline-offset-4 hover:underline"
+                  />
+                ),
+              }}
+            />
           </p>
         </Section>
 
-        <Section icon={DownloadIcon} title="The model download">
-          <p>
-            The AI model (~500 MB–1.1 GB depending on which you choose) is
-            downloaded once from the Hugging Face model hub and then cached
-            permanently in your browser. Subsequent alignments reuse the cached
-            version — no re-download needed.
-          </p>
-          <p>
-            Alignment is compute-intensive. A dedicated GPU is highly
-            recommended — it can be 10–20× faster than running on CPU alone.
-            Browsers with WebGPU support (Chrome 113+, Edge) will use your GPU
-            automatically; others fall back to WebAssembly on the CPU.
-          </p>
-          <p>
-            You can manage which models are cached from the{" "}
-            <Link
-              to="/settings"
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              Settings page
-            </Link>
-            .
-          </p>
-        </Section>
-
-        <Section icon={FileTextIcon} title="Supported file formats">
+        <Section icon={FileTextIcon} title={t("about.formats.title")}>
           <ul className="list-none space-y-1">
             <li>
-              <span className="font-medium text-foreground">EPUB</span> — full
-              support including cover art and chapter structure.
+              <Trans
+                i18nKey="about.formats.epub"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">PDF</span> — text
-              extraction via PDF.js (quality depends on the PDF).
+              <Trans
+                i18nKey="about.formats.pdf"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">TXT</span> — plain
-              text files.
+              <Trans
+                i18nKey="about.formats.txt"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
           </ul>
-          <p className="mt-1">
-            Japanese EPUBs are preprocessed to strip furigana before alignment
-            so that phonetic readings do not interfere with the embeddings.
-          </p>
+          <p className="mt-1">{t("about.formats.furigana")}</p>
         </Section>
 
-        <Section icon={GitMergeIcon} title="Reading your alignment">
-          <p>After alignment completes you get two reading modes:</p>
+        <Section icon={GitMergeIcon} title={t("about.reading.title")}>
+          <p>{t("about.reading.intro")}</p>
           <ul className="mt-1 list-none space-y-1.5">
             <li>
-              <span className="font-medium text-foreground">Popover view</span>{" "}
-              — Read the source text as a paginated ebook. Tap any sentence to
-              see its aligned translation in a popover.
+              <Trans
+                i18nKey="about.reading.popover"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
             <li>
-              <span className="font-medium text-foreground">
-                Side-by-side view
-              </span>{" "}
-              — Both languages displayed in parallel columns, every sentence
-              pair on the same row.
+              <Trans
+                i18nKey="about.reading.sideBySide"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
+            </li>
+          </ul>
+          <p className="mt-2">{t("about.reading.exportIntro")}</p>
+          <ul className="mt-1 list-none space-y-1.5">
+            <li>
+              <Trans
+                i18nKey="about.reading.epub"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
+            </li>
+            <li>
+              <Trans
+                i18nKey="about.reading.tsv"
+                components={{
+                  bold: <span className="font-medium text-foreground" />,
+                }}
+              />
             </li>
           </ul>
           <p className="mt-2">
-            You can also export any alignment in two formats:
-          </p>
-          <ul className="mt-1 list-none space-y-1.5">
-            <li>
-              <span className="font-medium text-foreground">EPUB</span> — a
-              fully readable parallel ebook. Source sentences are shown by
-              default; click any entry to reveal its translation. Images from
-              the original books are preserved. The EPUB also embeds a hidden
-              manifest so it can be imported back into ParallelTexts with the
-              full alignment intact (see below).
-            </li>
-            <li>
-              <span className="font-medium text-foreground">TSV</span> — a
-              tab-separated file with one sentence pair per row and an optional
-              confidence score in the third column. Gap rows are preserved with
-              an empty cell on the missing side. Any 2- or 3-column TSV works on
-              import — not just files from ParallelTexts.
-            </li>
-          </ul>
-          <p className="mt-2">
-            Both formats can be{" "}
-            <span className="font-medium text-foreground">imported back</span>{" "}
-            into ParallelTexts from the{" "}
-            <Link
-              to="/alignments"
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              Alignments page
-            </Link>
-            . Importing a ParallelTexts-exported EPUB restores the alignment
-            exactly — pairs, images, and metadata — with no need to re-run the
-            AI model. Importing the same EPUB as a{" "}
-            <span className="font-medium text-foreground">book</span> (on the{" "}
-            <Link
-              to="/books"
-              className="text-primary underline-offset-4 hover:underline"
-            >
-              Books page
-            </Link>
-            ) shows only the source text, making it usable as a standalone
-            foreign-language book.
+            <Trans
+              i18nKey="about.reading.importBack"
+              components={{
+                bold: <span className="font-medium text-foreground" />,
+                alignmentsLink: (
+                  <Link
+                    to="/alignments"
+                    className="text-primary underline-offset-4 hover:underline"
+                  />
+                ),
+                booksLink: (
+                  <Link
+                    to="/books"
+                    className="text-primary underline-offset-4 hover:underline"
+                  />
+                ),
+              }}
+            />
           </p>
         </Section>
 
-        <Section icon={BookOpenIcon} title="Sample alignment credits">
-          <p>
-            The example alignments on the homepage use texts from the sources
-            below. ParallelTexts only hosts the aligned exports — not the
-            underlying books.
-          </p>
+        <Section icon={BookOpenIcon} title={t("about.credits.title")}>
+          <p>{t("about.credits.intro")}</p>
           <ul className="mt-2 list-none space-y-4">
             {SAMPLE_CREDITS.map((credit) => (
               <li key={credit.title}>
@@ -312,22 +301,26 @@ function AboutPage() {
           to="/"
           className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
         >
-          ← Back to home
+          {t("about.backHome")}
         </Link>
       </div>
 
       {/* Footer credit */}
       <div className="text-center text-xs text-muted-foreground">
-        created by{" "}
-        <a
-          href="https://nullspace.nz"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary underline underline-offset-4 hover:opacity-80"
-        >
-          nullspace
-        </a>{" "}
-        with <span title="∅">∅</span>
+        <Trans
+          i18nKey="about.footer.createdBy"
+          components={{
+            nullspaceLink: (
+              <a
+                href="https://nullspace.nz"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline underline-offset-4 hover:opacity-80"
+              />
+            ),
+            symbol: <span title="∅" />,
+          }}
+        />
         {" · "}
         <a
           href={GITHUB_REPO_URL}
@@ -335,7 +328,7 @@ function AboutPage() {
           rel="noopener noreferrer"
           className="text-primary underline underline-offset-4 hover:opacity-80"
         >
-          Source on GitHub
+          {t("about.footer.sourceOnGithub")}
         </a>
         {" · "}
         <a

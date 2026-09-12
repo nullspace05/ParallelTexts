@@ -10,6 +10,7 @@ import type { Book, BookType } from "@/types/book"
 import { FileArrowUpIcon } from "@phosphor-icons/react"
 import { useCallback, useState } from "react"
 import { useDropzone } from "react-dropzone"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 const ACCEPTED_TYPES = {
@@ -19,72 +20,76 @@ const ACCEPTED_TYPES = {
 }
 
 export function DropZone() {
+  const { t } = useTranslation()
   const [status, setStatus] = useState<"idle" | "loading">("idle")
   const [progress, setProgress] = useState(0)
   const [progressLabel, setProgressLabel] = useState("")
 
-  const processFile = useCallback(async (file: File) => {
-    const lower = file.name.toLowerCase()
-    const isEpub =
-      lower.endsWith(".epub") || file.type === "application/epub+zip"
-    const isPdf = lower.endsWith(".pdf") || file.type === "application/pdf"
-    const isTxt = lower.endsWith(".txt") || file.type === "text/plain"
+  const processFile = useCallback(
+    async (file: File) => {
+      const lower = file.name.toLowerCase()
+      const isEpub =
+        lower.endsWith(".epub") || file.type === "application/epub+zip"
+      const isPdf = lower.endsWith(".pdf") || file.type === "application/pdf"
+      const isTxt = lower.endsWith(".txt") || file.type === "text/plain"
 
-    if (!isEpub && !isPdf && !isTxt) return
+      if (!isEpub && !isPdf && !isTxt) return
 
-    setStatus("loading")
-    setProgress(10)
-    setProgressLabel("Reading file…")
-    try {
-      let title: string
-      let coverDataUrl: string | null
-      let type: BookType
+      setStatus("loading")
+      setProgress(10)
+      setProgressLabel(t("dropZone.reading"))
+      try {
+        let title: string
+        let coverDataUrl: string | null
+        let type: BookType
 
-      setProgress(30)
-      setProgressLabel("Extracting metadata…")
+        setProgress(30)
+        setProgressLabel(t("dropZone.extracting"))
 
-      if (isEpub) {
-        const result = await extractEpubMetadata(file)
-        title = result.title
-        coverDataUrl = result.coverDataUrl
-        type = "epub"
-      } else if (isPdf) {
-        const result = await extractPdfMetadata(file)
-        title = result.title
-        coverDataUrl = result.coverDataUrl
-        type = "pdf"
-      } else {
-        const result = await extractTxtMetadata(file)
-        title = result.title
-        coverDataUrl = result.coverDataUrl
-        type = "txt"
+        if (isEpub) {
+          const result = await extractEpubMetadata(file)
+          title = result.title
+          coverDataUrl = result.coverDataUrl
+          type = "epub"
+        } else if (isPdf) {
+          const result = await extractPdfMetadata(file)
+          title = result.title
+          coverDataUrl = result.coverDataUrl
+          type = "pdf"
+        } else {
+          const result = await extractTxtMetadata(file)
+          title = result.title
+          coverDataUrl = result.coverDataUrl
+          type = "txt"
+        }
+
+        setProgress(80)
+        setProgressLabel(t("dropZone.saving"))
+
+        const book: Book = {
+          id: crypto.randomUUID(),
+          title,
+          coverDataUrl,
+          type,
+          fileName: file.name,
+          fileBlob: file,
+        }
+
+        await trackOperation("book_import", { type }, () => addBook(book))
+        setProgress(100)
+        setStatus("idle")
+        setProgress(0)
+        setProgressLabel("")
+      } catch (err) {
+        setStatus("idle")
+        setProgress(0)
+        setProgressLabel("")
+        const message = getOperationErrorMessage(err, "Failed to process file")
+        toast.error(t("dropZone.importError"), { description: message })
       }
-
-      setProgress(80)
-      setProgressLabel("Saving…")
-
-      const book: Book = {
-        id: crypto.randomUUID(),
-        title,
-        coverDataUrl,
-        type,
-        fileName: file.name,
-        fileBlob: file,
-      }
-
-      await trackOperation("book_import", { type }, () => addBook(book))
-      setProgress(100)
-      setStatus("idle")
-      setProgress(0)
-      setProgressLabel("")
-    } catch (err) {
-      setStatus("idle")
-      setProgress(0)
-      setProgressLabel("")
-      const message = getOperationErrorMessage(err, "Failed to process file")
-      toast.error("Could not import book", { description: message })
-    }
-  }, [])
+    },
+    [t]
+  )
 
   const onDrop = useCallback(
     async (acceptedFiles: Array<File>) => {
@@ -113,11 +118,9 @@ export function DropZone() {
       />
       <div className="space-y-1 text-center">
         <p className="text-sm font-medium text-foreground/80">
-          {isDragActive
-            ? "Drop files to upload"
-            : "Drag & drop files here, or click to browse"}
+          {isDragActive ? t("dropZone.drop") : t("dropZone.browse")}
         </p>
-        <p className="text-xs text-muted-foreground">EPUB, PDF, or TXT</p>
+        <p className="text-xs text-muted-foreground">{t("dropZone.formats")}</p>
       </div>
       {status === "loading" && (
         <div className="mt-2 w-full max-w-xs space-y-1.5">

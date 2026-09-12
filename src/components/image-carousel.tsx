@@ -1,6 +1,7 @@
 import type { SampleImage } from "@/lib/sample-images"
 import { CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 function NavButton({
   direction,
@@ -9,12 +10,13 @@ function NavButton({
   direction: "prev" | "next"
   onClick: () => void
 }) {
+  const { t } = useTranslation()
   const Icon = direction === "prev" ? CaretLeftIcon : CaretRightIcon
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label={direction === "prev" ? "Previous image" : "Next image"}
+      aria-label={t(direction === "prev" ? "samples.previous" : "samples.next")}
       className="rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
     >
       <Icon className="size-5" />
@@ -31,6 +33,7 @@ export function ImageCarousel({
   initialIndex: number
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [index, setIndex] = useState(initialIndex)
   const hasMultiple = images.length > 1
 
@@ -71,7 +74,7 @@ export function ImageCarousel({
       <button
         type="button"
         onClick={onClose}
-        aria-label="Close"
+        aria-label={t("samples.close")}
         className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
       >
         <XIcon className="size-5" />

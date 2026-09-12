@@ -1,4 +1,5 @@
 import { useTheme } from "@/components/theme-provider"
+import { useLanguage } from "@/components/language-provider"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { db } from "@/lib/db"
@@ -37,6 +38,7 @@ import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
 import { DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/settings")({
@@ -68,33 +70,33 @@ function parseNumber(value: string): number {
 
 const THEME_OPTIONS: {
   value: Theme
-  label: string
+  labelKey: string
   icon: React.ElementType
 }[] = [
-  { value: "light", label: "Light", icon: SunIcon },
-  { value: "dark", label: "Dark", icon: MoonIcon },
-  { value: "system", label: "System", icon: DesktopIcon },
+  { value: "light", labelKey: "settings.themeLight", icon: SunIcon },
+  { value: "dark", labelKey: "settings.themeDark", icon: MoonIcon },
+  { value: "system", labelKey: "settings.themeSystem", icon: DesktopIcon },
 ]
 
 const DEVICE_OPTIONS: {
   value: DevicePreference
-  label: string
-  description: string
+  labelKey: string
+  descriptionKey: string
 }[] = [
   {
     value: "auto",
-    label: "Auto",
-    description: "WebGPU if available, WASM otherwise",
+    labelKey: "settings.deviceAuto",
+    descriptionKey: "settings.deviceAutoDescription",
   },
   {
     value: "webgpu",
-    label: "WebGPU",
-    description: "GPU — fast, but requires VRAM headroom",
+    labelKey: "settings.deviceWebgpuLabel",
+    descriptionKey: "settings.deviceWebgpuDescription",
   },
   {
     value: "wasm",
-    label: "WASM",
-    description: "CPU — always works, uses system RAM",
+    labelKey: "settings.deviceWasmLabel",
+    descriptionKey: "settings.deviceWasmDescription",
   },
 ]
 
@@ -131,6 +133,8 @@ function ToggleSwitch({
 
 function SettingsPage() {
   const { theme, setTheme } = useTheme()
+  const { language, ready: languageReady, setLanguage } = useLanguage()
+  const { t } = useTranslation()
   const [modelId, setModelId] = useState("")
   const [savedNumberSettings, setSavedNumberSettings] =
     useState<NumberSettings>(() => ({
@@ -237,8 +241,8 @@ function SettingsPage() {
 
   function handleSaveNumberSettings() {
     if (!numberSettingsAreValid) {
-      toast.error("Could not save number settings", {
-        description: "Enter values within the shown ranges first.",
+      toast.error(t("settings.numberSettingsError"), {
+        description: t("settings.numberSettingsRange"),
       })
       return
     }
@@ -250,14 +254,14 @@ function SettingsPage() {
     ].every(Boolean)
 
     if (!saved) {
-      toast.error("Could not save number settings", {
-        description: "Your browser could not save all changes.",
+      toast.error(t("settings.numberSettingsError"), {
+        description: t("settings.numberSettingsStorage"),
       })
       return
     }
 
     setSavedNumberSettings(numberSettings)
-    toast.message("Number settings saved")
+    toast.message(t("settings.numberSettingsSaved"))
   }
 
   function handleWelcomeBannerToggle() {
@@ -347,13 +351,15 @@ function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-2xl space-y-10 px-4 py-8">
-      <h1 className="text-2xl font-light tracking-tight">Settings</h1>
+      <h1 className="text-2xl font-light tracking-tight">
+        {t("settings.title")}
+      </h1>
 
       {/* ── Appearance ── */}
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Appearance</h2>
+        <h2 className="text-base font-medium">{t("settings.appearance")}</h2>
         <p className="text-sm text-muted-foreground">
-          Choose how ParallelTexts looks. "System" matches your OS setting.
+          {t("settings.appearanceDescription")}
         </p>
         <div className="flex flex-wrap gap-2">
           {THEME_OPTIONS.map((opt) => {
@@ -371,19 +377,58 @@ function SettingsPage() {
                 }`}
               >
                 <Icon className="size-4" />
-                {opt.label}
+                {t(opt.labelKey)}
               </button>
             )
           })}
         </div>
       </section>
 
+      <section className="space-y-3">
+        <h2 className="text-base font-medium">
+          {t("settings.uiLanguage.heading")}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.uiLanguage.description")}
+        </p>
+        <div
+          className="flex flex-wrap gap-2"
+          aria-label={t("settings.uiLanguage.heading")}
+        >
+          <button
+            type="button"
+            disabled={!languageReady}
+            aria-pressed={language === "en"}
+            onClick={() => setLanguage("en")}
+            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+              language === "en"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background hover:bg-muted"
+            }`}
+          >
+            {t("settings.uiLanguage.english")}
+          </button>
+          <button
+            type="button"
+            disabled={!languageReady}
+            aria-pressed={language === "ja"}
+            onClick={() => setLanguage("ja")}
+            className={`rounded-md border px-3 py-2 text-sm transition-colors ${
+              language === "ja"
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border bg-background hover:bg-muted"
+            }`}
+          >
+            {t("settings.uiLanguage.japanese")}
+          </button>
+        </div>
+      </section>
+
       {/* ── Model ── */}
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Embedding model</h2>
+        <h2 className="text-base font-medium">{t("settings.model")}</h2>
         <p className="text-sm text-muted-foreground">
-          Select the model used when aligning books. Download it to avoid
-          fetching from the network during alignment.
+          {t("settings.modelDescription")}
         </p>
         <div className="space-y-2">
           {MODEL_REGISTRY.map((m) => {
@@ -419,7 +464,7 @@ function SettingsPage() {
                     </span>
                     {m.recommended && (
                       <span className="rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-                        Recommended
+                        {t("align.recommended")}
                       </span>
                     )}
                   </span>
@@ -443,14 +488,14 @@ function SettingsPage() {
                             disabled
                             className="cursor-not-allowed rounded border border-border px-2 py-0.5 text-xs text-muted-foreground/40"
                           >
-                            Downloaded
+                            {t("settings.downloaded")}
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDelete(m.id)}
                             className="rounded border border-border px-2 py-0.5 text-xs text-muted-foreground hover:border-destructive hover:text-destructive"
                           >
-                            Delete
+                            {t("settings.delete")}
                           </button>
                         </>
                       ) : dl.status === "downloading" ? (
@@ -463,7 +508,7 @@ function SettingsPage() {
                           onClick={() => handleDownload(m.id)}
                           className="rounded border border-destructive px-2 py-0.5 text-xs text-destructive hover:bg-destructive/10"
                         >
-                          Retry
+                          {t("settings.retry")}
                         </button>
                       ) : (
                         <button
@@ -471,7 +516,7 @@ function SettingsPage() {
                           onClick={() => handleDownload(m.id)}
                           className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted"
                         >
-                          Download
+                          {t("settings.download")}
                         </button>
                       )}
                     </div>
@@ -509,10 +554,9 @@ function SettingsPage() {
 
       {/* ── Inference device ── */}
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Inference device</h2>
+        <h2 className="text-base font-medium">{t("settings.device")}</h2>
         <p className="text-sm text-muted-foreground">
-          Where the embedding model runs. WebGPU is fastest but needs enough GPU
-          VRAM — switch to WASM if you hit memory errors with large models.
+          {t("settings.deviceDescription")}
         </p>
         <div className="flex flex-wrap gap-2">
           {DEVICE_OPTIONS.map((opt) => {
@@ -524,7 +568,7 @@ function SettingsPage() {
                 type="button"
                 disabled={unavailable}
                 onClick={() => !unavailable && handleDevicePref(opt.value)}
-                title={opt.description}
+                title={t(opt.descriptionKey)}
                 className={`rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                   isSelected
                     ? "border-primary bg-primary/10 text-primary"
@@ -533,11 +577,11 @@ function SettingsPage() {
                       : "border-border bg-background hover:bg-muted"
                 }`}
               >
-                <span className="block font-medium">{opt.label}</span>
+                <span className="block font-medium">{t(opt.labelKey)}</span>
                 <span className="block text-xs text-muted-foreground">
                   {unavailable
-                    ? "not available in this browser"
-                    : opt.description}
+                    ? t("settings.notAvailable")
+                    : t(opt.descriptionKey)}
                 </span>
               </button>
             )
@@ -545,8 +589,7 @@ function SettingsPage() {
         </div>
         {devicePref === "webgpu" && webgpuAvailable && (
           <p className="text-xs text-muted-foreground">
-            If you see "bad_alloc" or memory errors, switch to WASM or choose a
-            smaller model.
+            {t("settings.webgpuMemoryWarning")}
           </p>
         )}
       </section>
@@ -555,23 +598,23 @@ function SettingsPage() {
       <section className="space-y-4">
         <div>
           <h2 className="text-base font-medium">
-            Alignment and reader settings
+            {t("settings.alignmentReader")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Edit these values, then click Save changes. Other settings save
-            automatically.
+            {t("settings.alignmentReaderDescription")}
           </p>
         </div>
 
         <div className="space-y-10 rounded-lg border bg-background p-5">
           <section className="space-y-3">
             <h3 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-              Alignment
+              {t("settings.alignmentSectionHeading")}
             </h3>
-            <h4 className="text-base font-medium">Max sentences per book</h4>
+            <h4 className="text-base font-medium">
+              {t("settings.maxSentences")}
+            </h4>
             <p className="text-sm text-muted-foreground">
-              Sentences beyond this limit are truncated before alignment. Higher
-              values use more memory and take longer.
+              {t("settings.maxSentencesDescription")}
             </p>
             <div className="flex items-center gap-3">
               <Input
@@ -580,7 +623,7 @@ function SettingsPage() {
                 max={20_000}
                 step={500}
                 inputMode="numeric"
-                aria-label="Max sentences per book"
+                aria-label={t("settings.maxSentences")}
                 value={numberDrafts.maxSentences}
                 onChange={(e) =>
                   handleNumberDraftChange("maxSentences", e.target.value)
@@ -588,19 +631,19 @@ function SettingsPage() {
                 className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
               />
               <span className="text-sm text-muted-foreground">
-                sentences (default: {DEFAULT_MAX_SENTENCES.toLocaleString()})
+                {t("settings.maxSentencesUnit", {
+                  count: DEFAULT_MAX_SENTENCES.toLocaleString(),
+                })}
               </span>
             </div>
           </section>
 
           <section className="space-y-3">
-            <h4 className="text-base font-medium">Gap penalty</h4>
+            <h4 className="text-base font-medium">
+              {t("settings.gapPenalty")}
+            </h4>
             <p className="text-sm text-muted-foreground">
-              How confident a match must be to beat leaving both sentences
-              unaligned. Higher values reject more weak matches — useful when
-              front matter, credits, or other boilerplate with no real
-              counterpart ends up glued to unrelated real sentences. Lower
-              values allow more (sometimes weaker but correct) matches through.
+              {t("settings.gapPenaltyDescription")}
             </p>
             <div className="flex items-center gap-3">
               <Input
@@ -609,7 +652,7 @@ function SettingsPage() {
                 max={GAP_PENALTY_MAX}
                 step={0.05}
                 inputMode="decimal"
-                aria-label="Gap penalty"
+                aria-label={t("settings.gapPenalty")}
                 value={numberDrafts.gapPenalty}
                 onChange={(e) =>
                   handleNumberDraftChange("gapPenalty", e.target.value)
@@ -617,16 +660,20 @@ function SettingsPage() {
                 className="w-28 rounded-md border bg-background px-2 py-1.5 text-sm"
               />
               <span className="text-sm text-muted-foreground">
-                (default: {DEFAULT_GAP_PENALTY})
+                {t("settings.gapPenaltyDefault", {
+                  value: DEFAULT_GAP_PENALTY,
+                })}
               </span>
             </div>
           </section>
 
           <section className="space-y-4">
             <h3 className="text-sm font-medium tracking-wide text-muted-foreground uppercase">
-              Reader
+              {t("settings.readerSectionHeading")}
             </h3>
-            <h4 className="text-base font-medium">Reader font size</h4>
+            <h4 className="text-base font-medium">
+              {t("settings.readerFontSize")}
+            </h4>
             <div className="flex items-center gap-3">
               <Input
                 type="number"
@@ -634,7 +681,7 @@ function SettingsPage() {
                 max={FONT_SIZE_MAX}
                 step={1}
                 inputMode="numeric"
-                aria-label="Reader font size"
+                aria-label={t("settings.readerFontSize")}
                 value={numberDrafts.fontSize}
                 onChange={(e) =>
                   handleNumberDraftChange("fontSize", e.target.value)
@@ -642,7 +689,7 @@ function SettingsPage() {
                 className="w-20 rounded-md border bg-background px-2 py-1.5 text-sm"
               />
               <span className="text-sm text-muted-foreground">
-                px (default: {DEFAULT_FONT_SIZE})
+                {t("settings.fontSizeUnit", { value: DEFAULT_FONT_SIZE })}
               </span>
             </div>
 
@@ -661,14 +708,16 @@ function SettingsPage() {
                 disabled={!numberSettingsAreValid || !numberSettingsHaveChanges}
                 onClick={handleSaveNumberSettings}
               >
-                Save changes
+                {t("settings.saveChanges")}
               </Button>
               {numberSettingsHaveChanges && numberSettingsAreValid && (
-                <p className="text-sm text-muted-foreground">Unsaved changes</p>
+                <p className="text-sm text-muted-foreground">
+                  {t("settings.unsavedChanges")}
+                </p>
               )}
               {!numberSettingsAreValid && (
                 <p className="w-full text-sm text-destructive">
-                  Enter values within the shown ranges before saving.
+                  {t("settings.numberSettingsRange")}
                 </p>
               )}
             </div>
@@ -678,55 +727,53 @@ function SettingsPage() {
 
       {/* ── Homepage welcome banner ── */}
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Homepage welcome banner</h2>
+        <h2 className="text-base font-medium">{t("settings.welcomeBanner")}</h2>
         <p className="text-sm text-muted-foreground">
-          The intro video and description shown at the top of the homepage.
-          Dismissing it there (via the × button) turns this off too.
+          {t("settings.welcomeBannerDescription")}
         </p>
         <ToggleSwitch
           checked={showWelcomeBanner}
           onChange={handleWelcomeBannerToggle}
-          label="Show welcome banner"
+          label={t("settings.showWelcomeBanner")}
         />
       </section>
 
       {/* ── Incognito notice ── */}
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Incognito notice</h2>
+        <h2 className="text-base font-medium">
+          {t("settings.incognitoNotice")}
+        </h2>
         <p className="text-sm text-muted-foreground">
-          A reminder on the homepage that alignment may not work in
-          private/incognito windows. Dismissing it there (via the × button)
-          turns this off too.
+          {t("settings.incognitoNoticeDescription")}
         </p>
         <ToggleSwitch
           checked={showIncognitoNotice}
           onChange={handleIncognitoNoticeToggle}
-          label="Show incognito notice"
+          label={t("settings.showIncognitoNotice")}
         />
       </section>
 
       {/* ── Data ── */}
       <section className="space-y-3">
-        <h2 className="text-base font-medium">Data</h2>
+        <h2 className="text-base font-medium">{t("settings.data")}</h2>
         <p className="text-sm text-muted-foreground">
-          All books and alignments are stored locally in your browser. This
-          action cannot be undone.
+          {t("settings.dataDescription")}
         </p>
 
         {cleared ? (
-          <p className="text-sm text-primary">All data cleared.</p>
+          <p className="text-sm text-primary">{t("settings.allDataCleared")}</p>
         ) : confirmClear ? (
           <div className="flex items-center gap-3">
-            <span className="text-sm">Delete all books and alignments?</span>
+            <span className="text-sm">{t("settings.deleteAll")}</span>
             <Button variant="destructive" size="sm" onClick={handleClearAll}>
-              Yes, delete
+              {t("settings.yesDelete")}
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setConfirmClear(false)}
             >
-              Cancel
+              {t("settings.cancel")}
             </Button>
           </div>
         ) : (
@@ -735,7 +782,7 @@ function SettingsPage() {
             size="sm"
             onClick={() => setConfirmClear(true)}
           >
-            Clear all data
+            {t("settings.clearData")}
           </Button>
         )}
       </section>

@@ -11,6 +11,7 @@ import { addAlignment } from "@/store/alignments"
 import { BookOpenIcon, CircleNotchIcon } from "@phosphor-icons/react"
 import { useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 const SAMPLE_OPEN_TIMEOUT_MS = 20_000
@@ -60,6 +61,7 @@ function LangBadges({
 }
 
 export function SamplesSection() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [loadingId, setLoadingId] = useState<string | null>(null)
 
@@ -114,7 +116,7 @@ export function SamplesSection() {
       })
     } catch (err) {
       const message = getOperationErrorMessage(err, "Something went wrong.")
-      toast.error("Could not open sample book", { description: message })
+      toast.error(t("samples.openError"), { description: message })
     } finally {
       controller.abort()
       setLoadingId(null)
@@ -124,7 +126,7 @@ export function SamplesSection() {
   return (
     <div className="space-y-3">
       <h2 className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        Samples
+        {t("samples.heading")}
       </h2>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -136,13 +138,15 @@ export function SamplesSection() {
               type="button"
               onClick={() => openSample(sample)}
               disabled={loadingId !== null}
-              aria-label={`View example: ${sample.targetTitle}`}
+              aria-label={t("samples.viewExample", {
+                title: sample.targetTitle,
+              })}
               className="group cursor-pointer rounded-lg border bg-muted/20 p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/40 disabled:cursor-wait disabled:opacity-60"
             >
               <div className="flex w-full items-start justify-between gap-2">
                 <span className="flex items-center gap-1 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
                   <BookOpenIcon className="size-3" />
-                  Example
+                  {t("samples.example")}
                 </span>
                 <LangBadges
                   sourceLang={sample.sourceLang}

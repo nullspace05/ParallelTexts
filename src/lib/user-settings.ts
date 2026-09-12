@@ -1,10 +1,19 @@
 import { DEFAULT_MODEL_ID } from "@/utils/model-registry"
 
 export type DevicePreference = "auto" | "webgpu" | "wasm"
+export type UiLanguage = "en" | "ja"
 
 const KEY_MODEL_ID = "pt:modelId"
 const KEY_MAX_SENTENCES = "pt:maxSentences"
 const KEY_FONT_SIZE = "pt:fontSize"
+const KEY_UI_LANGUAGE = "pt:uiLanguage"
+
+export const DEFAULT_UI_LANGUAGE: UiLanguage = "en"
+
+export const UI_LANGUAGE_INIT_SCRIPT = `try {
+  var language = localStorage.getItem("${KEY_UI_LANGUAGE}");
+  if (language === "ja") document.documentElement.lang = language;
+} catch (_) {}`
 const KEY_GAP_PENALTY = "pt:gapPenalty"
 
 export const DEFAULT_MAX_SENTENCES = 20_000
@@ -42,6 +51,14 @@ function safeSet(key: string, value: string): boolean {
   } catch {}
 
   return false
+}
+
+export function getStoredUiLanguage(): UiLanguage {
+  return safeGet(KEY_UI_LANGUAGE) === "ja" ? "ja" : DEFAULT_UI_LANGUAGE
+}
+
+export function setStoredUiLanguage(language: UiLanguage): boolean {
+  return safeSet(KEY_UI_LANGUAGE, language)
 }
 
 export function getStoredModelId(): string {

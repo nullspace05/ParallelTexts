@@ -7,6 +7,7 @@ import {
   InfoIcon,
 } from "@phosphor-icons/react"
 import { Link } from "@tanstack/react-router"
+import { useTranslation } from "react-i18next"
 
 const navLinkClass =
   "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground data-[status=active]:text-primary sm:gap-2 sm:px-3"
@@ -15,6 +16,8 @@ const iconLinkClass =
   "text-muted-foreground transition-colors hover:text-foreground"
 
 export function Header() {
+  const { t } = useTranslation()
+
   return (
     <header className="flex items-center justify-between border-b bg-background px-4 py-3 sm:px-8">
       <div className="flex items-center gap-8 lg:gap-16">
@@ -31,15 +34,15 @@ export function Header() {
         <nav className="flex items-center gap-1 sm:gap-2">
           <Link to="/books" className={navLinkClass}>
             <BooksIcon size={18} />
-            <span className="hidden sm:inline">Books</span>
+            <span className="hidden sm:inline">{t("header.books")}</span>
           </Link>
           <Link to="/alignments" className={navLinkClass}>
             <ArrowsLeftRightIcon size={18} />
-            <span className="hidden sm:inline">Alignments</span>
+            <span className="hidden sm:inline">{t("header.alignments")}</span>
           </Link>
           <Link to="/about" className={navLinkClass}>
             <InfoIcon size={18} />
-            <span className="hidden sm:inline">About</span>
+            <span className="hidden sm:inline">{t("header.about")}</span>
           </Link>
         </nav>
       </div>
@@ -51,12 +54,16 @@ export function Header() {
           href={GITHUB_REPO_URL}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label="View source on GitHub"
+          aria-label={t("header.github")}
           className={iconLinkClass}
         >
           <GithubLogoIcon size={22} weight="fill" />
         </a>
-        <Link to="/settings" className={iconLinkClass}>
+        <Link
+          to="/settings"
+          className={iconLinkClass}
+          aria-label={t("header.settings")}
+        >
           <GearIcon size={22} />
         </Link>
       </div>

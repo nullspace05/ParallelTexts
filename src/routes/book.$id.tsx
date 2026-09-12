@@ -46,6 +46,7 @@ import {
 } from "@phosphor-icons/react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/book/$id")({
@@ -81,6 +82,8 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
   onToggleExclude?: (pIdx: number) => void
   temporaryHighlights?: TemporaryHighlight[]
 }) {
+  const { t } = useTranslation()
+
   return (
     <div
       data-para-idx={pIdx}
@@ -102,7 +105,7 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
     >
       {excluded && (
         <span className="absolute -top-2 right-0 rounded bg-muted px-1.5 py-0.5 text-[10px] tracking-wide text-muted-foreground uppercase">
-          Excluded
+          {t("bookDetail.excluded")}
         </span>
       )}
       {para.images.map((img: ImageAsset) => (
@@ -186,6 +189,7 @@ function BookReader({
   savedCharCount: number
   onSaveProgress: (charCount: number, totalChars: number) => void
 }) {
+  const { t } = useTranslation()
   const readerRef = useRef<PaginatedReaderHandle>(null)
   const [paragraphs, setParagraphs] = useState<SourceParagraph[] | null>(null)
   const [extractError, setExtractError] = useState<string | null>(null)
@@ -369,8 +373,8 @@ function BookReader({
   ): Promise<boolean> {
     const segments = bookSegmentsFromHighlight(highlight)
     if (!segments) {
-      toast.error("Could not save highlight", {
-        description: "The selected text no longer belongs to this book.",
+      toast.error(t("bookDetail.highlightSaveError"), {
+        description: t("bookDetail.highlightTextGone"),
       })
       return false
     }
@@ -388,7 +392,7 @@ function BookReader({
       setSavedSelections((current) => [selection, ...current])
       return true
     } catch (error) {
-      toast.error("Could not save highlight", {
+      toast.error(t("bookDetail.highlightSaveError"), {
         description: getOperationErrorMessage(error, "Please try again."),
       })
       return false
@@ -437,7 +441,7 @@ function BookReader({
       })
       .catch((error) => {
         if (!cancelled) {
-          toast.error("Could not load highlights", {
+          toast.error(t("bookDetail.highlightsLoadError"), {
             description: getOperationErrorMessage(error, "Please try again."),
           })
         }
@@ -482,7 +486,7 @@ function BookReader({
           pageNumHidden={pageNumHidden}
           onTogglePageNum={onTogglePageNum}
           onSaveProgress={onSaveProgress}
-          emptyMessage="No text found in this book."
+          emptyMessage={t("bookDetail.emptyMessage")}
           searchSlot={
             <ReaderSearch
               query={searchQuery}
@@ -522,11 +526,11 @@ function BookReader({
       {highlightListOpen && (
         <div className="absolute right-4 bottom-16 z-30 w-72 rounded-lg border bg-background p-2 shadow-lg">
           <p className="px-2 py-1 text-xs font-medium text-muted-foreground">
-            Saved highlights
+            {t("bookDetail.savedHighlights")}
           </p>
           {savedSelections.length === 0 ? (
             <p className="px-2 py-3 text-sm text-muted-foreground">
-              No saved highlights yet.
+              {t("bookDetail.noSavedHighlights")}
             </p>
           ) : (
             <div className="max-h-64 space-y-1 overflow-y-auto">
@@ -552,8 +556,8 @@ function BookReader({
           highlightListOpen && "bg-muted text-foreground"
         )}
         aria-expanded={highlightListOpen}
-        aria-label="Show saved highlights"
-        title="Saved highlights"
+        aria-label={t("bookDetail.showSavedHighlights")}
+        title={t("bookDetail.savedHighlights")}
       >
         <BookmarkSimpleIcon className="size-5" />
       </button>
@@ -569,13 +573,13 @@ function BookReader({
         aria-pressed={selectionMode}
         aria-label={
           selectionMode
-            ? "Exit paragraph exclusion mode"
-            : "Exclude paragraphs from alignment"
+            ? t("bookDetail.exitExclusionMode")
+            : t("bookDetail.excludeParagraphsAria")
         }
         title={
           selectionMode
-            ? "Done selecting"
-            : "Select paragraphs to exclude from alignment"
+            ? t("bookDetail.doneSelecting")
+            : t("bookDetail.selectParagraphsTitle")
         }
       >
         <CheckSquareOffsetIcon className="size-5" />
@@ -626,6 +630,7 @@ function useSentenceCount(book: Book | null) {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 function BookDetailPage() {
+  const { t } = useTranslation()
   const { id } = Route.useParams()
   const { view, pageNumHidden, charCount, totalChars } = Route.useSearch()
   const navigate = useNavigate({ from: "/book/$id" })
@@ -678,12 +683,12 @@ function BookDetailPage() {
   if (notFoundState) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-muted-foreground">Book not found.</p>
+        <p className="text-muted-foreground">{t("bookDetail.notFound")}</p>
         <Link
           to="/books"
           className="mt-4 inline-flex items-center gap-1 text-sm text-primary hover:underline"
         >
-          <CaretLeftIcon className="size-4" /> Back to books
+          <CaretLeftIcon className="size-4" /> {t("bookDetail.backToBooks")}
         </Link>
       </div>
     )
@@ -698,7 +703,7 @@ function BookDetailPage() {
           variant="outline"
           onClick={() => setLoadAttempt((attempt) => attempt + 1)}
         >
-          Try again
+          {t("bookDetail.tryAgain")}
         </Button>
       </div>
     )
@@ -707,9 +712,7 @@ function BookDetailPage() {
   if (!book) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-12 text-center">
-        <p className="text-muted-foreground">
-          Opening book… This can take a while for large books.
-        </p>
+        <p className="text-muted-foreground">{t("bookDetail.openingBook")}</p>
       </div>
     )
   }
@@ -733,7 +736,7 @@ function BookDetailPage() {
           }
           className="absolute top-3 left-3 z-30 flex items-center gap-1 rounded-md bg-background/80 px-2 py-1 text-xs text-muted-foreground shadow-sm ring-1 ring-border backdrop-blur-sm hover:text-foreground"
         >
-          <CaretLeftIcon className="size-3.5" /> Detail
+          <CaretLeftIcon className="size-3.5" /> {t("bookDetail.detail")}
         </button>
 
         <BookReader
@@ -772,7 +775,7 @@ function BookDetailPage() {
         to="/books"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <CaretLeftIcon className="size-4" /> Books
+        <CaretLeftIcon className="size-4" /> {t("bookDetail.books")}
       </Link>
 
       <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
@@ -810,32 +813,38 @@ function BookDetailPage() {
           >
             <BookOpenTextIcon className="size-4" />
             {progressPct != null && progressPct > 0
-              ? `Continue reading (${progressPct}%)`
-              : "Read book"}
+              ? t("bookDetail.continueReading", { pct: progressPct })
+              : t("bookDetail.readBook")}
           </Button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="rounded-lg border bg-card p-4">
-        <h2 className="mb-3 text-sm font-medium">Stats</h2>
+        <h2 className="mb-3 text-sm font-medium">{t("bookDetail.stats")}</h2>
         <dl className="space-y-2">
           <div className="flex justify-between text-sm">
-            <dt className="text-muted-foreground">Sentences (approx.)</dt>
+            <dt className="text-muted-foreground">
+              {t("bookDetail.sentencesApprox")}
+            </dt>
             <dd className="font-medium tabular-nums">
               {countLoading
-                ? "Counting…"
+                ? t("bookDetail.counting")
                 : count != null
                   ? count.toLocaleString()
                   : "—"}
             </dd>
           </div>
           <div className="flex justify-between text-sm">
-            <dt className="text-muted-foreground">File type</dt>
+            <dt className="text-muted-foreground">
+              {t("bookDetail.fileType")}
+            </dt>
             <dd className="font-medium uppercase">{book.type}</dd>
           </div>
           <div className="flex justify-between text-sm">
-            <dt className="text-muted-foreground">File name</dt>
+            <dt className="text-muted-foreground">
+              {t("bookDetail.fileName")}
+            </dt>
             <dd className="max-w-[60%] truncate text-right font-medium">
               {book.fileName}
             </dd>

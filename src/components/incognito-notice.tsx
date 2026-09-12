@@ -4,8 +4,10 @@ import {
 } from "@/lib/user-settings"
 import { DetectiveIcon, XIcon } from "@phosphor-icons/react"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export function IncognitoNotice() {
+  const { t } = useTranslation()
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === "undefined") return false
     return getStoredIncognitoNoticeDismissed()
@@ -22,20 +24,16 @@ export function IncognitoNotice() {
           setDismissed(true)
         }}
         className="absolute top-4 right-4 rounded-md p-1 text-primary transition-colors hover:bg-primary/10 hover:text-primary"
-        aria-label="Dismiss incognito notice"
+        aria-label={t("incognito.dismiss")}
       >
         <XIcon className="size-4" />
       </button>
       <div className="flex items-start gap-3">
         <DetectiveIcon className="mt-0.5 size-5 shrink-0 text-primary" />
         <div className="space-y-1">
-          <h2 className="text-sm text-foreground">
-            <span className="font-bold">Incognito</span> windows may not work
-          </h2>
+          <h2 className="text-sm text-foreground">{t("incognito.heading")}</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Alignments, uploads and downloads can fail or hang on{" "}
-            <span className="font-bold">incognito</span> windows. For the best
-            results, use a normal browser window.
+            {t("incognito.description")}
           </p>
         </div>
       </div>

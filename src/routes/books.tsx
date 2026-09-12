@@ -6,12 +6,14 @@ import { Link, createFileRoute } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import { BooksIcon, BookOpenIcon, TrashIcon } from "@phosphor-icons/react"
 import { useState } from "react"
+import { useTranslation } from "react-i18next"
 
 export const Route = createFileRoute("/books")({
   component: BooksPage,
 })
 
 function BooksPage() {
+  const { t } = useTranslation()
   const books = useLiveQuery(() => db.books.toArray(), []) ?? []
   const [confirmId, setConfirmId] = useState<string | null>(null)
 
@@ -26,12 +28,12 @@ function BooksPage() {
       {books.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
           <BooksIcon className="size-10 text-muted-foreground/40" />
-          <p className="text-muted-foreground">No books uploaded yet.</p>
+          <p className="text-muted-foreground">{t("books.empty")}</p>
         </div>
       ) : (
         <>
           <h1 className="text-xl font-light tracking-tight">
-            Books ({books.length})
+            {t("books.count", { count: books.length })}
           </h1>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {books.map((book) => (
@@ -72,7 +74,7 @@ function BooksPage() {
                 {confirmId === book.id ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-background/95 p-2">
                     <p className="text-center text-xs text-muted-foreground">
-                      Delete this book?
+                      {t("books.deletePrompt")}
                     </p>
                     <div className="flex gap-1">
                       <button
@@ -80,14 +82,14 @@ function BooksPage() {
                         onClick={() => handleDelete(book)}
                         className="text-destructive-foreground rounded bg-destructive px-2 py-1 text-xs hover:bg-destructive/90"
                       >
-                        Delete
+                        {t("books.delete")}
                       </button>
                       <button
                         type="button"
                         onClick={() => setConfirmId(null)}
                         className="rounded border px-2 py-1 text-xs hover:bg-muted"
                       >
-                        Cancel
+                        {t("books.cancel")}
                       </button>
                     </div>
                   </div>
@@ -99,7 +101,7 @@ function BooksPage() {
                       setConfirmId(book.id)
                     }}
                     className="absolute top-1.5 right-1.5 rounded p-1 opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
-                    aria-label="Delete book"
+                    aria-label={t("books.deleteLabel")}
                   >
                     <TrashIcon className="size-3.5" />
                   </button>

@@ -50,20 +50,21 @@ import {
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
 import { useEffect, useMemo, useRef, useState } from "react"
+import { Trans, useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { DevEmbeddingControls } from "./dev-embedding-controls"
 import { LanguageCombobox } from "./language-combobox"
 import { SampleDot } from "./samples-section"
 import { Button } from "./ui/button"
 
-const PHASE_LABELS: Record<string, string> = {
-  extracting_source: "Extracting source text…",
-  extracting_target: "Extracting target text…",
-  splitting: "Splitting into sentences…",
-  embedding_source: "Embedding source sentences…",
-  embedding_target: "Embedding target sentences…",
-  computing_similarity: "Computing similarity matrix…",
-  aligning: "Running alignment algorithm…",
+const PHASE_KEYS: Record<string, string> = {
+  extracting_source: "align.phase.extractingSource",
+  extracting_target: "align.phase.extractingTarget",
+  splitting: "align.phase.splitting",
+  embedding_source: "align.phase.embeddingSource",
+  embedding_target: "align.phase.embeddingTarget",
+  computing_similarity: "align.phase.computingSimilarity",
+  aligning: "align.phase.aligning",
 }
 
 /** Asynchronously extract + split a book to get its sentence count. */
@@ -110,6 +111,7 @@ function useSentenceCount(book: Book | undefined, lang: string) {
 }
 
 export function AlignBooksForm() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const books = useLiveQuery(() => db.books.toArray(), []) ?? []
 
@@ -185,7 +187,7 @@ export function AlignBooksForm() {
         downloadError,
         "Could not download the model."
       )
-      toast.error("Could not download model", { description: message })
+      toast.error(t("align.downloadError"), { description: message })
     } finally {
       setDlActive(null)
     }
@@ -252,7 +254,7 @@ export function AlignBooksForm() {
           downloadError,
           "Failed to download model. Check your connection and try again."
         )
-        toast.error("Could not download model", { description: message })
+        toast.error(t("align.downloadError"), { description: message })
         setIsAligning(false)
         setAutoDownloading(false)
         return
@@ -299,12 +301,13 @@ export function AlignBooksForm() {
       })
 
       if (srcTruncated || tgtTruncated) {
-        const sides = [srcTruncated && "source", tgtTruncated && "target"]
-          .filter(Boolean)
-          .join(" and ")
-        setTruncationWarning(
-          `The ${sides} book was capped at ${maxSentences.toLocaleString()} sentences — some content was excluded from the alignment. Raise "Max sentences" in Advanced to include more.`
-        )
+        const key =
+          srcTruncated && tgtTruncated
+            ? "align.truncationWarningBoth"
+            : srcTruncated
+              ? "align.truncationWarningSource"
+              : "align.truncationWarningTarget"
+        setTruncationWarning(t(key, { max: maxSentences.toLocaleString() }))
       }
 
       if (isCancelled) return
@@ -402,7 +405,7 @@ export function AlignBooksForm() {
     } catch (err) {
       if (!isCancelled) {
         const message = getOperationErrorMessage(err, "Alignment failed.")
-        toast.error("Alignment failed", { description: message })
+        toast.error(t("align.failed"), { description: message })
       }
     } finally {
       cancelRef.current = null
@@ -420,7 +423,9 @@ export function AlignBooksForm() {
     <div className="rounded-xl border bg-card p-6">
       <div className="mb-2 flex items-center gap-2.5">
         <SampleDot colorClass={SAMPLE_CARD_DOT_COLORS[2]} loading={false} />
-        <h2 className="text-base font-semibold tracking-tight">Align books</h2>
+        <h2 className="text-base font-semibold tracking-tight">
+          {t("align.title")}
+        </h2>
         <span
           className={`rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase ${
             device === "webgpu"
@@ -434,8 +439,9 @@ export function AlignBooksForm() {
       {/* ── Book + language selectors ── */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr]">
         <BookLangSelector
-          label="Source"
-          hint="The language you are learning"
+          bookLabel={t("align.sourceBook")}
+          languageLabel={t("align.sourceLanguageLabel")}
+          hint={t("align.sourceHint")}
           books={books}
           selectedId={srcBookId}
           onSelectId={setSrcBookId}
@@ -447,7 +453,7 @@ export function AlignBooksForm() {
         <div className="flex items-center justify-center sm:pt-6">
           <button
             type="button"
-            title="Swap source and target"
+            title={t("align.swap")}
             onClick={() => {
               setSrcBookId(tgtBookId)
               setTgtBookId(srcBookId)
@@ -460,8 +466,9 @@ export function AlignBooksForm() {
           </button>
         </div>
         <BookLangSelector
-          label="Target"
-          hint="The language you already know / are translating to"
+          bookLabel={t("align.targetBook")}
+          languageLabel={t("align.targetLanguageLabel")}
+          hint={t("align.targetHint")}
           books={books}
           selectedId={tgtBookId}
           onSelectId={setTgtBookId}
@@ -484,14 +491,14 @@ export function AlignBooksForm() {
           ) : (
             <CaretDownIcon className="size-4" />
           )}
-          <span>Advanced</span>
+          <span>{t("align.advanced")}</span>
         </button>
 
         {showAdvanced && (
           <div className="mt-3 space-y-5">
             {/* Model selector */}
             <div>
-              <p className="mb-2 text-sm font-medium">Embedding model</p>
+              <p className="mb-2 text-sm font-medium">{t("align.model")}</p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 {MODEL_REGISTRY.map((m) => {
                   const isActive = modelId === m.id
@@ -515,12 +522,12 @@ export function AlignBooksForm() {
                         <span className="font-medium">{m.label}</span>
                         {m.recommended && (
                           <span className="rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-                            Recommended
+                            {t("align.recommended")}
                           </span>
                         )}
                         {isCached && (
                           <span className="rounded border border-primary/30 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-                            Cached
+                            {t("align.cached")}
                           </span>
                         )}
                       </span>
@@ -553,7 +560,7 @@ export function AlignBooksForm() {
                               onClick={() => handleDownloadModel(m.id)}
                               className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                             >
-                              Download (~{m.sizeMb} MB)
+                              {t("align.download")} (~{m.sizeMb} MB)
                             </button>
                           )}
                         </div>
@@ -563,13 +570,17 @@ export function AlignBooksForm() {
                 })}
               </div>
               <p className="mt-2 text-xs text-muted-foreground">
-                Want more options?{" "}
-                <Link
-                  to="/settings"
-                  className="text-primary underline-offset-2 hover:underline"
-                >
-                  Manage models in Settings
-                </Link>
+                <Trans
+                  i18nKey="align.manageModelsHint"
+                  components={{
+                    settingsLink: (
+                      <Link
+                        to="/settings"
+                        className="text-primary underline-offset-2 hover:underline"
+                      />
+                    ),
+                  }}
+                />
               </p>
             </div>
 
@@ -579,7 +590,7 @@ export function AlignBooksForm() {
                 htmlFor="max-sentences"
                 className="text-sm text-muted-foreground"
               >
-                Max sentences per book
+                {t("align.maxSentences")}
               </label>
               <input
                 id="max-sentences"
@@ -599,7 +610,7 @@ export function AlignBooksForm() {
                 htmlFor="gap-penalty"
                 className="text-sm text-muted-foreground"
               >
-                Gap penalty
+                {t("align.gapPenalty")}
               </label>
               <input
                 id="gap-penalty"
@@ -612,16 +623,13 @@ export function AlignBooksForm() {
                 className="w-24 rounded-md border bg-background px-2 py-1 text-sm"
               />
               <span className="text-xs text-muted-foreground">
-                higher = fewer low-confidence matches (default:{" "}
-                {DEFAULT_GAP_PENALTY})
+                {t("align.gapPenaltyHint", { default: DEFAULT_GAP_PENALTY })}
               </span>
             </div>
 
             {/* Regex preprocessing */}
             <div>
-              <p className="mb-2 text-sm font-medium">
-                Text preprocessing (regex)
-              </p>
+              <p className="mb-2 text-sm font-medium">{t("align.regex")}</p>
               <div className="space-y-1.5">
                 {regexRules.map((rule, i) => {
                   let valid = true
@@ -633,8 +641,8 @@ export function AlignBooksForm() {
                   return (
                     <div key={i} className="flex items-center gap-2">
                       <input
-                        aria-label="Pattern"
-                        placeholder="Pattern"
+                        aria-label={t("align.pattern")}
+                        placeholder={t("align.pattern")}
                         value={rule.pattern}
                         onChange={(e) =>
                           setRegexRules((prev) =>
@@ -649,8 +657,8 @@ export function AlignBooksForm() {
                       />
                       <span className="text-xs text-muted-foreground">→</span>
                       <input
-                        aria-label="Replacement"
-                        placeholder="Replacement"
+                        aria-label={t("align.replacement")}
+                        placeholder={t("align.replacement")}
                         value={rule.replacement}
                         onChange={(e) =>
                           setRegexRules((prev) =>
@@ -671,13 +679,13 @@ export function AlignBooksForm() {
                           )
                         }
                         className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-destructive"
-                        aria-label="Remove rule"
+                        aria-label={t("align.removeRule")}
                       >
                         <TrashIcon className="size-3.5" />
                       </button>
                       {!valid && (
                         <span className="text-xs text-destructive">
-                          Invalid regex
+                          {t("align.invalidRegex")}
                         </span>
                       )}
                     </div>
@@ -694,11 +702,10 @@ export function AlignBooksForm() {
                 }
                 className="mt-2 text-xs text-primary hover:underline"
               >
-                + Add rule
+                {t("align.addRule")}
               </button>
               <p className="mt-1 text-xs text-muted-foreground">
-                Patterns are applied globally to extracted text before
-                alignment.
+                {t("align.regexHint")}
               </p>
             </div>
 
@@ -712,10 +719,10 @@ export function AlignBooksForm() {
         <div className="mt-5 space-y-1">
           <p className="text-sm text-muted-foreground">
             {autoDownloading
-              ? `Downloading ${AUTO_DL_MODEL.label} model…`
+              ? t("align.downloadingModel", { model: AUTO_DL_MODEL.label })
               : progress
-                ? PHASE_LABELS[progress.phase]
-                : "Starting…"}
+                ? t(PHASE_KEYS[progress.phase])
+                : t("align.starting")}
           </p>
           <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
             <div
@@ -753,31 +760,35 @@ export function AlignBooksForm() {
           >
             {isAligning
               ? autoDownloading
-                ? "Downloading model…"
-                : "Aligning…"
-              : "Align books"}
+                ? t("align.downloading")
+                : t("align.aligning")
+              : t("align.title")}
           </Button>
           {isAligning && (
             <Button variant="outline" onClick={handleCancel}>
-              Cancel
+              {t("align.cancel")}
             </Button>
           )}
         </div>
         {!anyModelCached && !isAligning && canAlign && (
           <p className="text-xs text-muted-foreground">
-            No model downloaded yet — clicking Align will download{" "}
-            <span className="font-medium text-foreground">
-              {AUTO_DL_MODEL.label}
-            </span>{" "}
-            (~{AUTO_DL_MODEL.sizeMb} MB) first. To use a different model, open{" "}
-            <button
-              type="button"
-              className="font-medium text-foreground underline-offset-2 hover:underline"
-              onClick={() => setShowAdvanced(true)}
-            >
-              <span>Advanced</span>
-            </button>
-            .
+            <Trans
+              i18nKey="align.autoDownloadNotice"
+              values={{
+                model: AUTO_DL_MODEL.label,
+                size: AUTO_DL_MODEL.sizeMb,
+              }}
+              components={{
+                bold: <span className="font-medium text-foreground" />,
+                advancedButton: (
+                  <button
+                    type="button"
+                    className="font-medium text-foreground underline-offset-2 hover:underline"
+                    onClick={() => setShowAdvanced(true)}
+                  />
+                ),
+              }}
+            />
           </p>
         )}
       </div>
@@ -788,7 +799,8 @@ export function AlignBooksForm() {
 // ── Sub-component: one side's book + language picker ────────────────────────
 
 interface BookLangSelectorProps {
-  label: string
+  bookLabel: string
+  languageLabel: string
   hint: string
   books: Book[]
   selectedId: string
@@ -800,7 +812,8 @@ interface BookLangSelectorProps {
 }
 
 function BookLangSelector({
-  label,
+  bookLabel,
+  languageLabel,
   hint,
   books,
   selectedId,
@@ -810,6 +823,7 @@ function BookLangSelector({
   modelLanguages,
   disabledId,
 }: BookLangSelectorProps) {
+  const { t } = useTranslation()
   const selected = books.find((b) => b.id === selectedId)
   const { count, counting } = useSentenceCount(selected, lang)
   // Never drop the language the user already picked, even if the current
@@ -822,7 +836,7 @@ function BookLangSelector({
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-1.5">
-        <p className="text-sm font-medium">{label} book</p>
+        <p className="text-sm font-medium">{bookLabel}</p>
         <div className="group relative flex items-center">
           <QuestionIcon className="size-3.5 cursor-default text-muted-foreground/50 hover:text-muted-foreground" />
           <div className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 rounded-md bg-foreground px-2.5 py-1.5 text-xs text-background opacity-0 shadow-md transition-opacity group-hover:opacity-100">
@@ -838,7 +852,7 @@ function BookLangSelector({
         onChange={(e) => onSelectId(e.target.value)}
         className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
       >
-        <option value="">— select a book —</option>
+        <option value="">{t("align.selectBook")}</option>
         {books.map((b) => (
           <option key={b.id} value={b.id} disabled={b.id === disabledId}>
             {b.title || b.fileName}
@@ -855,7 +869,7 @@ function BookLangSelector({
       )}
 
       <LanguageCombobox
-        label={`${label} language`}
+        label={languageLabel}
         value={lang}
         onChange={onSelectLang}
         options={langOptions}
@@ -864,9 +878,9 @@ function BookLangSelector({
       {selected && (
         <p className="text-xs text-muted-foreground">
           {counting
-            ? "Counting sentences…"
+            ? t("align.countingSentences")
             : count != null
-              ? `~${count.toLocaleString()} sentences`
+              ? t("align.approxSentences", { count })
               : null}
         </p>
       )}
