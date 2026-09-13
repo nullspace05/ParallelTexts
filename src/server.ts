@@ -2,6 +2,23 @@ import handler from "@tanstack/react-start/server-entry"
 
 import { serveR2Asset } from "./server/serve-r2-assets"
 
+function applyCountryLanguage(request: Request, response: Response): Response {
+  if (
+    request.cf?.country !== "JP" ||
+    !response.headers.get("content-type")?.includes("text/html")
+  ) {
+    return response
+  }
+
+  return new HTMLRewriter()
+    .on("html", {
+      element(element) {
+        element.setAttribute("lang", "ja")
+      },
+    })
+    .transform(response)
+}
+
 export default {
   async fetch(
     request: Request,
@@ -13,6 +30,6 @@ export default {
       return assetResponse
     }
 
-    return handler.fetch(request)
+    return applyCountryLanguage(request, await handler.fetch(request))
   },
 }

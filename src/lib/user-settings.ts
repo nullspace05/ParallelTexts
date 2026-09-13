@@ -12,7 +12,9 @@ export const DEFAULT_UI_LANGUAGE: UiLanguage = "en"
 
 export const UI_LANGUAGE_INIT_SCRIPT = `try {
   var language = localStorage.getItem("${KEY_UI_LANGUAGE}");
-  if (language === "ja") document.documentElement.lang = language;
+  if (language === "en" || language === "ja") {
+    document.documentElement.lang = language;
+  }
 } catch (_) {}`
 const KEY_GAP_PENALTY = "pt:gapPenalty"
 
@@ -55,6 +57,26 @@ function safeSet(key: string, value: string): boolean {
 
 export function getStoredUiLanguage(): UiLanguage {
   return safeGet(KEY_UI_LANGUAGE) === "ja" ? "ja" : DEFAULT_UI_LANGUAGE
+}
+
+/**
+ * Uses an explicit Settings choice when present. Without one, the Worker may
+ * have set <html lang="ja"> from Cloudflare's country code before hydration.
+ */
+export function getInitialUiLanguage(): UiLanguage {
+  const storedLanguage = safeGet(KEY_UI_LANGUAGE)
+  if (storedLanguage === "en" || storedLanguage === "ja") {
+    return storedLanguage
+  }
+
+  if (
+    typeof document !== "undefined" &&
+    document.documentElement.lang.toLowerCase() === "ja"
+  ) {
+    return "ja"
+  }
+
+  return DEFAULT_UI_LANGUAGE
 }
 
 export function setStoredUiLanguage(language: UiLanguage): boolean {

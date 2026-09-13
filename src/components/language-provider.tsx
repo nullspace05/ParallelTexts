@@ -1,6 +1,6 @@
 import { i18n } from "@/i18n/i18n"
 import {
-  getStoredUiLanguage,
+  getInitialUiLanguage,
   setStoredUiLanguage,
   type UiLanguage,
 } from "@/lib/user-settings"
@@ -38,10 +38,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
 
   useEffect(() => {
-    const storedLanguage = getStoredUiLanguage()
-    setLanguageState(storedLanguage)
-    setDocumentLanguage(storedLanguage)
-    void i18n.changeLanguage(storedLanguage).then(() => {
+    const initialLanguage = getInitialUiLanguage()
+    setLanguageState(initialLanguage)
+    setDocumentLanguage(initialLanguage)
+    void i18n.changeLanguage(initialLanguage).then(() => {
       setDocumentMeta()
       setReady(true)
     })

@@ -39,10 +39,11 @@ function NavHarness() {
   )
 }
 
-afterEach(() => {
+afterEach(async () => {
   localStorage.clear()
+  document.documentElement.lang = "en"
   document.body.innerHTML = ""
-  void i18n.changeLanguage("en")
+  await i18n.changeLanguage("en")
 })
 
 describe("Settings language picker persistence", () => {

@@ -1,5 +1,6 @@
 import {
   DEFAULT_UI_LANGUAGE,
+  getInitialUiLanguage,
   getStoredUiLanguage,
   setStoredUiLanguage,
 } from "@/lib/user-settings"
@@ -7,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 afterEach(() => {
   localStorage.clear()
+  document.documentElement.lang = "en"
   vi.restoreAllMocks()
 })
 
@@ -32,5 +34,18 @@ describe("UI language preference", () => {
     })
 
     expect(getStoredUiLanguage()).toBe("en")
+  })
+
+  it("uses the Worker's Japanese document language without a saved preference", () => {
+    document.documentElement.lang = "ja"
+
+    expect(getInitialUiLanguage()).toBe("ja")
+  })
+
+  it("prefers an explicit English setting over the Worker's country default", () => {
+    document.documentElement.lang = "ja"
+    localStorage.setItem("pt:uiLanguage", "en")
+
+    expect(getInitialUiLanguage()).toBe("en")
   })
 })
