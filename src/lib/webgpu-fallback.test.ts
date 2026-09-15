@@ -1,0 +1,79 @@
+import { describe, expect, it } from "vitest"
+
+import { canRetryAlignmentWithWasm } from "./webgpu-fallback"
+
+describe("canRetryAlignmentWithWasm", () => {
+  it.each(["model_initialization", "embedding_source", "embedding_target"])(
+    "offers WASM when WebGPU fails during %s",
+    (phase) => {
+      expect(
+        canRetryAlignmentWithWasm(
+          "webgpu",
+          phase,
+          new Error("WebGPU device was lost"),
+          false
+        )
+      ).toBe(true)
+    }
+  )
+
+  it("does not retry failures outside WebGPU model setup or embedding", () => {
+    expect(
+      canRetryAlignmentWithWasm(
+        "webgpu",
+        "extracting_source",
+        new Error("WebGPU device was lost"),
+        false
+      )
+    ).toBe(false)
+    expect(
+      canRetryAlignmentWithWasm(
+        "webgpu",
+        "computing_similarity",
+        new Error("WebGPU device was lost"),
+        false
+      )
+    ).toBe(false)
+    expect(
+      canRetryAlignmentWithWasm(
+        "wasm",
+        "embedding_source",
+        new Error("WebGPU device was lost"),
+        false
+      )
+    ).toBe(false)
+  })
+
+  it("does not treat a download or network failure as a WebGPU failure", () => {
+    expect(
+      canRetryAlignmentWithWasm(
+        "webgpu",
+        "model_initialization",
+        new Error("Failed to fetch model files"),
+        false
+      )
+    ).toBe(false)
+  })
+
+  it("recognizes GPU errors that do not use the WebGPU name", () => {
+    expect(
+      canRetryAlignmentWithWasm(
+        "webgpu",
+        "embedding_source",
+        new Error("GPU device was lost"),
+        false
+      )
+    ).toBe(true)
+  })
+
+  it("does not offer a second WASM retry", () => {
+    expect(
+      canRetryAlignmentWithWasm(
+        "webgpu",
+        "embedding_source",
+        new Error("WebGPU device was lost"),
+        true
+      )
+    ).toBe(false)
+  })
+})

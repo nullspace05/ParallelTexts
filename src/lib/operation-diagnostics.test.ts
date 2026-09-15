@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { trackOperation, withTimeout } from "./operation-diagnostics"
+import {
+  captureWasmFallback,
+  trackOperation,
+  withTimeout,
+} from "./operation-diagnostics"
 import type { OperationTimeoutError } from "./operation-diagnostics"
 
 const { capture } = vi.hoisted(() => ({ capture: vi.fn() }))
@@ -34,6 +38,20 @@ describe("withTimeout", () => {
 })
 
 describe("trackOperation", () => {
+  it("captures when a user accepts the WASM fallback", () => {
+    captureWasmFallback({
+      action: "accepted",
+      device: "webgpu",
+      phase: "embedding_source",
+    })
+
+    expect(capture).toHaveBeenLastCalledWith("alignment_wasm_fallback", {
+      action: "accepted",
+      device: "webgpu",
+      phase: "embedding_source",
+    })
+  })
+
   it("captures the latest mutable details when an operation completes", async () => {
     const details: Record<string, boolean | number | string> = {
       phase: "preparing",

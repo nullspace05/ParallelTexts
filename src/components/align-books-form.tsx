@@ -13,11 +13,16 @@ import {
   type LanguageOption,
 } from "@/lib/model-languages"
 import {
+  captureWasmFallback,
   getOperationErrorMessage,
   trackOperation,
 } from "@/lib/operation-diagnostics"
 import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
+import {
+  canRetryAlignmentWithWasm,
+  type AlignmentRuntime,
+} from "@/lib/webgpu-fallback"
 import {
   DEFAULT_GAP_PENALTY,
   GAP_PENALTY_MAX,
@@ -206,6 +211,9 @@ export function AlignBooksForm() {
   )
 
   const cancelRef = useRef<(() => void) | null>(null)
+  // React state updates asynchronously. Keep a synchronous lock so a stale
+  // fallback-toast action cannot start alongside a newly started alignment.
+  const alignmentInFlightRef = useRef(false)
 
   const srcBook = books.find((b) => b.id === srcBookId) ?? null
   const tgtBook = books.find((b) => b.id === tgtBookId) ?? null
@@ -221,8 +229,13 @@ export function AlignBooksForm() {
     cancelRef.current?.()
   }
 
-  async function handleAlign() {
+  async function handleAlign(
+    runtime: AlignmentRuntime = device,
+    hasRetriedWithWasm = false
+  ) {
     if (!srcBook || !tgtBook) return
+    if (alignmentInFlightRef.current) return
+    alignmentInFlightRef.current = true
     setIsAligning(true)
     setIsSavingAlignment(false)
     setProgress(null)
@@ -251,53 +264,42 @@ export function AlignBooksForm() {
     // happen since it's set alongside cachedIds).
     let effectiveModelId =
       modelId && cachedIds.has(modelId) ? modelId : [...cachedIds][0]
-    if (!anyModelCached) {
-      setAutoDownloading(true)
-      setAutoDownloadPct(0)
-      try {
-        await Promise.race([
-          downloadModel(AUTO_DL_MODEL.id, "auto", (info) => {
-            if (!isCancelled && info.status === "progress") {
-              setAutoDownloadPct(Math.round(info.progress ?? 0))
-            }
-          }),
-          cancellation,
-        ])
-        setCachedIds((prev) => new Set([...prev, AUTO_DL_MODEL.id]))
-        setModelId(AUTO_DL_MODEL.id)
-        effectiveModelId = AUTO_DL_MODEL.id
-      } catch (downloadError) {
-        if (isCancelled) {
-          cancelRef.current = null
-          setIsAligning(false)
-          return
-        }
-        const message = getOperationErrorMessage(
-          downloadError,
-          "Failed to download model. Check your connection and try again."
-        )
-        toast.error(t("align.downloadError"), { description: message })
-        cancelRef.current = null
-        setIsAligning(false)
-        return
-      } finally {
-        setAutoDownloading(false)
-      }
-      if (isCancelled) {
-        cancelRef.current = null
-        setIsAligning(false)
-        return
-      }
-    }
+    if (!anyModelCached) effectiveModelId = AUTO_DL_MODEL.id
 
     const operationDetails: Record<string, boolean | number | string> = {
       modelId: effectiveModelId,
-      device,
-      phase: "preparing",
+      device: runtime,
+      phase: anyModelCached ? "preparing" : "model_initialization",
     }
+    if (hasRetriedWithWasm) operationDetails.fallbackFrom = "webgpu"
 
     try {
       await trackOperation("alignment", operationDetails, async () => {
+        if (!anyModelCached) {
+          setAutoDownloading(true)
+          setAutoDownloadPct(0)
+          try {
+            await Promise.race([
+              downloadModel(AUTO_DL_MODEL.id, runtime, (info) => {
+                if (!isCancelled && info.status === "progress") {
+                  setAutoDownloadPct(Math.round(info.progress ?? 0))
+                }
+              }),
+              cancellation,
+            ])
+            setCachedIds((prev) => new Set([...prev, AUTO_DL_MODEL.id]))
+            setModelId(AUTO_DL_MODEL.id)
+          } finally {
+            setAutoDownloading(false)
+          }
+        }
+
+        if (isCancelled) {
+          operationDetails.phase = "cancelled"
+          throw new DOMException("Alignment cancelled.", "AbortError")
+        }
+
+        operationDetails.phase = "preparing"
         const validRules = regexRules.filter((r) => {
           if (!r.pattern) return false
           try {
@@ -379,7 +381,9 @@ export function AlignBooksForm() {
               }
               if (e.data.type === "error") {
                 worker.terminate()
-                reject(new Error(e.data.message))
+                const error = new Error(e.data.message)
+                error.name = e.data.name
+                reject(error)
               }
             }
 
@@ -389,7 +393,7 @@ export function AlignBooksForm() {
             }
 
             console.log(
-              `[PT] align: dispatching | model=${effectiveModelId} | device=${device} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
+              `[PT] align: dispatching | model=${effectiveModelId} | device=${runtime} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
             )
             worker.postMessage({
               type: "align",
@@ -398,7 +402,7 @@ export function AlignBooksForm() {
                 tgtRecords,
                 modelId: effectiveModelId,
                 gapPenalty,
-                device,
+                device: runtime,
               },
             })
           }
@@ -429,7 +433,7 @@ export function AlignBooksForm() {
 
         const meta: AlignmentMeta = {
           modelId: effectiveModelId,
-          device,
+          device: runtime,
           dtype: "fp32",
           durationMs: Date.now() - alignStart,
         }
@@ -461,11 +465,38 @@ export function AlignBooksForm() {
       })
     } catch (err) {
       if (!isCancelled) {
-        const message = getOperationErrorMessage(err, "Alignment failed.")
-        toast.error(t("align.failed"), { description: message })
+        if (
+          canRetryAlignmentWithWasm(
+            runtime,
+            String(operationDetails.phase),
+            err,
+            hasRetriedWithWasm
+          )
+        ) {
+          const fallbackDetails = {
+            device: runtime,
+            modelId: effectiveModelId,
+            phase: String(operationDetails.phase),
+          }
+          captureWasmFallback({ ...fallbackDetails, action: "offered" })
+          toast.error(t("align.webgpuFailed"), {
+            description: t("align.webgpuFallbackDescription"),
+            action: {
+              label: t("align.retryWithWasm"),
+              onClick: () => {
+                captureWasmFallback({ ...fallbackDetails, action: "accepted" })
+                void handleAlign("wasm", true)
+              },
+            },
+          })
+        } else {
+          const message = getOperationErrorMessage(err, "Alignment failed.")
+          toast.error(t("align.failed"), { description: message })
+        }
       }
     } finally {
       cancelRef.current = null
+      alignmentInFlightRef.current = false
       setIsAligning(false)
       setIsSavingAlignment(false)
       setProgress(null)
@@ -814,7 +845,7 @@ export function AlignBooksForm() {
           <Button
             className="w-full sm:w-auto"
             disabled={!canAlign}
-            onClick={handleAlign}
+            onClick={() => void handleAlign()}
           >
             {isAligning
               ? autoDownloading

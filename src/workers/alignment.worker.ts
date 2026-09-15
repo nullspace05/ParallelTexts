@@ -37,6 +37,7 @@ export interface AlignWorkerDone {
 /** Posted when alignment throws. */
 export interface AlignWorkerError {
   type: "error"
+  name: string
   message: string
 }
 
@@ -79,7 +80,12 @@ self.onmessage = async (event: MessageEvent<AlignWorkerInput>) => {
   } catch (err) {
     const elapsed = ((performance.now() - t0) / 1000).toFixed(1)
     console.error(`[PT] worker: error after ${elapsed}s`, err)
+    const name = err instanceof Error ? err.name : "Error"
     const message = err instanceof Error ? err.message : "Alignment failed."
-    self.postMessage({ type: "error", message } satisfies AlignWorkerError)
+    self.postMessage({
+      type: "error",
+      name,
+      message,
+    } satisfies AlignWorkerError)
   }
 }

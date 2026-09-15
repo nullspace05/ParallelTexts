@@ -110,6 +110,11 @@ export function captureStorageCheck(result: {
   )
 }
 
+export function captureWasmFallback(details: OperationDetails) {
+  if (typeof window === "undefined") return
+  posthog.capture("alignment_wasm_fallback", details)
+}
+
 export function getOperationErrorMessage(
   error: unknown,
   fallback: string
