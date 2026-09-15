@@ -75,6 +75,10 @@
     "heading": "404",
     "message": "指定されたページは見つかりませんでした。"
   },
+  "applicationError": {
+    "heading": "問題が発生しました",
+    "message": "ページを再読み込みして、もう一度お試しください。"
+  },
   "storage": {
     "heading": "ブラウザのストレージを利用できません",
     "indexedDb": "IndexedDB（本と対訳）",

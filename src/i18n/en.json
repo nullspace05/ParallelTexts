@@ -75,6 +75,10 @@
     "heading": "404",
     "message": "The requested page could not be found."
   },
+  "applicationError": {
+    "heading": "Something went wrong",
+    "message": "Refresh the page and try again."
+  },
   "storage": {
     "heading": "Browser storage is unavailable",
     "indexedDb": "IndexedDB (books and alignments)",

@@ -8,7 +8,7 @@ import { Toaster } from "@/components/ui/sonner"
 import { OG_IMAGE_URL, SITE_URL } from "@/lib/site-links"
 import { THEME_INIT_SCRIPT } from "@/lib/theme"
 import { UI_LANGUAGE_INIT_SCRIPT } from "@/lib/user-settings"
-import { PostHogProvider } from "@posthog/react"
+import { PostHogErrorBoundary, PostHogProvider } from "@posthog/react"
 import { useTranslation } from "react-i18next"
 import appCss from "../styles.css?url"
 
@@ -125,8 +125,30 @@ function NotFound() {
 
 const options = {
   api_host: import.meta.env.VITE_POSTHOG_HOST,
+  capture_exceptions: {
+    capture_console_errors: false,
+    capture_unhandled_errors: true,
+    capture_unhandled_rejections: true,
+  },
   defaults: "2025-11-30",
 } as const
+
+function ApplicationErrorFallback() {
+  const { t } = useTranslation()
+
+  return (
+    <main className="container mx-auto flex min-h-screen max-w-2xl items-center p-4">
+      <div role="alert">
+        <h1 className="text-2xl font-semibold">
+          {t("applicationError.heading")}
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          {t("applicationError.message")}
+        </p>
+      </div>
+    </main>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -134,7 +156,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       apiKey={import.meta.env.VITE_POSTHOG_PROJECT_TOKEN}
       options={options}
     >
-      {" "}
       <html lang="en" suppressHydrationWarning>
         <head>
           <HeadContent />
@@ -146,25 +167,27 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           />
         </head>
         <body>
-          <LanguageProvider>
-            <ThemeProvider>
-              <BrowserStorageNotice />
-              <Header />
-              <main className="flex-1">{children}</main>
-              <Toaster />
-              {/* <TanStackDevtools
-            config={{
-              position: "bottom-right",
-            }}
-            plugins={[
-              {
-                name: "Tanstack Router",
-                render: <TanStackRouterDevtoolsPanel />,
-              },
-            ]}
-          /> */}
-            </ThemeProvider>
-          </LanguageProvider>
+          <PostHogErrorBoundary fallback={<ApplicationErrorFallback />}>
+            <LanguageProvider>
+              <ThemeProvider>
+                <BrowserStorageNotice />
+                <Header />
+                <main className="flex-1">{children}</main>
+                <Toaster />
+                {/* <TanStackDevtools
+              config={{
+                position: "bottom-right",
+              }}
+              plugins={[
+                {
+                  name: "Tanstack Router",
+                  render: <TanStackRouterDevtoolsPanel />,
+                },
+              ]}
+            /> */}
+              </ThemeProvider>
+            </LanguageProvider>
+          </PostHogErrorBoundary>
           <Scripts />
         </body>
       </html>
