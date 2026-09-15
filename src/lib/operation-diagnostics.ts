@@ -98,14 +98,17 @@ export async function trackOperation<T>(
 }
 
 export function captureStorageCheck(result: {
-  indexedDb: boolean
-  cacheStorage: boolean
+  indexedDb?: boolean
+  cacheStorage?: boolean
+  timedOut?: boolean
   indexedDbError?: string
   cacheStorageError?: string
 }) {
   captureOperation(
     "browser_storage_check",
-    result.indexedDb && result.cacheStorage ? "completed" : "failed",
+    result.indexedDb === false || result.cacheStorage === false
+      ? "failed"
+      : "completed",
     result
   )
 }

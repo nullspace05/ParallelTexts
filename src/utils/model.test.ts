@@ -2,18 +2,35 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 
 import { downloadModel } from "./model"
 
-const { pipeline } = vi.hoisted(() => ({ pipeline: vi.fn() }))
+const { pipeline, checkCacheStorageForModelDownload } = vi.hoisted(() => ({
+  pipeline: vi.fn(),
+  checkCacheStorageForModelDownload: vi.fn(),
+}))
 
 vi.mock("@huggingface/transformers", () => ({
   env: {},
   pipeline,
 }))
 
+vi.mock("@/lib/browser-storage", () => ({
+  checkCacheStorageForModelDownload,
+}))
+
 afterEach(() => {
   pipeline.mockReset()
+  checkCacheStorageForModelDownload.mockReset()
+  checkCacheStorageForModelDownload.mockResolvedValue(undefined)
 })
 
 describe("downloadModel", () => {
+  it("does not wait for the cache storage check", async () => {
+    checkCacheStorageForModelDownload.mockReturnValue(new Promise(() => {}))
+    pipeline.mockResolvedValue(undefined)
+
+    await expect(downloadModel("test-model", "wasm")).resolves.toBeUndefined()
+    expect(checkCacheStorageForModelDownload).toHaveBeenCalledOnce()
+  })
+
   it("shares an in-flight download and forwards progress to every caller", async () => {
     let resolveDownload: () => void
     let reportProgress: (info: { status: string; progress: number }) => void

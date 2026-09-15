@@ -5,6 +5,7 @@ import {
   type ProgressCallback,
 } from "@huggingface/transformers"
 
+import { checkCacheStorageForModelDownload } from "@/lib/browser-storage"
 import { trackOperation, withTimeout } from "@/lib/operation-diagnostics"
 import {
   DEFAULT_MODEL_ID,
@@ -108,6 +109,10 @@ export async function downloadModel(
   progress_callback?: ProgressCallback
 ): Promise<void> {
   configureModelEnv()
+  // Cache Storage can stall after a large model write. Start its temporary
+  // validation here, not on every route load, and never make it hold up the
+  // actual download.
+  void checkCacheStorageForModelDownload()
   const resolvedDevice = isBrowser ? resolveDevice(device) : "cpu"
   const downloadKey = `${modelId}:${resolvedDevice}`
   const existingDownload = inFlightDownloads.get(downloadKey)

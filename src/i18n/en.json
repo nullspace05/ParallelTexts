@@ -85,7 +85,7 @@
     "cacheStorage": "Cache storage (embedding models)",
     "description": "{{unavailable}} cannot be used. Private browsing or privacy settings may be blocking it. Open ParallelTexts in a regular window and try again.",
     "slowCacheHeading": "Model cache is taking longer than expected",
-    "slowCacheDescription": "Your browser is still checking the model cache. Wait a moment, then refresh or try again."
+    "slowCacheDescription": "Your browser is still checking the model cache. The download will continue."
   },
   "incognito": {
     "dismiss": "Dismiss incognito notice",

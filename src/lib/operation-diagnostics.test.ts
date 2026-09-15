@@ -38,6 +38,19 @@ describe("withTimeout", () => {
 })
 
 describe("trackOperation", () => {
+  it("does not treat a false timeout flag as a failed storage check", async () => {
+    const { captureStorageCheck } = await import("./operation-diagnostics")
+
+    captureStorageCheck({ cacheStorage: true, timedOut: false })
+
+    expect(capture).toHaveBeenLastCalledWith("client_operation", {
+      operation: "browser_storage_check",
+      status: "completed",
+      cacheStorage: true,
+      timedOut: false,
+    })
+  })
+
   it("captures when a user accepts the WASM fallback", () => {
     captureWasmFallback({
       action: "accepted",
