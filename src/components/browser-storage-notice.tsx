@@ -14,6 +14,18 @@ export function BrowserStorageNotice() {
       captureStorageCheck(result)
       if (result.indexedDb && result.cacheStorage) return
 
+      if (
+        result.indexedDb &&
+        !result.cacheStorage &&
+        result.cacheStorageError?.includes("timed out")
+      ) {
+        toast.warning(t("storage.slowCacheHeading"), {
+          id: "browser-storage-unavailable",
+          description: t("storage.slowCacheDescription"),
+        })
+        return
+      }
+
       const unavailable = [
         !result.indexedDb && t("storage.indexedDb"),
         !result.cacheStorage && t("storage.cacheStorage"),
