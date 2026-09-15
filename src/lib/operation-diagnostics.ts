@@ -1,4 +1,5 @@
 import posthog from "posthog-js"
+import type { WebGPUProbeResult } from "@/lib/webgpu-probe"
 
 export class OperationTimeoutError extends Error {
   constructor(operation: string, timeoutMs: number) {
@@ -116,6 +117,13 @@ export function captureStorageCheck(result: {
 export function captureWasmFallback(details: OperationDetails) {
   if (typeof window === "undefined") return
   posthog.capture("alignment_wasm_fallback", details)
+}
+
+export function captureWebGPUProbe(result: WebGPUProbeResult) {
+  captureOperation("webgpu_probe", result.available ? "completed" : "failed", {
+    context: "worker",
+    ...result,
+  })
 }
 
 export function getOperationErrorMessage(

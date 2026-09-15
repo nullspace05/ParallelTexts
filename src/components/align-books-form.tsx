@@ -13,6 +13,7 @@ import {
   type LanguageOption,
 } from "@/lib/model-languages"
 import {
+  captureWebGPUProbe,
   captureWasmFallback,
   getOperationErrorMessage,
   trackOperation,
@@ -21,6 +22,7 @@ import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
 import {
   canRetryAlignmentWithWasm,
+  shouldAutomaticallyRetryWithWasm,
   type AlignmentRuntime,
 } from "@/lib/webgpu-fallback"
 import {
@@ -40,13 +42,11 @@ import type {
 } from "@/types/alignment"
 import type { Book } from "@/types/book"
 import { checkModelCached, downloadModel } from "@/utils/model"
-import {
-  detectWebGPU,
-  MODEL_REGISTRY,
-  resolveDevice,
-} from "@/utils/model-registry"
+import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
 import type { AlignWorkerOutput } from "@/workers/alignment.worker"
 import AlignmentWorker from "@/workers/alignment.worker?worker"
+import type { WebGPUProbeWorkerOutput } from "@/workers/webgpu-probe.worker"
+import WebGPUProbeWorker from "@/workers/webgpu-probe.worker?worker"
 import {
   ArrowsLeftRightIcon,
   CaretDownIcon,
@@ -136,18 +136,72 @@ export function AlignBooksForm() {
   )
   const [gapPenalty, setGapPenalty] = useState(() => getStoredGapPenalty())
   const [device, setDevice] = useState<"webgpu" | "wasm">("wasm")
+  const [isDeviceReady, setIsDeviceReady] = useState(false)
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [regexRules, setRegexRules] = useState<RegexRule[]>([])
 
-  // Resolve device on mount
+  // Resolve Auto in a Worker, where inference actually runs. A visible
+  // navigator.gpu does not guarantee that Chromium can provide an adapter.
   useEffect(() => {
     const pref = getStoredDevice()
     if (pref === "wasm") {
       setDevice("wasm")
-    } else if (pref === "webgpu") {
+      setIsDeviceReady(true)
+      return
+    }
+
+    if (pref === "webgpu") {
       setDevice(detectWebGPU() ? "webgpu" : "wasm")
-    } else {
-      setDevice(resolveDevice("auto"))
+      setIsDeviceReady(true)
+      return
+    }
+
+    if (!detectWebGPU()) {
+      setDevice("wasm")
+      setIsDeviceReady(true)
+      return
+    }
+
+    let cancelled = false
+    const worker = new WebGPUProbeWorker()
+
+    worker.onmessage = (event: MessageEvent<WebGPUProbeWorkerOutput>) => {
+      worker.terminate()
+      if (cancelled) return
+
+      const { result } = event.data
+      captureWebGPUProbe(result)
+      setDevice(result.available ? "webgpu" : "wasm")
+      setIsDeviceReady(true)
+      if (!result.available) {
+        toast.message(t("align.webgpuUnavailable"), {
+          description: t("align.webgpuAutoFallbackDescription"),
+        })
+      }
+    }
+
+    worker.onerror = () => {
+      worker.terminate()
+      if (cancelled) return
+
+      const result = {
+        available: false,
+        failure: "adapter_unavailable" as const,
+        errorName: "WorkerError",
+        errorMessage: "Unable to test WebGPU in a worker.",
+      }
+      captureWebGPUProbe(result)
+      setDevice("wasm")
+      setIsDeviceReady(true)
+      toast.message(t("align.webgpuUnavailable"), {
+        description: t("align.webgpuAutoFallbackDescription"),
+      })
+    }
+
+    worker.postMessage({ type: "probe-webgpu" })
+    return () => {
+      cancelled = true
+      worker.terminate()
     }
   }, [])
 
@@ -177,10 +231,12 @@ export function AlignBooksForm() {
   const anyModelCached = cachedIds.size > 0
 
   async function handleDownloadModel(id: string) {
+    if (!isDeviceReady) return
+
     setDlActive(id)
     setDlProgress((p) => ({ ...p, [id]: 0 }))
     try {
-      await downloadModel(id, "auto", (info) => {
+      await downloadModel(id, device, (info) => {
         if (info.status === "progress") {
           setDlProgress((p) => ({
             ...p,
@@ -218,7 +274,11 @@ export function AlignBooksForm() {
   const srcBook = books.find((b) => b.id === srcBookId) ?? null
   const tgtBook = books.find((b) => b.id === tgtBookId) ?? null
   const canAlign =
-    !!srcBook && !!tgtBook && srcBookId !== tgtBookId && !isAligning
+    !!srcBook &&
+    !!tgtBook &&
+    srcBookId !== tgtBookId &&
+    !isAligning &&
+    isDeviceReady
 
   // MiniLM L12 is the fallback auto-download model (smallest, 470 MB)
   const AUTO_DL_MODEL = MODEL_REGISTRY.find(
@@ -233,7 +293,7 @@ export function AlignBooksForm() {
     runtime: AlignmentRuntime = device,
     hasRetriedWithWasm = false
   ) {
-    if (!srcBook || !tgtBook) return
+    if (!isDeviceReady || !srcBook || !tgtBook) return
     if (alignmentInFlightRef.current) return
     alignmentInFlightRef.current = true
     setIsAligning(true)
@@ -272,6 +332,7 @@ export function AlignBooksForm() {
       phase: anyModelCached ? "preparing" : "model_initialization",
     }
     if (hasRetriedWithWasm) operationDetails.fallbackFrom = "webgpu"
+    let retryWithWasm = false
 
     try {
       await trackOperation("alignment", operationDetails, async () => {
@@ -465,14 +526,32 @@ export function AlignBooksForm() {
       })
     } catch (err) {
       if (!isCancelled) {
+        const canRetryWithWasm = canRetryAlignmentWithWasm(
+          runtime,
+          String(operationDetails.phase),
+          err,
+          hasRetriedWithWasm
+        )
         if (
-          canRetryAlignmentWithWasm(
+          shouldAutomaticallyRetryWithWasm(
+            getStoredDevice() === "auto",
             runtime,
             String(operationDetails.phase),
             err,
             hasRetriedWithWasm
           )
         ) {
+          captureWasmFallback({
+            device: runtime,
+            modelId: effectiveModelId,
+            phase: String(operationDetails.phase),
+            action: "automatic",
+          })
+          toast.message(t("align.webgpuUnavailable"), {
+            description: t("align.webgpuAutoFallbackDescription"),
+          })
+          retryWithWasm = true
+        } else if (canRetryWithWasm) {
           const fallbackDetails = {
             device: runtime,
             modelId: effectiveModelId,
@@ -501,6 +580,8 @@ export function AlignBooksForm() {
       setIsSavingAlignment(false)
       setProgress(null)
     }
+
+    if (retryWithWasm) void handleAlign("wasm", true)
   }
 
   const progressPct =
@@ -522,7 +603,11 @@ export function AlignBooksForm() {
               : "bg-muted text-muted-foreground"
           }`}
         >
-          {device === "webgpu" ? "GPU" : "WASM"}
+          {!isDeviceReady
+            ? t("align.checkingGpu")
+            : device === "webgpu"
+              ? "GPU"
+              : "WASM"}
         </span>
       </div>
       {/* ── Book + language selectors ── */}
@@ -645,7 +730,7 @@ export function AlignBooksForm() {
                           ) : (
                             <button
                               type="button"
-                              disabled={dlActive !== null}
+                              disabled={dlActive !== null || !isDeviceReady}
                               onClick={() => handleDownloadModel(m.id)}
                               className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                             >

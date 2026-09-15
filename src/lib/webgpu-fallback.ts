@@ -24,3 +24,16 @@ export function canRetryAlignmentWithWasm(
     /webgpu|gpu\s*(?:adapter|device|buffer|validation)/i.test(errorText(error))
   )
 }
+
+export function shouldAutomaticallyRetryWithWasm(
+  isAutoDevice: boolean,
+  runtime: AlignmentRuntime,
+  phase: string,
+  error: unknown,
+  hasRetriedWithWasm: boolean
+): boolean {
+  return (
+    isAutoDevice &&
+    canRetryAlignmentWithWasm(runtime, phase, error, hasRetriedWithWasm)
+  )
+}

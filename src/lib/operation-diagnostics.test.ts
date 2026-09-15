@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
 import {
+  captureWebGPUProbe,
   captureWasmFallback,
   trackOperation,
   withTimeout,
@@ -62,6 +63,21 @@ describe("trackOperation", () => {
       action: "accepted",
       device: "webgpu",
       phase: "embedding_source",
+    })
+  })
+
+  it("records an unavailable WebGPU adapter from the worker probe", () => {
+    captureWebGPUProbe({
+      available: false,
+      failure: "adapter_unavailable",
+    })
+
+    expect(capture).toHaveBeenLastCalledWith("client_operation", {
+      operation: "webgpu_probe",
+      status: "failed",
+      context: "worker",
+      available: false,
+      failure: "adapter_unavailable",
     })
   })
 

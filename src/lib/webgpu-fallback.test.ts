@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { canRetryAlignmentWithWasm } from "./webgpu-fallback"
+import {
+  canRetryAlignmentWithWasm,
+  shouldAutomaticallyRetryWithWasm,
+} from "./webgpu-fallback"
 
 describe("canRetryAlignmentWithWasm", () => {
   it.each(["model_initialization", "embedding_source", "embedding_target"])(
@@ -73,6 +76,32 @@ describe("canRetryAlignmentWithWasm", () => {
         "embedding_source",
         new Error("WebGPU device was lost"),
         true
+      )
+    ).toBe(false)
+  })
+})
+
+describe("shouldAutomaticallyRetryWithWasm", () => {
+  it("retries a WebGPU failure automatically for Auto", () => {
+    expect(
+      shouldAutomaticallyRetryWithWasm(
+        true,
+        "webgpu",
+        "embedding_source",
+        new Error("Failed to get GPU adapter"),
+        false
+      )
+    ).toBe(true)
+  })
+
+  it("keeps the manual retry affordance for explicit WebGPU", () => {
+    expect(
+      shouldAutomaticallyRetryWithWasm(
+        false,
+        "webgpu",
+        "embedding_source",
+        new Error("Failed to get GPU adapter"),
+        false
       )
     ).toBe(false)
   })

@@ -60,9 +60,9 @@ export const MODEL_ID = DEFAULT_MODEL_ID
 export type InferenceDevice = "webgpu" | "wasm" | "auto"
 
 /**
- * Returns true when WebGPU is available in the current browsing context.
- * Workers cannot access navigator.gpu, so this always returns false there —
- * device detection must happen on the main thread and be passed to the worker.
+ * Returns true when the WebGPU API is exposed in the current context. This
+ * only checks for the API. Auto also probes adapter and device creation in a
+ * Worker before starting inference.
  */
 export function detectWebGPU(): boolean {
   try {
