@@ -12,7 +12,10 @@ import {
   withSelectedCode,
   type LanguageOption,
 } from "@/lib/model-languages"
-import { getOperationErrorMessage } from "@/lib/operation-diagnostics"
+import {
+  getOperationErrorMessage,
+  trackOperation,
+} from "@/lib/operation-diagnostics"
 import { extractPdfContent } from "@/lib/pdf"
 import { splitIntoSentences } from "@/lib/sentence-splitter"
 import {
@@ -194,6 +197,7 @@ export function AlignBooksForm() {
   }
 
   const [isAligning, setIsAligning] = useState(false)
+  const [isSavingAlignment, setIsSavingAlignment] = useState(false)
   const [autoDownloading, setAutoDownloading] = useState(false)
   const [autoDownloadPct, setAutoDownloadPct] = useState(0)
   const [progress, setProgress] = useState<AlignProgressEvent | null>(null)
@@ -220,6 +224,7 @@ export function AlignBooksForm() {
   async function handleAlign() {
     if (!srcBook || !tgtBook) return
     setIsAligning(true)
+    setIsSavingAlignment(false)
     setProgress(null)
     setTruncationWarning(null)
 
@@ -227,10 +232,18 @@ export function AlignBooksForm() {
 
     let isCancelled = false
     let workerCancel: (() => void) | null = null
+    let rejectCancellation: ((reason: DOMException) => void) | null = null
+    const cancellation = new Promise<never>((_, reject) => {
+      rejectCancellation = reject
+    })
 
     cancelRef.current = () => {
+      if (isCancelled) return
       isCancelled = true
       workerCancel?.()
+      rejectCancellation?.(
+        new DOMException("Alignment cancelled.", "AbortError")
+      )
     }
 
     // Auto-download MiniLM L12 when no model is cached yet. Fall back to any
@@ -242,165 +255,209 @@ export function AlignBooksForm() {
       setAutoDownloading(true)
       setAutoDownloadPct(0)
       try {
-        await downloadModel(AUTO_DL_MODEL.id, "auto", (info) => {
-          if (info.status === "progress")
-            setAutoDownloadPct(Math.round(info.progress ?? 0))
-        })
+        await Promise.race([
+          downloadModel(AUTO_DL_MODEL.id, "auto", (info) => {
+            if (!isCancelled && info.status === "progress") {
+              setAutoDownloadPct(Math.round(info.progress ?? 0))
+            }
+          }),
+          cancellation,
+        ])
         setCachedIds((prev) => new Set([...prev, AUTO_DL_MODEL.id]))
         setModelId(AUTO_DL_MODEL.id)
         effectiveModelId = AUTO_DL_MODEL.id
       } catch (downloadError) {
+        if (isCancelled) {
+          cancelRef.current = null
+          setIsAligning(false)
+          return
+        }
         const message = getOperationErrorMessage(
           downloadError,
           "Failed to download model. Check your connection and try again."
         )
         toast.error(t("align.downloadError"), { description: message })
+        cancelRef.current = null
         setIsAligning(false)
-        setAutoDownloading(false)
         return
+      } finally {
+        setAutoDownloading(false)
       }
-      setAutoDownloading(false)
       if (isCancelled) {
+        cancelRef.current = null
         setIsAligning(false)
         return
       }
     }
 
+    const operationDetails: Record<string, boolean | number | string> = {
+      modelId: effectiveModelId,
+      device,
+      phase: "preparing",
+    }
+
     try {
-      const validRules = regexRules.filter((r) => {
-        if (!r.pattern) return false
-        try {
-          new RegExp(r.pattern)
-          return true
-        } catch {
-          return false
-        }
-      })
-
-      const {
-        srcRecords,
-        tgtRecords,
-        srcExcludedRecords,
-        tgtExcludedRecords,
-        srcParas,
-        tgtParas,
-        srcTruncated,
-        tgtTruncated,
-      } = await extractAndSplit({
-        srcBlob: srcBook.fileBlob,
-        srcType: srcBook.type,
-        srcLang,
-        srcBookId: srcBook.id,
-        tgtBlob: tgtBook.fileBlob,
-        tgtType: tgtBook.type,
-        tgtLang,
-        tgtBookId: tgtBook.id,
-        maxSentences,
-        preprocessRules: validRules,
-        onProgress: (e) => setProgress(e),
-      })
-
-      if (srcTruncated || tgtTruncated) {
-        const key =
-          srcTruncated && tgtTruncated
-            ? "align.truncationWarningBoth"
-            : srcTruncated
-              ? "align.truncationWarningSource"
-              : "align.truncationWarningTarget"
-        setTruncationWarning(t(key, { max: maxSentences.toLocaleString() }))
-      }
-
-      if (isCancelled) return
-
-      const alignedPairs = await new Promise<AlignedPair[]>(
-        (resolve, reject) => {
-          const worker = new AlignmentWorker()
-
-          workerCancel = () => {
-            worker.terminate()
-            reject(new DOMException("Alignment cancelled.", "AbortError"))
+      await trackOperation("alignment", operationDetails, async () => {
+        const validRules = regexRules.filter((r) => {
+          if (!r.pattern) return false
+          try {
+            new RegExp(r.pattern)
+            return true
+          } catch {
+            return false
           }
+        })
 
-          worker.onmessage = (e: MessageEvent<AlignWorkerOutput>) => {
-            if (e.data.type === "progress") setProgress(e.data.event)
-            if (e.data.type === "done") {
-              worker.terminate()
-              resolve(e.data.pairs)
-            }
-            if (e.data.type === "error") {
-              worker.terminate()
-              reject(new Error(e.data.message))
-            }
-          }
-
-          worker.onerror = (e) => {
-            worker.terminate()
-            reject(new Error(e.message ?? "Worker error"))
-          }
-
-          console.log(
-            `[PT] align: dispatching | model=${effectiveModelId} | device=${device} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
-          )
-          worker.postMessage({
-            type: "align",
-            params: {
-              srcRecords,
-              tgtRecords,
-              modelId: effectiveModelId,
-              gapPenalty,
-              device,
+        const {
+          srcRecords,
+          tgtRecords,
+          srcExcludedRecords,
+          tgtExcludedRecords,
+          srcParas,
+          tgtParas,
+          srcTruncated,
+          tgtTruncated,
+        } = await Promise.race([
+          extractAndSplit({
+            srcBlob: srcBook.fileBlob,
+            srcType: srcBook.type,
+            srcLang,
+            srcBookId: srcBook.id,
+            tgtBlob: tgtBook.fileBlob,
+            tgtType: tgtBook.type,
+            tgtLang,
+            tgtBookId: tgtBook.id,
+            maxSentences,
+            preprocessRules: validRules,
+            onProgress: (e) => {
+              if (isCancelled) return
+              operationDetails.phase = e.phase
+              setProgress(e)
             },
-          })
+          }),
+          cancellation,
+        ])
+
+        operationDetails.sourceSentenceCount = srcRecords.length
+        operationDetails.targetSentenceCount = tgtRecords.length
+        operationDetails.sourceExcludedSentenceCount = srcExcludedRecords.length
+        operationDetails.targetExcludedSentenceCount = tgtExcludedRecords.length
+
+        if (srcTruncated || tgtTruncated) {
+          const key =
+            srcTruncated && tgtTruncated
+              ? "align.truncationWarningBoth"
+              : srcTruncated
+                ? "align.truncationWarningSource"
+                : "align.truncationWarningTarget"
+          setTruncationWarning(t(key, { max: maxSentences.toLocaleString() }))
         }
-      )
-      const pairs = mergeExcludedIntoPairs(
-        alignedPairs,
-        srcExcludedRecords,
-        tgtExcludedRecords
-      )
 
-      const { aligned_count, src_gap_count, tgt_gap_count, excluded_count } =
-        computeAlignmentStats(pairs)
+        if (isCancelled) {
+          operationDetails.phase = "cancelled"
+          throw new DOMException("Alignment cancelled.", "AbortError")
+        }
 
-      const result: AlignmentResult = {
-        pairs,
-        src_lang: srcLang,
-        tgt_lang: tgtLang,
-        total_src_sentences: srcRecords.length + srcExcludedRecords.length,
-        total_tgt_sentences: tgtRecords.length + tgtExcludedRecords.length,
-        aligned_count,
-        src_gap_count,
-        tgt_gap_count,
-        excluded_count,
-        source_paragraphs: srcParas,
-        target_paragraphs: tgtParas,
-      }
+        operationDetails.phase = "embedding_source"
+        const alignedPairs = await new Promise<AlignedPair[]>(
+          (resolve, reject) => {
+            const worker = new AlignmentWorker()
 
-      const meta: AlignmentMeta = {
-        modelId: effectiveModelId,
-        device,
-        dtype: "fp32",
-        durationMs: Date.now() - alignStart,
-      }
+            workerCancel = () => {
+              worker.terminate()
+              reject(new DOMException("Alignment cancelled.", "AbortError"))
+            }
 
-      const id = await addAlignment(
-        srcBook.id,
-        tgtBook.id,
-        srcBook.title,
-        tgtBook.title,
-        result,
-        meta
-      )
+            worker.onmessage = (e: MessageEvent<AlignWorkerOutput>) => {
+              if (e.data.type === "progress") {
+                operationDetails.phase = e.data.event.phase
+                setProgress(e.data.event)
+              }
+              if (e.data.type === "done") {
+                worker.terminate()
+                resolve(e.data.pairs)
+              }
+              if (e.data.type === "error") {
+                worker.terminate()
+                reject(new Error(e.data.message))
+              }
+            }
 
-      navigate({
-        to: "/alignment/$id",
-        params: { id },
-        search: {
-          view: undefined,
-          pageNumHidden: undefined,
-          charCount: 0,
-          totalChars: 0,
-        },
+            worker.onerror = (e) => {
+              worker.terminate()
+              reject(new Error(e.message ?? "Worker error"))
+            }
+
+            console.log(
+              `[PT] align: dispatching | model=${effectiveModelId} | device=${device} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
+            )
+            worker.postMessage({
+              type: "align",
+              params: {
+                srcRecords,
+                tgtRecords,
+                modelId: effectiveModelId,
+                gapPenalty,
+                device,
+              },
+            })
+          }
+        )
+        const pairs = mergeExcludedIntoPairs(
+          alignedPairs,
+          srcExcludedRecords,
+          tgtExcludedRecords
+        )
+        operationDetails.pairCount = pairs.length
+
+        const { aligned_count, src_gap_count, tgt_gap_count, excluded_count } =
+          computeAlignmentStats(pairs)
+
+        const result: AlignmentResult = {
+          pairs,
+          src_lang: srcLang,
+          tgt_lang: tgtLang,
+          total_src_sentences: srcRecords.length + srcExcludedRecords.length,
+          total_tgt_sentences: tgtRecords.length + tgtExcludedRecords.length,
+          aligned_count,
+          src_gap_count,
+          tgt_gap_count,
+          excluded_count,
+          source_paragraphs: srcParas,
+          target_paragraphs: tgtParas,
+        }
+
+        const meta: AlignmentMeta = {
+          modelId: effectiveModelId,
+          device,
+          dtype: "fp32",
+          durationMs: Date.now() - alignStart,
+        }
+
+        operationDetails.phase = "saving"
+        workerCancel = null
+        cancelRef.current = null
+        setIsSavingAlignment(true)
+        const id = await addAlignment(
+          srcBook.id,
+          tgtBook.id,
+          srcBook.title,
+          tgtBook.title,
+          result,
+          meta
+        )
+
+        navigate({
+          to: "/alignment/$id",
+          params: { id },
+          search: {
+            view: undefined,
+            pageNumHidden: undefined,
+            charCount: 0,
+            totalChars: 0,
+          },
+        })
+        operationDetails.phase = "completed"
       })
     } catch (err) {
       if (!isCancelled) {
@@ -410,6 +467,7 @@ export function AlignBooksForm() {
     } finally {
       cancelRef.current = null
       setIsAligning(false)
+      setIsSavingAlignment(false)
       setProgress(null)
     }
   }
@@ -764,7 +822,7 @@ export function AlignBooksForm() {
                 : t("align.aligning")
               : t("align.title")}
           </Button>
-          {isAligning && (
+          {isAligning && !isSavingAlignment && (
             <Button variant="outline" onClick={handleCancel}>
               {t("align.cancel")}
             </Button>

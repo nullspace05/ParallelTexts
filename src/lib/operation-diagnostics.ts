@@ -31,6 +31,11 @@ export async function withTimeout<T>(
 }
 
 type OperationDetails = Record<string, boolean | number | string | undefined>
+type OperationStatus = "started" | "completed" | "failed" | "cancelled"
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError"
+}
 
 function errorDetails(error: unknown): OperationDetails {
   if (error instanceof Error) {
@@ -59,7 +64,7 @@ function errorDetails(error: unknown): OperationDetails {
 
 function captureOperation(
   operation: string,
-  status: "started" | "completed" | "failed",
+  status: OperationStatus,
   details: OperationDetails = {}
 ) {
   if (typeof window === "undefined") return
@@ -82,10 +87,11 @@ export async function trackOperation<T>(
     })
     return result
   } catch (error) {
-    captureOperation(operation, "failed", {
+    const status = isAbortError(error) ? "cancelled" : "failed"
+    captureOperation(operation, status, {
       ...details,
       durationMs: Date.now() - startedAt,
-      ...errorDetails(error),
+      ...(status === "failed" ? errorDetails(error) : {}),
     })
     throw error
   }

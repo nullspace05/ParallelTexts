@@ -56,6 +56,13 @@ function configureModelEnv() {
 let extractorPromise: Promise<FeatureExtractionPipeline> | null = null
 let loadedModelId: string | null = null
 let loadedDevice: string | null = null
+const inFlightDownloads = new Map<
+  string,
+  {
+    promise: Promise<void>
+    progressCallbacks: Set<ProgressCallback>
+  }
+>()
 
 export function loadExtractor(
   modelId = DEFAULT_MODEL_ID,
@@ -102,17 +109,43 @@ export async function downloadModel(
 ): Promise<void> {
   configureModelEnv()
   const resolvedDevice = isBrowser ? resolveDevice(device) : "cpu"
-  await trackOperation("model_download", { modelId, resolvedDevice }, () =>
-    withTimeout(
-      "Model download",
-      6 * 60_000,
-      pipeline("feature-extraction", modelId, {
-        device: resolvedDevice,
-        dtype: "fp32",
-        progress_callback,
-      })
-    )
+  const downloadKey = `${modelId}:${resolvedDevice}`
+  const existingDownload = inFlightDownloads.get(downloadKey)
+
+  if (existingDownload) {
+    if (progress_callback) {
+      existingDownload.progressCallbacks.add(progress_callback)
+    }
+    return existingDownload.promise
+  }
+
+  const progressCallbacks = new Set<ProgressCallback>()
+  if (progress_callback) progressCallbacks.add(progress_callback)
+
+  const promise = trackOperation(
+    "model_download",
+    { modelId, resolvedDevice },
+    () =>
+      withTimeout(
+        "Model download",
+        6 * 60_000,
+        pipeline("feature-extraction", modelId, {
+          device: resolvedDevice,
+          dtype: "fp32",
+          progress_callback: (info) => {
+            for (const callback of progressCallbacks) callback(info)
+          },
+        })
+      )
+  ).then(() => undefined)
+
+  inFlightDownloads.set(downloadKey, { promise, progressCallbacks })
+  void promise.then(
+    () => inFlightDownloads.delete(downloadKey),
+    () => inFlightDownloads.delete(downloadKey)
   )
+
+  return promise
 }
 
 // Cache-API helpers moved to model-cache.ts (no transformers import); still

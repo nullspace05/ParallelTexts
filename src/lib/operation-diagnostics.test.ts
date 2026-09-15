@@ -34,19 +34,63 @@ describe("withTimeout", () => {
 })
 
 describe("trackOperation", () => {
+  it("captures the latest mutable details when an operation completes", async () => {
+    const details: Record<string, boolean | number | string> = {
+      phase: "preparing",
+    }
+
+    await trackOperation("alignment", details, async () => {
+      details.phase = "embedding_source"
+      details.sourceSentenceCount = 42
+    })
+
+    expect(capture).toHaveBeenLastCalledWith("client_operation", {
+      operation: "alignment",
+      status: "completed",
+      durationMs: expect.any(Number),
+      phase: "embedding_source",
+      sourceSentenceCount: 42,
+    })
+  })
+
   it("captures the error name and message", async () => {
     const error = new DOMException("Storage is blocked", "SecurityError")
+    const details: Record<string, boolean | number | string> = {
+      phase: "preparing",
+    }
 
     await expect(
-      trackOperation("book_reader_load", {}, () => Promise.reject(error))
+      trackOperation("book_reader_load", details, async () => {
+        details.phase = "embedding_source"
+        throw error
+      })
     ).rejects.toBe(error)
 
     expect(capture).toHaveBeenLastCalledWith("client_operation", {
       operation: "book_reader_load",
       status: "failed",
       durationMs: expect.any(Number),
+      phase: "embedding_source",
       errorName: "SecurityError",
       errorMessage: "Storage is blocked",
+    })
+  })
+
+  it("records aborted operations as cancelled", async () => {
+    const details: Record<string, boolean | number | string> = {
+      phase: "embedding_source",
+    }
+    const error = new DOMException("Alignment cancelled.", "AbortError")
+
+    await expect(
+      trackOperation("alignment", details, () => Promise.reject(error))
+    ).rejects.toBe(error)
+
+    expect(capture).toHaveBeenLastCalledWith("client_operation", {
+      operation: "alignment",
+      status: "cancelled",
+      durationMs: expect.any(Number),
+      phase: "embedding_source",
     })
   })
 })
