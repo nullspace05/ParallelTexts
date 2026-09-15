@@ -1,7 +1,9 @@
 import {
   DEFAULT_UI_LANGUAGE,
+  dismissWebGPUUnavailableNotice,
   getInitialUiLanguage,
   getStoredUiLanguage,
+  hasDismissedWebGPUUnavailableNotice,
   setStoredUiLanguage,
 } from "@/lib/user-settings"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -47,5 +49,17 @@ describe("UI language preference", () => {
     localStorage.setItem("pt:uiLanguage", "en")
 
     expect(getInitialUiLanguage()).toBe("en")
+  })
+})
+
+describe("WebGPU unavailable notice", () => {
+  it("is not dismissed by default", () => {
+    expect(hasDismissedWebGPUUnavailableNotice()).toBe(false)
+  })
+
+  it("remains dismissed after the user closes it", () => {
+    dismissWebGPUUnavailableNotice()
+
+    expect(hasDismissedWebGPUUnavailableNotice()).toBe(true)
   })
 })

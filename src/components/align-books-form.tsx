@@ -29,10 +29,12 @@ import {
   DEFAULT_GAP_PENALTY,
   GAP_PENALTY_MAX,
   GAP_PENALTY_MIN,
+  dismissWebGPUUnavailableNotice,
   getStoredDevice,
   getStoredGapPenalty,
   getStoredMaxSentences,
   getStoredModelId,
+  hasDismissedWebGPUUnavailableNotice,
 } from "@/lib/user-settings"
 import { addAlignment } from "@/store/alignments"
 import type {
@@ -74,6 +76,8 @@ const PHASE_KEYS: Record<string, string> = {
   computing_similarity: "align.phase.computingSimilarity",
   aligning: "align.phase.aligning",
 }
+
+const WEBGPU_UNAVAILABLE_TOAST_ID = "webgpu-unavailable"
 
 /** Asynchronously extract + split a book to get its sentence count. */
 function useSentenceCount(book: Book | undefined, lang: string) {
@@ -140,6 +144,16 @@ export function AlignBooksForm() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [regexRules, setRegexRules] = useState<RegexRule[]>([])
 
+  function showWebGPUUnavailableToast() {
+    if (hasDismissedWebGPUUnavailableNotice()) return
+
+    toast.message(t("align.webgpuUnavailable"), {
+      id: WEBGPU_UNAVAILABLE_TOAST_ID,
+      description: t("align.webgpuAutoFallbackDescription"),
+      onDismiss: dismissWebGPUUnavailableNotice,
+    })
+  }
+
   // Resolve Auto in a Worker, where inference actually runs. A visible
   // navigator.gpu does not guarantee that Chromium can provide an adapter.
   useEffect(() => {
@@ -174,9 +188,7 @@ export function AlignBooksForm() {
       setDevice(result.available ? "webgpu" : "wasm")
       setIsDeviceReady(true)
       if (!result.available) {
-        toast.message(t("align.webgpuUnavailable"), {
-          description: t("align.webgpuAutoFallbackDescription"),
-        })
+        showWebGPUUnavailableToast()
       }
     }
 
@@ -193,9 +205,7 @@ export function AlignBooksForm() {
       captureWebGPUProbe(result)
       setDevice("wasm")
       setIsDeviceReady(true)
-      toast.message(t("align.webgpuUnavailable"), {
-        description: t("align.webgpuAutoFallbackDescription"),
-      })
+      showWebGPUUnavailableToast()
     }
 
     worker.postMessage({ type: "probe-webgpu" })
@@ -547,9 +557,7 @@ export function AlignBooksForm() {
             phase: String(operationDetails.phase),
             action: "automatic",
           })
-          toast.message(t("align.webgpuUnavailable"), {
-            description: t("align.webgpuAutoFallbackDescription"),
-          })
+          showWebGPUUnavailableToast()
           retryWithWasm = true
         } else if (canRetryWithWasm) {
           const fallbackDetails = {

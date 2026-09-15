@@ -143,6 +143,8 @@ export function setStoredFontSize(n: number): boolean {
 }
 
 const KEY_DEVICE = "pt:device"
+const KEY_WEBGPU_UNAVAILABLE_NOTICE_DISMISSED =
+  "pt:webgpuUnavailableNoticeDismissed:v1"
 
 export function getStoredDevice(): DevicePreference {
   const v = safeGet(KEY_DEVICE)
@@ -152,6 +154,14 @@ export function getStoredDevice(): DevicePreference {
 
 export function setStoredDevice(d: DevicePreference): void {
   safeSet(KEY_DEVICE, d)
+}
+
+export function hasDismissedWebGPUUnavailableNotice(): boolean {
+  return safeGet(KEY_WEBGPU_UNAVAILABLE_NOTICE_DISMISSED) === "1"
+}
+
+export function dismissWebGPUUnavailableNotice(): void {
+  safeSet(KEY_WEBGPU_UNAVAILABLE_NOTICE_DISMISSED, "1")
 }
 
 export type ImageMode = "source" | "target" | "both" | "none"
