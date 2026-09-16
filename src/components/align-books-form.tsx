@@ -1029,7 +1029,7 @@ export function AlignBooksForm() {
 
       {/* ── Align / Cancel buttons ── */}
       <div className="mt-5 space-y-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <Button
             className="w-full sm:w-auto"
             disabled={!canAlign}
@@ -1052,7 +1052,11 @@ export function AlignBooksForm() {
               : t("align.title")}
           </Button>
           {isAligning && !isSavingAlignment && (
-            <Button variant="outline" onClick={handleCancel}>
+            <Button
+              className="w-full sm:w-auto"
+              variant="outline"
+              onClick={handleCancel}
+            >
               {t("align.cancel")}
             </Button>
           )}
