@@ -17,6 +17,11 @@ import {
   setModelRuntimeOverride,
 } from "@/lib/model-runtime"
 import {
+  needsMobileAlignmentWarning,
+  needsMobileComputeWarning,
+  rememberMobileComputeConsent,
+} from "@/lib/mobile-compute-warning"
+import {
   captureWebGPUProbe,
   captureWasmFallback,
   getOperationErrorMessage,
@@ -68,6 +73,7 @@ import { Trans, useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { DevEmbeddingControls } from "./dev-embedding-controls"
 import { LanguageCombobox } from "./language-combobox"
+import { MobileComputeDialog } from "./mobile-compute-dialog"
 import { SampleDot } from "./samples-section"
 import { Button } from "./ui/button"
 
@@ -223,6 +229,14 @@ export function AlignBooksForm() {
   const [cachedIds, setCachedIds] = useState<Set<string>>(new Set())
   const [dlActive, setDlActive] = useState<string | null>(null)
   const [dlProgress, setDlProgress] = useState<Record<string, number>>({})
+  const [mobileComputeAction, setMobileComputeAction] = useState<
+    (() => void) | null
+  >(null)
+  const [mobileComputeModelId, setMobileComputeModelId] = useState<
+    string | null
+  >(null)
+  const [mobileComputeIsAlignment, setMobileComputeIsAlignment] =
+    useState(false)
 
   useEffect(() => {
     Promise.all(
@@ -243,6 +257,45 @@ export function AlignBooksForm() {
   }, [])
 
   const anyModelCached = cachedIds.size > 0
+  const mobileComputeModel = MODEL_REGISTRY.find(
+    (model) => model.id === mobileComputeModelId
+  )
+
+  function requestMobileCompute(
+    requestedModelId: string,
+    action: () => void,
+    isAlignment = false
+  ) {
+    const model = MODEL_REGISTRY.find(
+      (candidate) => candidate.id === requestedModelId
+    )
+    if (
+      !model ||
+      !(isAlignment
+        ? needsMobileAlignmentWarning()
+        : needsMobileComputeWarning(model.sizeMb))
+    ) {
+      action()
+      return
+    }
+
+    setMobileComputeModelId(model.id)
+    setMobileComputeIsAlignment(isAlignment)
+    setMobileComputeAction(() => action)
+  }
+
+  function continueMobileCompute() {
+    if (!mobileComputeModel || !mobileComputeAction) return
+
+    if (!mobileComputeIsAlignment) {
+      rememberMobileComputeConsent(mobileComputeModel.sizeMb)
+    }
+    const action = mobileComputeAction
+    setMobileComputeAction(null)
+    setMobileComputeModelId(null)
+    setMobileComputeIsAlignment(false)
+    action()
+  }
 
   async function handleDownloadModel(id: string) {
     if (!isDeviceReady) return
@@ -728,40 +781,39 @@ export function AlignBooksForm() {
                   const isCached = cachedIds.has(m.id)
 
                   return (
-                    <button
+                    <div
                       key={m.id}
-                      type="button"
-                      onClick={() => isCached && setModelId(m.id)}
-                      disabled={isDownloading}
                       className={`flex-1 rounded-md border px-3 py-2 text-left text-sm transition-colors ${
                         isActive && isCached
                           ? "border-primary bg-primary/10 font-medium text-primary"
                           : `border-border bg-background ${isCached ? "hover:bg-muted" : ""}`
                       } ${isDownloading ? "pointer-events-none" : ""}`}
                     >
-                      <span className="flex items-center gap-1.5">
-                        <span className="font-medium">{m.label}</span>
-                        {m.recommended && (
-                          <span className="rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-                            {t("align.recommended")}
-                          </span>
-                        )}
-                        {isCached && (
-                          <span className="rounded border border-primary/30 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
-                            {t("align.cached")}
-                          </span>
-                        )}
-                      </span>
-                      <span className="block text-xs text-muted-foreground">
-                        {m.description}
-                      </span>
-
-                      {/* Per-model download button */}
+                      <button
+                        type="button"
+                        onClick={() => isCached && setModelId(m.id)}
+                        disabled={!isCached || isDownloading}
+                        className="w-full text-left disabled:cursor-default"
+                      >
+                        <span className="flex items-center gap-1.5">
+                          <span className="font-medium">{m.label}</span>
+                          {m.recommended && (
+                            <span className="rounded bg-primary/15 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
+                              {t("align.recommended")}
+                            </span>
+                          )}
+                          {isCached && (
+                            <span className="rounded border border-primary/30 px-1 py-0.5 text-[10px] font-semibold tracking-wide text-primary uppercase">
+                              {t("align.cached")}
+                            </span>
+                          )}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {m.description}
+                        </span>
+                      </button>
                       {!isCached && (
-                        <div
-                          className="mt-2 border-t border-border/40 pt-2"
-                          onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="mt-2 border-t border-border/40 pt-2">
                           {isDownloading ? (
                             <div className="space-y-1">
                               <div className="h-1 overflow-hidden rounded-full bg-muted-foreground/20">
@@ -778,7 +830,11 @@ export function AlignBooksForm() {
                             <button
                               type="button"
                               disabled={dlActive !== null || !isDeviceReady}
-                              onClick={() => handleDownloadModel(m.id)}
+                              onClick={() =>
+                                requestMobileCompute(m.id, () => {
+                                  void handleDownloadModel(m.id)
+                                })
+                              }
                               className="rounded border border-border px-2 py-0.5 text-[11px] hover:bg-muted disabled:cursor-not-allowed disabled:opacity-40"
                             >
                               {t("align.download")} (~{m.sizeMb} MB)
@@ -786,7 +842,7 @@ export function AlignBooksForm() {
                           )}
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
@@ -977,7 +1033,17 @@ export function AlignBooksForm() {
           <Button
             className="w-full sm:w-auto"
             disabled={!canAlign}
-            onClick={() => void handleAlign()}
+            onClick={() =>
+              requestMobileCompute(
+                anyModelCached
+                  ? modelId || [...cachedIds][0]
+                  : AUTO_DL_MODEL.id,
+                () => {
+                  void handleAlign()
+                },
+                true
+              )
+            }
           >
             {isAligning
               ? autoDownloading
@@ -1013,6 +1079,21 @@ export function AlignBooksForm() {
           </p>
         )}
       </div>
+      {mobileComputeModel && (
+        <MobileComputeDialog
+          open={mobileComputeAction !== null}
+          modelLabel={mobileComputeModel.label}
+          sizeMb={mobileComputeModel.sizeMb}
+          onContinue={continueMobileCompute}
+          onOpenChange={(open) => {
+            if (!open) {
+              setMobileComputeAction(null)
+              setMobileComputeModelId(null)
+              setMobileComputeIsAlignment(false)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }

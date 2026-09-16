@@ -101,6 +101,12 @@
     "readMore": "Read more",
     "mobileNotice": "Best on desktop. Alignment is compute-intensive and works best with a full keyboard and more RAM."
   },
+  "mobileCompute": {
+    "title": "This may not work well on a phone",
+    "description": "{{model}} is about {{size}} MB. Downloading models and aligning books can use a lot of memory, battery, and data. A desktop or laptop is recommended.",
+    "useDesktop": "Use a desktop instead",
+    "tryAnyway": "Try on this device"
+  },
   "books": {
     "empty": "No books uploaded yet.",
     "count_one": "Books ({{count}})",

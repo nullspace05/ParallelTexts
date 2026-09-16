@@ -1,8 +1,13 @@
 import { useTheme } from "@/components/theme-provider"
 import { useLanguage } from "@/components/language-provider"
+import { MobileComputeDialog } from "@/components/mobile-compute-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { db } from "@/lib/db"
+import {
+  needsMobileComputeWarning,
+  rememberMobileComputeConsent,
+} from "@/lib/mobile-compute-warning"
 import { getOperationErrorMessage } from "@/lib/operation-diagnostics"
 import type { Theme } from "@/lib/theme"
 import {
@@ -155,6 +160,12 @@ function SettingsPage() {
   const [webgpuAvailable, setWebgpuAvailable] = useState(false)
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(true)
   const [showIncognitoNotice, setShowIncognitoNotice] = useState(true)
+  const [mobileComputeAction, setMobileComputeAction] = useState<
+    (() => void) | null
+  >(null)
+  const [mobileComputeModelId, setMobileComputeModelId] = useState<
+    string | null
+  >(null)
 
   useEffect(() => {
     setWebgpuAvailable(detectWebGPU())
@@ -164,6 +175,32 @@ function SettingsPage() {
 
   // Download state keyed by modelId.
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
+  const mobileComputeModel = MODEL_REGISTRY.find(
+    (model) => model.id === mobileComputeModelId
+  )
+
+  function requestMobileCompute(requestedModelId: string, action: () => void) {
+    const model = MODEL_REGISTRY.find(
+      (candidate) => candidate.id === requestedModelId
+    )
+    if (!model || !needsMobileComputeWarning(model.sizeMb)) {
+      action()
+      return
+    }
+
+    setMobileComputeModelId(model.id)
+    setMobileComputeAction(() => action)
+  }
+
+  function continueMobileCompute() {
+    if (!mobileComputeModel || !mobileComputeAction) return
+
+    rememberMobileComputeConsent(mobileComputeModel.sizeMb)
+    const action = mobileComputeAction
+    setMobileComputeAction(null)
+    setMobileComputeModelId(null)
+    action()
+  }
 
   // On mount: probe every model for local/cached presence.
   useEffect(() => {
@@ -508,7 +545,11 @@ function SettingsPage() {
                       ) : dl.status === "error" ? (
                         <button
                           type="button"
-                          onClick={() => handleDownload(m.id)}
+                          onClick={() =>
+                            requestMobileCompute(m.id, () => {
+                              void handleDownload(m.id)
+                            })
+                          }
                           className="rounded border border-destructive px-2 py-0.5 text-xs text-destructive hover:bg-destructive/10"
                         >
                           {t("settings.retry")}
@@ -516,7 +557,11 @@ function SettingsPage() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => handleDownload(m.id)}
+                          onClick={() =>
+                            requestMobileCompute(m.id, () => {
+                              void handleDownload(m.id)
+                            })
+                          }
                           className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted"
                         >
                           {t("settings.download")}
@@ -789,6 +834,20 @@ function SettingsPage() {
           </Button>
         )}
       </section>
+      {mobileComputeModel && (
+        <MobileComputeDialog
+          open={mobileComputeAction !== null}
+          modelLabel={mobileComputeModel.label}
+          sizeMb={mobileComputeModel.sizeMb}
+          onContinue={continueMobileCompute}
+          onOpenChange={(open) => {
+            if (!open) {
+              setMobileComputeAction(null)
+              setMobileComputeModelId(null)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
