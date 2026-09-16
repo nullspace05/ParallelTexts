@@ -11,6 +11,7 @@ import {
   ReaderSkeleton,
   type PaginatedReaderHandle,
 } from "@/components/paginated-reader"
+import { ClickableBookImage } from "@/components/clickable-book-image"
 import { ReaderSearch } from "@/components/reader-search"
 import {
   TemporaryHighlightController,
@@ -68,6 +69,7 @@ import type {
   AlignmentMeta,
   AlignmentRecord,
   AlignmentResult,
+  ImageAsset,
 } from "@/types/alignment"
 import type {
   AlignmentSavedSelection,
@@ -1191,6 +1193,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   srcLang,
   tgtLang,
   temporaryHighlights,
+  carouselImages,
   swapped,
 }: {
   para: ParagraphData
@@ -1201,6 +1204,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
   srcLang: string | undefined
   tgtLang: string | undefined
   temporaryHighlights: TemporaryHighlight[]
+  carouselImages: ImageAsset[]
   swapped: boolean
 }) {
   // Local to this paragraph — a pair's source/target spans always live in the
@@ -1230,12 +1234,7 @@ const SideBySideParagraphBlock = memo(function SideBySideParagraphBlock({
       }}
     >
       {para.images.map((img) => (
-        <img
-          key={img.id}
-          src={`data:${img.mime_type};base64,${img.data_base64}`}
-          alt=""
-          className="mx-auto mb-4 max-h-80 max-w-full object-contain"
-        />
+        <ClickableBookImage key={img.id} image={img} images={carouselImages} />
       ))}
       {para.pairs.length > 0 && (
         <div className="grid grid-cols-1 gap-x-10 gap-y-3 sm:grid-cols-2">
@@ -1338,6 +1337,11 @@ function SideBySideView({
 
   const pairNumbers = useMemo(
     () => numberParagraphPairs(paragraphs),
+    [paragraphs]
+  )
+
+  const carouselImages = useMemo(
+    () => paragraphs.flatMap((paragraph) => paragraph.images),
     [paragraphs]
   )
 
@@ -1553,6 +1557,7 @@ function SideBySideView({
             srcLang={srcLang}
             tgtLang={tgtLang}
             temporaryHighlights={savedHighlights}
+            carouselImages={carouselImages}
             swapped={swapped}
           />
         ))}
@@ -1822,6 +1827,7 @@ const ParagraphBlock = memo(
     setOpenKey,
     tgtLang,
     temporaryHighlights,
+    carouselImages,
     swapped,
   }: {
     para: ParagraphData
@@ -1830,6 +1836,7 @@ const ParagraphBlock = memo(
     setOpenKey: (key: string | null) => void
     tgtLang: string | undefined
     temporaryHighlights: TemporaryHighlight[]
+    carouselImages: ImageAsset[]
     swapped: boolean
   }) {
     return (
@@ -1844,11 +1851,10 @@ const ParagraphBlock = memo(
         }}
       >
         {para.images.map((img) => (
-          <img
+          <ClickableBookImage
             key={img.id}
-            src={`data:${img.mime_type};base64,${img.data_base64}`}
-            alt=""
-            className="mx-auto mb-4 max-h-80 max-w-full object-contain"
+            image={img}
+            images={carouselImages}
           />
         ))}
         {para.pairs.length > 0 && (
@@ -1906,10 +1912,11 @@ const ParagraphList = memo(
       paragraphs: ParagraphData[]
       tgtLang?: string
       temporaryHighlights: TemporaryHighlight[]
+      carouselImages: ImageAsset[]
       swapped: boolean
     }
   >(function ParagraphList(
-    { paragraphs, tgtLang, temporaryHighlights, swapped },
+    { paragraphs, tgtLang, temporaryHighlights, carouselImages, swapped },
     ref
   ) {
     const [openKey, setOpenKey] = useState<string | null>(null)
@@ -1930,6 +1937,7 @@ const ParagraphList = memo(
             setOpenKey={setOpenKey}
             tgtLang={tgtLang}
             temporaryHighlights={temporaryHighlights}
+            carouselImages={carouselImages}
             swapped={swapped}
           />
         ))}
@@ -1986,6 +1994,11 @@ function PopoverView({
   const { srcLang, tgtLang } = useMemo(
     () => alignmentLangs(record.result),
     [record.result]
+  )
+
+  const carouselImages = useMemo(
+    () => paragraphs.flatMap((paragraph) => paragraph.images),
+    [paragraphs]
   )
 
   const renderedHighlights = useMemo(
@@ -2218,6 +2231,7 @@ function PopoverView({
             paragraphs={paragraphs}
             tgtLang={tgtLang}
             temporaryHighlights={renderedHighlights}
+            carouselImages={carouselImages}
             swapped={swapped}
           />
         </div>

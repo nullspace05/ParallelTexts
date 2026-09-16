@@ -1,4 +1,3 @@
-import type { SampleImage } from "@/lib/sample-images"
 import { CaretLeftIcon, CaretRightIcon, XIcon } from "@phosphor-icons/react"
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
@@ -29,7 +28,7 @@ export function ImageCarousel({
   initialIndex,
   onClose,
 }: {
-  images: SampleImage[]
+  images: ImageCarouselItem[]
   initialIndex: number
   onClose: () => void
 }) {
@@ -117,4 +116,9 @@ export function ImageCarousel({
       )}
     </div>
   )
+}
+
+export interface ImageCarouselItem {
+  src: string
+  alt: string
 }

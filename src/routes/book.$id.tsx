@@ -3,6 +3,7 @@ import {
   ReaderSkeleton,
   type PaginatedReaderHandle,
 } from "@/components/paginated-reader"
+import { ClickableBookImage } from "@/components/clickable-book-image"
 import { ReaderSearch, type SearchResult } from "@/components/reader-search"
 import {
   TemporaryHighlightController,
@@ -74,6 +75,7 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
   excluded = false,
   onToggleExclude,
   temporaryHighlights = [],
+  carouselImages,
 }: {
   para: SourceParagraph
   pIdx: number
@@ -81,6 +83,7 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
   excluded?: boolean
   onToggleExclude?: (pIdx: number) => void
   temporaryHighlights?: TemporaryHighlight[]
+  carouselImages: ImageAsset[]
 }) {
   const { t } = useTranslation()
 
@@ -109,12 +112,7 @@ const BookParagraphBlock = memo(function BookParagraphBlock({
         </span>
       )}
       {para.images.map((img: ImageAsset) => (
-        <img
-          key={img.id}
-          src={`data:${img.mime_type};base64,${img.data_base64}`}
-          alt=""
-          className="mx-auto mb-4 max-h-80 max-w-full object-contain"
-        />
+        <ClickableBookImage key={img.id} image={img} images={carouselImages} />
       ))}
       {para.text && (
         <p
@@ -353,6 +351,11 @@ function BookReader({
     [focusedSelectionId, paragraphs, savedSelections]
   )
 
+  const carouselImages = useMemo(
+    () => paragraphs?.flatMap((paragraph) => paragraph.images) ?? [],
+    [paragraphs]
+  )
+
   function openSavedSelection(selection: BookSavedSelection) {
     const firstSegment = selection.segments[0]
     if (!firstSegment) return
@@ -518,6 +521,7 @@ function BookReader({
                 excluded={excludedParaIdxs.has(idx)}
                 onToggleExclude={toggleExcludedPara}
                 temporaryHighlights={savedHighlights}
+                carouselImages={carouselImages}
               />
             ))}
           </div>
