@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   canRetryAlignmentWithWasm,
+  shouldRetryModelDownloadWithWasm,
   shouldAutomaticallyRetryWithWasm,
 } from "./webgpu-fallback"
 
@@ -69,6 +70,17 @@ describe("canRetryAlignmentWithWasm", () => {
     ).toBe(true)
   })
 
+  it("recognizes the ONNX Runtime table-index failure from the recording", () => {
+    expect(
+      canRetryAlignmentWithWasm(
+        "webgpu",
+        "model_initialization",
+        new Error("table index is out of bounds"),
+        false
+      )
+    ).toBe(true)
+  })
+
   it("does not offer a second WASM retry", () => {
     expect(
       canRetryAlignmentWithWasm(
@@ -76,6 +88,35 @@ describe("canRetryAlignmentWithWasm", () => {
         "embedding_source",
         new Error("WebGPU device was lost"),
         true
+      )
+    ).toBe(false)
+  })
+})
+
+describe("shouldRetryModelDownloadWithWasm", () => {
+  it("retries the recorded ONNX Runtime failure when Auto chose WebGPU", () => {
+    expect(
+      shouldRetryModelDownloadWithWasm(
+        "auto",
+        "webgpu",
+        new Error("table index is out of bounds")
+      )
+    ).toBe(true)
+  })
+
+  it("does not override an explicit WebGPU choice or non-GPU failure", () => {
+    expect(
+      shouldRetryModelDownloadWithWasm(
+        "webgpu",
+        "webgpu",
+        new Error("table index is out of bounds")
+      )
+    ).toBe(false)
+    expect(
+      shouldRetryModelDownloadWithWasm(
+        "auto",
+        "webgpu",
+        new Error("Failed to fetch")
       )
     ).toBe(false)
   })

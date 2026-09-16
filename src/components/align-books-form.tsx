@@ -13,6 +13,10 @@ import {
   type LanguageOption,
 } from "@/lib/model-languages"
 import {
+  getModelRuntimeOverride,
+  setModelRuntimeOverride,
+} from "@/lib/model-runtime"
+import {
   captureWebGPUProbe,
   captureWasmFallback,
   getOperationErrorMessage,
@@ -246,14 +250,21 @@ export function AlignBooksForm() {
     setDlActive(id)
     setDlProgress((p) => ({ ...p, [id]: 0 }))
     try {
-      await downloadModel(id, device, (info) => {
-        if (info.status === "progress") {
-          setDlProgress((p) => ({
-            ...p,
-            [id]: Math.round(info.progress ?? 0),
-          }))
+      const result = await downloadModel(
+        id,
+        getStoredDevice() === "auto" ? "auto" : device,
+        (info) => {
+          if (info.status === "progress") {
+            setDlProgress((p) => ({
+              ...p,
+              [id]: Math.round(info.progress ?? 0),
+            }))
+          }
         }
-      })
+      )
+      if (result.fellBackToWasm) {
+        toast.message(t("align.modelWasmFallback"))
+      }
       setCachedIds((prev) => new Set([...prev, id]))
       setModelId(id)
     } catch (downloadError) {
@@ -301,7 +312,8 @@ export function AlignBooksForm() {
 
   async function handleAlign(
     runtime: AlignmentRuntime = device,
-    hasRetriedWithWasm = false
+    hasRetriedWithWasm = false,
+    hasDownloadedModel = false
   ) {
     if (!isDeviceReady || !srcBook || !tgtBook) return
     if (alignmentInFlightRef.current) return
@@ -335,29 +347,55 @@ export function AlignBooksForm() {
     let effectiveModelId =
       modelId && cachedIds.has(modelId) ? modelId : [...cachedIds][0]
     if (!anyModelCached) effectiveModelId = AUTO_DL_MODEL.id
+    const devicePreference = getStoredDevice()
+    const runtimeOverride =
+      devicePreference === "auto"
+        ? getModelRuntimeOverride(effectiveModelId)
+        : undefined
+    let effectiveRuntime = runtimeOverride ?? runtime
 
     const operationDetails: Record<string, boolean | number | string> = {
       modelId: effectiveModelId,
-      device: runtime,
-      phase: anyModelCached ? "preparing" : "model_initialization",
+      device: effectiveRuntime,
+      phase:
+        anyModelCached || hasDownloadedModel
+          ? "preparing"
+          : "model_initialization",
     }
-    if (hasRetriedWithWasm) operationDetails.fallbackFrom = "webgpu"
+    if (hasRetriedWithWasm || runtimeOverride === "wasm") {
+      operationDetails.fallbackFrom = "webgpu"
+    }
+    let hasRetriedWithWasmForOperation =
+      hasRetriedWithWasm || effectiveRuntime === "wasm"
     let retryWithWasm = false
 
     try {
       await trackOperation("alignment", operationDetails, async () => {
-        if (!anyModelCached) {
+        if (!anyModelCached && !hasDownloadedModel) {
           setAutoDownloading(true)
           setAutoDownloadPct(0)
           try {
-            await Promise.race([
-              downloadModel(AUTO_DL_MODEL.id, runtime, (info) => {
-                if (!isCancelled && info.status === "progress") {
-                  setAutoDownloadPct(Math.round(info.progress ?? 0))
+            const downloadResult = await Promise.race([
+              downloadModel(
+                AUTO_DL_MODEL.id,
+                getStoredDevice() === "auto" ? "auto" : runtime,
+                (info) => {
+                  if (!isCancelled && info.status === "progress") {
+                    setAutoDownloadPct(Math.round(info.progress ?? 0))
+                  }
                 }
-              }),
+              ),
               cancellation,
             ])
+            if (downloadResult.runtime === "wasm") {
+              effectiveRuntime = "wasm"
+              hasRetriedWithWasmForOperation = true
+              operationDetails.device = "wasm"
+              operationDetails.fallbackFrom = "webgpu"
+            }
+            if (downloadResult.fellBackToWasm) {
+              toast.message(t("align.modelWasmFallback"))
+            }
             setCachedIds((prev) => new Set([...prev, AUTO_DL_MODEL.id]))
             setModelId(AUTO_DL_MODEL.id)
           } finally {
@@ -464,7 +502,7 @@ export function AlignBooksForm() {
             }
 
             console.log(
-              `[PT] align: dispatching | model=${effectiveModelId} | device=${runtime} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
+              `[PT] align: dispatching | model=${effectiveModelId} | device=${effectiveRuntime} | src=${srcRecords.length} | tgt=${tgtRecords.length}`
             )
             worker.postMessage({
               type: "align",
@@ -473,7 +511,7 @@ export function AlignBooksForm() {
                 tgtRecords,
                 modelId: effectiveModelId,
                 gapPenalty,
-                device: runtime,
+                device: effectiveRuntime,
               },
             })
           }
@@ -504,7 +542,7 @@ export function AlignBooksForm() {
 
         const meta: AlignmentMeta = {
           modelId: effectiveModelId,
-          device: runtime,
+          device: effectiveRuntime,
           dtype: "fp32",
           durationMs: Date.now() - alignStart,
         }
@@ -537,31 +575,32 @@ export function AlignBooksForm() {
     } catch (err) {
       if (!isCancelled) {
         const canRetryWithWasm = canRetryAlignmentWithWasm(
-          runtime,
+          effectiveRuntime,
           String(operationDetails.phase),
           err,
-          hasRetriedWithWasm
+          hasRetriedWithWasmForOperation
         )
         if (
           shouldAutomaticallyRetryWithWasm(
-            getStoredDevice() === "auto",
-            runtime,
+            devicePreference === "auto",
+            effectiveRuntime,
             String(operationDetails.phase),
             err,
-            hasRetriedWithWasm
+            hasRetriedWithWasmForOperation
           )
         ) {
           captureWasmFallback({
-            device: runtime,
+            device: effectiveRuntime,
             modelId: effectiveModelId,
             phase: String(operationDetails.phase),
             action: "automatic",
           })
+          setModelRuntimeOverride(effectiveModelId, "wasm")
           showWebGPUUnavailableToast()
           retryWithWasm = true
         } else if (canRetryWithWasm) {
           const fallbackDetails = {
-            device: runtime,
+            device: effectiveRuntime,
             modelId: effectiveModelId,
             phase: String(operationDetails.phase),
           }
@@ -589,7 +628,7 @@ export function AlignBooksForm() {
       setProgress(null)
     }
 
-    if (retryWithWasm) void handleAlign("wasm", true)
+    if (retryWithWasm) void handleAlign("wasm", true, true)
   }
 
   const progressPct =

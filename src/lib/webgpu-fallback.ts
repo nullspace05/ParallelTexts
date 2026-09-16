@@ -6,9 +6,16 @@ const RETRYABLE_WEBGPU_PHASES = new Set([
   "embedding_target",
 ])
 
+const WEBGPU_RUNTIME_ERROR =
+  /webgpu|gpu\s*(?:adapter|device|buffer|validation)|table index is out of bounds/i
+
 function errorText(error: unknown): string {
   if (error instanceof Error) return `${error.name} ${error.message}`
   return typeof error === "string" ? error : ""
+}
+
+function isRetryableWebGPUError(error: unknown): boolean {
+  return WEBGPU_RUNTIME_ERROR.test(errorText(error))
 }
 
 export function canRetryAlignmentWithWasm(
@@ -21,7 +28,24 @@ export function canRetryAlignmentWithWasm(
     runtime === "webgpu" &&
     !hasRetriedWithWasm &&
     RETRYABLE_WEBGPU_PHASES.has(phase) &&
-    /webgpu|gpu\s*(?:adapter|device|buffer|validation)/i.test(errorText(error))
+    isRetryableWebGPUError(error)
+  )
+}
+
+/**
+ * A model "download" initializes an ONNX session too. Retry only when Auto
+ * chose WebGPU, so an explicit WebGPU preference still leaves the choice with
+ * the user.
+ */
+export function shouldRetryModelDownloadWithWasm(
+  requestedDevice: "auto" | "webgpu" | "wasm",
+  resolvedDevice: "webgpu" | "wasm" | "cpu",
+  error: unknown
+): boolean {
+  return (
+    requestedDevice === "auto" &&
+    resolvedDevice === "webgpu" &&
+    isRetryableWebGPUError(error)
   )
 }
 

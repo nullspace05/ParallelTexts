@@ -27,7 +27,10 @@ describe("downloadModel", () => {
     checkCacheStorageForModelDownload.mockReturnValue(new Promise(() => {}))
     pipeline.mockResolvedValue(undefined)
 
-    await expect(downloadModel("test-model", "wasm")).resolves.toBeUndefined()
+    await expect(downloadModel("test-model", "wasm")).resolves.toEqual({
+      runtime: "cpu",
+      fellBackToWasm: false,
+    })
     expect(checkCacheStorageForModelDownload).toHaveBeenCalledOnce()
   })
 
@@ -65,8 +68,8 @@ describe("downloadModel", () => {
 
     resolveDownload!()
     await expect(Promise.all([first, second])).resolves.toEqual([
-      undefined,
-      undefined,
+      { runtime: "cpu", fellBackToWasm: false },
+      { runtime: "cpu", fellBackToWasm: false },
     ])
   })
 
@@ -77,5 +80,39 @@ describe("downloadModel", () => {
     await downloadModel("test-model", "wasm")
 
     expect(pipeline).toHaveBeenCalledTimes(2)
+  })
+
+  it("retries a recorded WebGPU failure with WASM for Auto", async () => {
+    vi.resetModules()
+    vi.stubGlobal("process", undefined)
+    vi.stubGlobal("navigator", { gpu: {} })
+    pipeline
+      .mockRejectedValueOnce(new Error("table index is out of bounds"))
+      .mockResolvedValueOnce(undefined)
+
+    try {
+      const { downloadModel: downloadInBrowser } = await import("./model")
+      const { getModelRuntimeOverride } = await import("@/lib/model-runtime")
+
+      await expect(downloadInBrowser("test-model", "auto")).resolves.toEqual({
+        runtime: "wasm",
+        fellBackToWasm: true,
+      })
+      expect(getModelRuntimeOverride("test-model")).toBe("wasm")
+      expect(pipeline).toHaveBeenNthCalledWith(
+        1,
+        "feature-extraction",
+        "test-model",
+        expect.objectContaining({ device: "webgpu" })
+      )
+      expect(pipeline).toHaveBeenNthCalledWith(
+        2,
+        "feature-extraction",
+        "test-model",
+        expect.objectContaining({ device: "wasm" })
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 })

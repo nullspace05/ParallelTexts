@@ -294,7 +294,7 @@ function SettingsPage() {
       [id]: { status: "downloading", file: "", progress: 0 },
     }))
     try {
-      await downloadModel(id, "auto", (info) => {
+      const result = await downloadModel(id, "auto", (info) => {
         if (info.status === "progress") {
           setDownloads((prev) => ({
             ...prev,
@@ -306,6 +306,9 @@ function SettingsPage() {
           }))
         }
       })
+      if (result.fellBackToWasm) {
+        toast.message(t("settings.modelWasmFallback"))
+      }
       setDownloads((prev) => ({
         ...prev,
         [id]: { status: "done", file: "", progress: 100 },

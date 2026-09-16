@@ -6,7 +6,12 @@ import {
 } from "@huggingface/transformers"
 
 import { checkCacheStorageForModelDownload } from "@/lib/browser-storage"
+import {
+  getModelRuntimeOverride,
+  setModelRuntimeOverride,
+} from "@/lib/model-runtime"
 import { trackOperation, withTimeout } from "@/lib/operation-diagnostics"
+import { shouldRetryModelDownloadWithWasm } from "@/lib/webgpu-fallback"
 import {
   DEFAULT_MODEL_ID,
   resolveDevice,
@@ -60,10 +65,17 @@ let loadedDevice: string | null = null
 const inFlightDownloads = new Map<
   string,
   {
-    promise: Promise<void>
+    promise: Promise<ModelDownloadResult>
     progressCallbacks: Set<ProgressCallback>
   }
 >()
+
+export type ModelDownloadRuntime = "webgpu" | "wasm" | "cpu"
+
+export interface ModelDownloadResult {
+  runtime: ModelDownloadRuntime
+  fellBackToWasm: boolean
+}
 
 export function loadExtractor(
   modelId = DEFAULT_MODEL_ID,
@@ -107,13 +119,17 @@ export async function downloadModel(
   modelId: string,
   device: InferenceDevice = "auto",
   progress_callback?: ProgressCallback
-): Promise<void> {
+): Promise<ModelDownloadResult> {
   configureModelEnv()
   // Cache Storage can stall after a large model write. Start its temporary
   // validation here, not on every route load, and never make it hold up the
   // actual download.
   void checkCacheStorageForModelDownload()
-  const resolvedDevice = isBrowser ? resolveDevice(device) : "cpu"
+  const detectedDevice = isBrowser ? resolveDevice(device) : "cpu"
+  const resolvedDevice =
+    device === "auto"
+      ? (getModelRuntimeOverride(modelId) ?? detectedDevice)
+      : detectedDevice
   const downloadKey = `${modelId}:${resolvedDevice}`
   const existingDownload = inFlightDownloads.get(downloadKey)
 
@@ -127,22 +143,44 @@ export async function downloadModel(
   const progressCallbacks = new Set<ProgressCallback>()
   if (progress_callback) progressCallbacks.add(progress_callback)
 
-  const promise = trackOperation(
-    "model_download",
-    { modelId, resolvedDevice },
-    () =>
-      withTimeout(
-        "Model download",
-        6 * 60_000,
-        pipeline("feature-extraction", modelId, {
-          device: resolvedDevice,
-          dtype: "fp32",
-          progress_callback: (info) => {
-            for (const callback of progressCallbacks) callback(info)
-          },
-        })
-      )
-  ).then(() => undefined)
+  const operationDetails: Record<string, string> = {
+    modelId,
+    requestedDevice: device,
+    resolvedDevice,
+  }
+  const createPipeline = (runtime: ModelDownloadRuntime) =>
+    pipeline("feature-extraction", modelId, {
+      device: runtime,
+      dtype: "fp32",
+      progress_callback: (info) => {
+        for (const callback of progressCallbacks) callback(info)
+      },
+    })
+
+  const promise = trackOperation("model_download", operationDetails, () =>
+    withTimeout(
+      "Model download",
+      6 * 60_000,
+      (async (): Promise<ModelDownloadResult> => {
+        try {
+          await createPipeline(resolvedDevice)
+          return { runtime: resolvedDevice, fellBackToWasm: false }
+        } catch (error) {
+          if (
+            !shouldRetryModelDownloadWithWasm(device, resolvedDevice, error)
+          ) {
+            throw error
+          }
+
+          operationDetails.fallbackFrom = "webgpu"
+          operationDetails.resolvedDevice = "wasm"
+          await createPipeline("wasm")
+          setModelRuntimeOverride(modelId, "wasm")
+          return { runtime: "wasm", fellBackToWasm: true }
+        }
+      })()
+    )
+  )
 
   inFlightDownloads.set(downloadKey, { promise, progressCallbacks })
   void promise.then(
