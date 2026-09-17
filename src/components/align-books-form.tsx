@@ -53,6 +53,10 @@ import type {
 } from "@/types/alignment"
 import type { Book } from "@/types/book"
 import { checkModelCached, downloadModel } from "@/utils/model"
+import {
+  getActiveModelDownloadId,
+  subscribeToModelDownloads,
+} from "@/utils/model-download-state"
 import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
 import type { AlignWorkerOutput } from "@/workers/alignment.worker"
 import AlignmentWorker from "@/workers/alignment.worker?worker"
@@ -68,7 +72,13 @@ import {
 } from "@phosphor-icons/react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import { useLiveQuery } from "dexie-react-hooks"
-import { useEffect, useMemo, useRef, useState } from "react"
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react"
 import { Trans, useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { DevEmbeddingControls } from "./dev-embedding-controls"
@@ -227,8 +237,12 @@ export function AlignBooksForm() {
 
   // Track which models are cached
   const [cachedIds, setCachedIds] = useState<Set<string>>(new Set())
-  const [dlActive, setDlActive] = useState<string | null>(null)
   const [dlProgress, setDlProgress] = useState<Record<string, number>>({})
+  const activeDownloadId = useSyncExternalStore(
+    subscribeToModelDownloads,
+    getActiveModelDownloadId,
+    getActiveModelDownloadId
+  )
   const [mobileComputeAction, setMobileComputeAction] = useState<
     (() => void) | null
   >(null)
@@ -300,7 +314,6 @@ export function AlignBooksForm() {
   async function handleDownloadModel(id: string) {
     if (!isDeviceReady) return
 
-    setDlActive(id)
     setDlProgress((p) => ({ ...p, [id]: 0 }))
     try {
       const result = await downloadModel(
@@ -326,8 +339,6 @@ export function AlignBooksForm() {
         "Could not download the model."
       )
       toast.error(t("align.downloadError"), { description: message })
-    } finally {
-      setDlActive(null)
     }
   }
 
@@ -776,7 +787,9 @@ export function AlignBooksForm() {
               <div className="flex flex-col gap-2 sm:flex-row">
                 {MODEL_REGISTRY.map((m) => {
                   const isActive = modelId === m.id
-                  const isDownloading = dlActive === m.id
+                  const isDownloading = activeDownloadId === m.id
+                  const downloadsLocked =
+                    activeDownloadId !== null && !isDownloading
                   const prog = dlProgress[m.id] ?? 0
                   const isCached = cachedIds.has(m.id)
 
@@ -829,7 +842,7 @@ export function AlignBooksForm() {
                           ) : (
                             <button
                               type="button"
-                              disabled={dlActive !== null || !isDeviceReady}
+                              disabled={downloadsLocked || !isDeviceReady}
                               onClick={() =>
                                 requestMobileCompute(m.id, () => {
                                   void handleDownloadModel(m.id)
@@ -853,12 +866,25 @@ export function AlignBooksForm() {
                     settingsLink: (
                       <Link
                         to="/settings"
-                        className="text-primary underline-offset-2 hover:underline"
+                        onClick={(event) => {
+                          if (activeDownloadId) event.preventDefault()
+                        }}
+                        aria-disabled={activeDownloadId !== null}
+                        className={`text-primary underline-offset-2 hover:underline ${
+                          activeDownloadId
+                            ? "pointer-events-none cursor-not-allowed opacity-45"
+                            : ""
+                        }`}
                       />
                     ),
                   }}
                 />
               </p>
+              {activeDownloadId && (
+                <p className="mt-2 rounded-md border border-primary/30 bg-primary/5 px-2 py-1.5 text-xs text-muted-foreground">
+                  {t("align.downloadInProgress")}
+                </p>
+              )}
             </div>
 
             {/* Max sentences */}

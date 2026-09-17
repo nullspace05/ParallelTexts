@@ -82,6 +82,26 @@ describe("downloadModel", () => {
     expect(pipeline).toHaveBeenCalledTimes(2)
   })
 
+  it("rejects a different model while a download is in progress", async () => {
+    let resolveDownload: () => void
+    pipeline.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveDownload = resolve
+        })
+    )
+
+    const first = downloadModel("first-model", "wasm")
+
+    await expect(downloadModel("second-model", "wasm")).rejects.toThrow(
+      "A download for first-model is already in progress."
+    )
+    expect(pipeline).toHaveBeenCalledTimes(1)
+
+    resolveDownload!()
+    await first
+  })
+
   it("retries a recorded WebGPU failure with WASM for Auto", async () => {
     vi.resetModules()
     vi.stubGlobal("process", undefined)

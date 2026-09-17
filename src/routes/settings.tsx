@@ -39,10 +39,14 @@ import {
   deleteModelFromCache,
   downloadModel,
 } from "@/utils/model"
+import {
+  getActiveModelDownloadId,
+  subscribeToModelDownloads,
+} from "@/utils/model-download-state"
 import { detectWebGPU, MODEL_REGISTRY } from "@/utils/model-registry"
 import { DesktopIcon, MoonIcon, SunIcon } from "@phosphor-icons/react"
 import { createFileRoute } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 
@@ -175,6 +179,11 @@ function SettingsPage() {
 
   // Download state keyed by modelId.
   const [downloads, setDownloads] = useState<Record<string, DownloadState>>({})
+  const activeDownloadId = useSyncExternalStore(
+    subscribeToModelDownloads,
+    getActiveModelDownloadId,
+    getActiveModelDownloadId
+  )
   const mobileComputeModel = MODEL_REGISTRY.find(
     (model) => model.id === mobileComputeModelId
   )
@@ -470,6 +479,11 @@ function SettingsPage() {
         <p className="text-sm text-muted-foreground">
           {t("settings.modelDescription")}
         </p>
+        {activeDownloadId && (
+          <p className="rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-sm text-muted-foreground">
+            {t("settings.downloadInProgress")}
+          </p>
+        )}
         <div className="space-y-2">
           {MODEL_REGISTRY.map((m) => {
             const dl: DownloadState = downloads[m.id] ?? {
@@ -479,6 +493,8 @@ function SettingsPage() {
             }
             const isCached = dl.status === "done"
             const isActive = modelId === m.id && isCached
+            const isDownloading = activeDownloadId === m.id
+            const downloadsLocked = activeDownloadId !== null && !isDownloading
 
             return (
               <div
@@ -538,7 +554,7 @@ function SettingsPage() {
                             {t("settings.delete")}
                           </button>
                         </>
-                      ) : dl.status === "downloading" ? (
+                      ) : isDownloading || dl.status === "downloading" ? (
                         <span className="font-mono text-xs text-muted-foreground tabular-nums">
                           {dl.progress}%
                         </span>
@@ -550,6 +566,7 @@ function SettingsPage() {
                               void handleDownload(m.id)
                             })
                           }
+                          disabled={downloadsLocked}
                           className="rounded border border-destructive px-2 py-0.5 text-xs text-destructive hover:bg-destructive/10"
                         >
                           {t("settings.retry")}
@@ -562,6 +579,7 @@ function SettingsPage() {
                               void handleDownload(m.id)
                             })
                           }
+                          disabled={downloadsLocked}
                           className="rounded border border-border px-2 py-0.5 text-xs hover:bg-muted"
                         >
                           {t("settings.download")}
@@ -571,7 +589,7 @@ function SettingsPage() {
                   </div>
 
                   {/* Progress bar */}
-                  {dl.status === "downloading" && (
+                  {(isDownloading || dl.status === "downloading") && (
                     <>
                       <div className="mt-1 h-1 overflow-hidden rounded-full bg-muted">
                         <div

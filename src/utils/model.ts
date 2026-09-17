@@ -12,6 +12,7 @@ import {
 } from "@/lib/model-runtime"
 import { trackOperation, withTimeout } from "@/lib/operation-diagnostics"
 import { shouldRetryModelDownloadWithWasm } from "@/lib/webgpu-fallback"
+import { setActiveModelDownloadId } from "@/utils/model-download-state"
 import {
   DEFAULT_MODEL_ID,
   resolveDevice,
@@ -62,19 +63,24 @@ function configureModelEnv() {
 let extractorPromise: Promise<FeatureExtractionPipeline> | null = null
 let loadedModelId: string | null = null
 let loadedDevice: string | null = null
-const inFlightDownloads = new Map<
-  string,
-  {
-    promise: Promise<ModelDownloadResult>
-    progressCallbacks: Set<ProgressCallback>
-  }
->()
+let activeDownload: {
+  modelId: string
+  promise: Promise<ModelDownloadResult>
+  progressCallbacks: Set<ProgressCallback>
+} | null = null
 
 export type ModelDownloadRuntime = "webgpu" | "wasm" | "cpu"
 
 export interface ModelDownloadResult {
   runtime: ModelDownloadRuntime
   fellBackToWasm: boolean
+}
+
+export class ModelDownloadInProgressError extends Error {
+  constructor(readonly modelId: string) {
+    super(`A download for ${modelId} is already in progress.`)
+    this.name = "ModelDownloadInProgressError"
+  }
 }
 
 export function loadExtractor(
@@ -130,14 +136,14 @@ export async function downloadModel(
     device === "auto"
       ? (getModelRuntimeOverride(modelId) ?? detectedDevice)
       : detectedDevice
-  const downloadKey = `${modelId}:${resolvedDevice}`
-  const existingDownload = inFlightDownloads.get(downloadKey)
-
-  if (existingDownload) {
-    if (progress_callback) {
-      existingDownload.progressCallbacks.add(progress_callback)
+  if (activeDownload) {
+    if (activeDownload.modelId !== modelId) {
+      throw new ModelDownloadInProgressError(activeDownload.modelId)
     }
-    return existingDownload.promise
+    if (progress_callback) {
+      activeDownload.progressCallbacks.add(progress_callback)
+    }
+    return activeDownload.promise
   }
 
   const progressCallbacks = new Set<ProgressCallback>()
@@ -182,10 +188,17 @@ export async function downloadModel(
     )
   )
 
-  inFlightDownloads.set(downloadKey, { promise, progressCallbacks })
+  activeDownload = { modelId, promise, progressCallbacks }
+  setActiveModelDownloadId(modelId)
   void promise.then(
-    () => inFlightDownloads.delete(downloadKey),
-    () => inFlightDownloads.delete(downloadKey)
+    () => {
+      activeDownload = null
+      setActiveModelDownloadId(null)
+    },
+    () => {
+      activeDownload = null
+      setActiveModelDownloadId(null)
+    }
   )
 
   return promise
