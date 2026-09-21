@@ -442,12 +442,13 @@ export function AlignBooksForm() {
             const downloadResult = await Promise.race([
               downloadModel(
                 AUTO_DL_MODEL.id,
-                getStoredDevice() === "auto" ? "auto" : runtime,
+                devicePreference,
                 (info) => {
                   if (!isCancelled && info.status === "progress") {
                     setAutoDownloadPct(Math.round(info.progress ?? 0))
                   }
-                }
+                },
+                effectiveRuntime
               ),
               cancellation,
             ])

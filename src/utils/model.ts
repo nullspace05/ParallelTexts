@@ -124,7 +124,8 @@ export function loadExtractor(
 export async function downloadModel(
   modelId: string,
   device: InferenceDevice = "auto",
-  progress_callback?: ProgressCallback
+  progress_callback?: ProgressCallback,
+  selectedRuntime?: Exclude<ModelDownloadRuntime, "cpu">
 ): Promise<ModelDownloadResult> {
   configureModelEnv()
   // Cache Storage can stall after a large model write. Start its temporary
@@ -132,10 +133,14 @@ export async function downloadModel(
   // actual download.
   void checkCacheStorageForModelDownload()
   const detectedDevice = isBrowser ? resolveDevice(device) : "cpu"
+  // The alignment form probes WebGPU inside the Worker that will run
+  // inference. Reuse that result when it is available: a visible
+  // navigator.gpu does not guarantee that the main thread can get an adapter.
   const resolvedDevice =
-    device === "auto"
+    selectedRuntime ??
+    (device === "auto"
       ? (getModelRuntimeOverride(modelId) ?? detectedDevice)
-      : detectedDevice
+      : detectedDevice)
   if (activeDownload) {
     if (activeDownload.modelId !== modelId) {
       throw new ModelDownloadInProgressError(activeDownload.modelId)

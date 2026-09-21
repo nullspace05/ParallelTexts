@@ -135,4 +135,26 @@ describe("downloadModel", () => {
       vi.unstubAllGlobals()
     }
   })
+
+  it("uses the Worker-confirmed WASM runtime instead of re-detecting WebGPU", async () => {
+    vi.resetModules()
+    vi.stubGlobal("process", undefined)
+    vi.stubGlobal("navigator", { gpu: {} })
+    pipeline.mockResolvedValue(undefined)
+
+    try {
+      const { downloadModel: downloadInBrowser } = await import("./model")
+
+      await expect(
+        downloadInBrowser("test-model", "auto", undefined, "wasm")
+      ).resolves.toEqual({ runtime: "wasm", fellBackToWasm: false })
+      expect(pipeline).toHaveBeenCalledWith(
+        "feature-extraction",
+        "test-model",
+        expect.objectContaining({ device: "wasm" })
+      )
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })
