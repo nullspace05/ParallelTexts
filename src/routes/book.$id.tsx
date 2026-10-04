@@ -12,6 +12,7 @@ import {
   type TemporaryHighlight,
 } from "@/components/temporary-highlights"
 import { Button } from "@/components/ui/button"
+import { usePageTitle } from "@/lib/document-title"
 import { extractEpubContent } from "@/lib/epub"
 import { detectCjkLang } from "@/lib/lang"
 import { normalizeParagraphs } from "@/lib/paragraphs"
@@ -668,6 +669,8 @@ function BookDetailPage() {
       cancelled = true
     }
   }, [id, loadAttempt])
+
+  usePageTitle(book ? book.title.trim() || book.fileName : null)
 
   function togglePageNum() {
     navigate({ search: (prev) => ({ ...prev, pageNumHidden: !pageNumHidden }) })

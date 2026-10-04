@@ -4,6 +4,7 @@ import {
   searchAlignmentParagraphs,
   type ParagraphData,
 } from "@/lib/alignment-paragraphs"
+import { usePageTitle } from "@/lib/document-title"
 import { EQUIVALENCE_PALETTE } from "@/lib/equivalence-palette"
 import { resolveTextLang } from "@/lib/lang"
 import {
@@ -393,6 +394,8 @@ function AlignmentPage() {
   useEffect(() => {
     if (charCount > 0) setSavedAt(Date.now())
   }, [charCount])
+
+  usePageTitle(record?.sourceBookTitle)
 
   function toggleLineNumbers() {
     setShowLineNumbers((v) => {

@@ -1,4 +1,5 @@
 import { i18n } from "@/i18n/i18n"
+import { applyDocumentTitle } from "@/lib/document-title"
 import {
   getInitialUiLanguage,
   setStoredUiLanguage,
@@ -27,7 +28,7 @@ function setDocumentLanguage(language: UiLanguage) {
 }
 
 function setDocumentMeta() {
-  document.title = i18n.t("meta.title")
+  applyDocumentTitle()
   document
     .querySelector('meta[name="description"]')
     ?.setAttribute("content", i18n.t("meta.description"))
