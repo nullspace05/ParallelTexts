@@ -552,6 +552,13 @@ export const PaginatedReader = forwardRef<
             marginTop: TEXT_PADDING,
             fontSize: `${fontSize}px`,
             lineHeight: 1.75,
+            // U+2026 HORIZONTAL ELLIPSIS (and similar runs of dashes/dots)
+            // is Unicode line-break class IN (inseparable), so a string
+            // like 「…………………… would otherwise stay on one line and bleed
+            // into the next CSS column / page. anywhere only breaks when
+            // the run would overflow, so normal CJK/English wrapping is
+            // unchanged.
+            overflowWrap: "anywhere",
           }}
         >
           {children}
