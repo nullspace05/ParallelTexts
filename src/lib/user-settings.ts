@@ -217,3 +217,30 @@ export function getStoredIncognitoNoticeDismissed(): boolean {
 export function setStoredIncognitoNoticeDismissed(dismissed: boolean): void {
   safeSet(KEY_INCOGNITO_NOTICE_DISMISSED, dismissed ? "1" : "0")
 }
+
+const KEY_HEADER_HIDDEN = "pt:headerHidden"
+
+type HeaderHiddenListener = () => void
+const headerHiddenListeners = new Set<HeaderHiddenListener>()
+
+export function getStoredHeaderHidden(): boolean {
+  return safeGet(KEY_HEADER_HIDDEN) === "1"
+}
+
+/**
+ * Subscribe to same-tab changes of the header visibility pref. Returns an
+ * unsubscribe function.
+ */
+export function subscribeHeaderHidden(
+  listener: HeaderHiddenListener
+): () => void {
+  headerHiddenListeners.add(listener)
+  return () => {
+    headerHiddenListeners.delete(listener)
+  }
+}
+
+export function setStoredHeaderHidden(hidden: boolean): void {
+  safeSet(KEY_HEADER_HIDDEN, hidden ? "1" : "0")
+  for (const listener of headerHiddenListeners) listener()
+}

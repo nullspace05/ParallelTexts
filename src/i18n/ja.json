@@ -71,7 +71,8 @@
     "alignments": "対訳",
     "about": "このアプリについて",
     "settings": "設定",
-    "github": "GitHubでソースを表示"
+    "github": "GitHubでソースを表示",
+    "show": "ナビゲーションを表示"
   },
   "notFound": {
     "heading": "404",

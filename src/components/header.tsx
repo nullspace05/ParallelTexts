@@ -1,5 +1,11 @@
 import { GITHUB_REPO_URL } from "@/lib/site-links"
 import {
+  getStoredHeaderHidden,
+  setStoredHeaderHidden,
+  subscribeHeaderHidden,
+} from "@/lib/user-settings"
+import { cn } from "@/lib/utils"
+import {
   ArrowsLeftRightIcon,
   BooksIcon,
   GearIcon,
@@ -7,7 +13,11 @@ import {
   InfoIcon,
 } from "@phosphor-icons/react"
 import { Link } from "@tanstack/react-router"
-import { type MouseEvent, useSyncExternalStore } from "react"
+import {
+  type KeyboardEvent,
+  type MouseEvent,
+  useSyncExternalStore,
+} from "react"
 import { useTranslation } from "react-i18next"
 import {
   getActiveModelDownloadId,
@@ -22,6 +32,11 @@ const iconLinkClass =
 
 export function Header() {
   const { t } = useTranslation()
+  const hidden = useSyncExternalStore(
+    subscribeHeaderHidden,
+    getStoredHeaderHidden,
+    () => false
+  )
   const activeDownloadId = useSyncExternalStore(
     subscribeToModelDownloads,
     getActiveModelDownloadId,
@@ -35,77 +50,115 @@ export function Header() {
     ? "pointer-events-none cursor-not-allowed opacity-45"
     : ""
 
+  function toggleHidden() {
+    setStoredHeaderHidden(!hidden)
+  }
+
+  function handleSlotClick(event: MouseEvent<HTMLDivElement>) {
+    if (!hidden) {
+      const target = event.target
+      if (target instanceof Element && target.closest("a, button")) {
+        return
+      }
+    }
+    toggleHidden()
+  }
+
+  function handleSlotKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (!hidden) return
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault()
+      toggleHidden()
+    }
+  }
+
   return (
-    <header className="flex items-center justify-between border-b bg-background px-4 py-3 sm:px-8">
-      <div className="flex items-center gap-8 lg:gap-16">
-        <Link
-          to="/"
-          onClick={preventNavigation}
-          aria-disabled={isDownloading}
-          className={`${iconLinkClass} flex items-center gap-2 ${disabledClass}`}
-        >
-          <img
-            src="/favicon.svg"
-            alt=""
-            className="size-[22px] shrink-0 rounded-sm"
-          />
-          <span className="text-sm font-semibold tracking-tight">
-            ParallelTexts
+    <div
+      className="cursor-pointer"
+      onClick={handleSlotClick}
+      onKeyDown={handleSlotKeyDown}
+      role={hidden ? "button" : undefined}
+      tabIndex={hidden ? 0 : undefined}
+      aria-label={hidden ? t("header.show") : undefined}
+    >
+      <header
+        className={cn(
+          "flex items-center justify-between border-b bg-background px-4 py-3 transition-transform duration-200 ease-in-out sm:px-8",
+          hidden && "pointer-events-none -translate-y-full"
+        )}
+        aria-hidden={hidden}
+        inert={hidden || undefined}
+      >
+        <div className="flex items-center gap-8 lg:gap-16">
+          <Link
+            to="/"
+            onClick={preventNavigation}
+            aria-disabled={isDownloading}
+            className={`${iconLinkClass} flex items-center gap-2 ${disabledClass}`}
+          >
+            <img
+              src="/favicon.svg"
+              alt=""
+              className="size-[22px] shrink-0 rounded-sm"
+            />
+            <span className="text-sm font-semibold tracking-tight">
+              ParallelTexts
+            </span>
+          </Link>
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <Link
+              to="/books"
+              onClick={preventNavigation}
+              aria-disabled={isDownloading}
+              className={`${navLinkClass} ${disabledClass}`}
+            >
+              <BooksIcon size={18} />
+              <span className="hidden sm:inline">{t("header.books")}</span>
+            </Link>
+            <Link
+              to="/alignments"
+              onClick={preventNavigation}
+              aria-disabled={isDownloading}
+              className={`${navLinkClass} ${disabledClass}`}
+            >
+              <ArrowsLeftRightIcon size={18} />
+              <span className="hidden sm:inline">{t("header.alignments")}</span>
+            </Link>
+            <Link
+              to="/about"
+              onClick={preventNavigation}
+              aria-disabled={isDownloading}
+              className={`${navLinkClass} ${disabledClass}`}
+            >
+              <InfoIcon size={18} />
+              <span className="hidden sm:inline">{t("header.about")}</span>
+            </Link>
+          </nav>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="hidden font-mono text-xs text-muted-foreground/50 sm:inline">
+            {__COMMIT_HASH__}
           </span>
-        </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
+          <a
+            href={GITHUB_REPO_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t("header.github")}
+            className={iconLinkClass}
+          >
+            <GithubLogoIcon size={22} weight="fill" />
+          </a>
           <Link
-            to="/books"
+            to="/settings"
             onClick={preventNavigation}
             aria-disabled={isDownloading}
-            className={`${navLinkClass} ${disabledClass}`}
+            className={`${iconLinkClass} ${disabledClass}`}
+            aria-label={t("header.settings")}
           >
-            <BooksIcon size={18} />
-            <span className="hidden sm:inline">{t("header.books")}</span>
+            <GearIcon size={22} />
           </Link>
-          <Link
-            to="/alignments"
-            onClick={preventNavigation}
-            aria-disabled={isDownloading}
-            className={`${navLinkClass} ${disabledClass}`}
-          >
-            <ArrowsLeftRightIcon size={18} />
-            <span className="hidden sm:inline">{t("header.alignments")}</span>
-          </Link>
-          <Link
-            to="/about"
-            onClick={preventNavigation}
-            aria-disabled={isDownloading}
-            className={`${navLinkClass} ${disabledClass}`}
-          >
-            <InfoIcon size={18} />
-            <span className="hidden sm:inline">{t("header.about")}</span>
-          </Link>
-        </nav>
-      </div>
-      <div className="flex items-center gap-3">
-        <span className="hidden font-mono text-xs text-muted-foreground/50 sm:inline">
-          {__COMMIT_HASH__}
-        </span>
-        <a
-          href={GITHUB_REPO_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={t("header.github")}
-          className={iconLinkClass}
-        >
-          <GithubLogoIcon size={22} weight="fill" />
-        </a>
-        <Link
-          to="/settings"
-          onClick={preventNavigation}
-          aria-disabled={isDownloading}
-          className={`${iconLinkClass} ${disabledClass}`}
-          aria-label={t("header.settings")}
-        >
-          <GearIcon size={22} />
-        </Link>
-      </div>
-    </header>
+        </div>
+      </header>
+    </div>
   )
 }

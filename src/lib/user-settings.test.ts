@@ -2,8 +2,10 @@ import {
   DEFAULT_UI_LANGUAGE,
   dismissWebGPUUnavailableNotice,
   getInitialUiLanguage,
+  getStoredHeaderHidden,
   getStoredUiLanguage,
   hasDismissedWebGPUUnavailableNotice,
+  setStoredHeaderHidden,
   setStoredUiLanguage,
 } from "@/lib/user-settings"
 import { afterEach, describe, expect, it, vi } from "vitest"
@@ -49,6 +51,22 @@ describe("UI language preference", () => {
     localStorage.setItem("pt:uiLanguage", "en")
 
     expect(getInitialUiLanguage()).toBe("en")
+  })
+})
+
+describe("header visibility preference", () => {
+  it("defaults to shown when no preference is stored", () => {
+    expect(getStoredHeaderHidden()).toBe(false)
+  })
+
+  it("stores and reads a hidden header", () => {
+    setStoredHeaderHidden(true)
+    expect(getStoredHeaderHidden()).toBe(true)
+    expect(localStorage.getItem("pt:headerHidden")).toBe("1")
+
+    setStoredHeaderHidden(false)
+    expect(getStoredHeaderHidden()).toBe(false)
+    expect(localStorage.getItem("pt:headerHidden")).toBe("0")
   })
 })
 

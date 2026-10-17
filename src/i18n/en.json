@@ -71,7 +71,8 @@
     "alignments": "Alignments",
     "about": "About",
     "settings": "Settings",
-    "github": "View source on GitHub"
+    "github": "View source on GitHub",
+    "show": "Show navigation"
   },
   "notFound": {
     "heading": "404",
