@@ -13,11 +13,11 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: false,
-    setupFiles: [resolve(__dirname, "src/i18n/i18n.ts")],
+    setupFiles: [resolve(import.meta.dirname, "src/i18n/i18n.ts")],
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "src"),
+      "@": resolve(import.meta.dirname, "src"),
     },
   },
 })
