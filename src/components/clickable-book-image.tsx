@@ -4,6 +4,7 @@ import {
 } from "@/components/image-carousel"
 import type { ImageAsset } from "@/types/alignment"
 import { useMemo, useState } from "react"
+import { useTranslation } from "react-i18next"
 
 function imageSource(image: ImageAsset): string {
   return `data:${image.mime_type};base64,${image.data_base64}`
@@ -16,6 +17,7 @@ export function ClickableBookImage({
   image: ImageAsset
   images: ImageAsset[]
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const carouselImages = useMemo<ImageCarouselItem[]>(
     () => images.map((asset) => ({ src: imageSource(asset), alt: "" })),
@@ -32,7 +34,7 @@ export function ClickableBookImage({
           setOpen(true)
         }}
         className="mx-auto mb-4 block max-w-full cursor-pointer"
-        aria-label="View image"
+        aria-label={t("reader.viewImage")}
       >
         <img
           src={imageSource(image)}

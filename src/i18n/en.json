@@ -211,6 +211,7 @@
     "go": "Go",
     "showPage": "Show page number",
     "hidePage": "Hide page number",
+    "viewImage": "View image",
     "noResults": "No results",
     "matches_one": "{{count}} match",
     "matches_other": "{{count}} matches",

@@ -211,6 +211,7 @@
     "go": "移動",
     "showPage": "ページ番号を表示",
     "hidePage": "ページ番号を隠す",
+    "viewImage": "画像を表示",
     "noResults": "結果なし",
     "matches_one": "{{count}}件一致",
     "matches_other": "{{count}}件一致",
